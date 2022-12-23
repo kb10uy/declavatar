@@ -1,0 +1,91 @@
+version "1.0"
+
+avatar "avatarname" {
+    animation {
+        shape-group "表情" {
+            mesh "Face"
+            parameter "Expression"
+            prevent mouth=true eyelids=true
+
+            default {
+                shape "ツリ目" 0.5;
+            }
+
+            option "にっこり" {
+                shape "目_笑顔"
+                shape "口_笑顔"
+                shape "眉_笑顔"
+            }
+
+            option "びっくり" {
+                shape "目_瞳小" value=0.5
+                shape "眉_上"
+                shape "口_あ"
+            }
+        }
+
+        shape-switch "胸" {
+            mesh "Face"
+            parameter "Tears"
+            shape "胸大" enabled=1.0 disabled=0.0
+            shape "胸小" enabled=0.0 disabled=1.0
+        }
+
+        object-group "服装" {
+            parameter "Clothes"
+
+            default {
+                object "Stockings" value=true
+                object "Shoes" value=true
+                objectg "Jacket" value=true
+            }
+
+            option "裸足" {
+                object "Stockings" value=false
+                object "Shoes" value=false
+            }
+        }
+
+        object-switch "帽子" {
+            parameter "Cap"
+            object "Cap" enabled=true disabled=false
+        }
+    }
+
+    driver {
+        group "夏" {
+            set target="表情" option="にっこり"
+            set target="服装" option="裸足"
+        }
+    }
+
+    parameter {
+        int "hoge"
+        bool "fuga"
+        float "param1"
+        float "param2"
+    }
+
+    menu {
+        submenu "服装" {
+            button "発光" target="発光"
+
+            // toggle "label" parameter="paramname" value=1
+            toggle "裸足" target="服装" option="裸足"
+
+            radial "Radial Puppet" parameter="hoge"
+
+            two-axis "Two-Axis Puppet" {
+                horizontal "left" "right" parameter="param1"
+                vertical "up" "down" parameter="param2"
+            }
+
+            four-axis "Four-Axis Puppet" {
+                left "left" parameter="param1"
+                right "right" parameter="param2"
+                up "up" parameter="param3"
+                down "down" parameter="param4"
+            }
+        }
+    }
+}
