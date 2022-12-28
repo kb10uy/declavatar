@@ -2,43 +2,28 @@ use crate::decl::{validate_self_node, DeclError, FromNode, FromNodeExt};
 
 use kdl::KdlNode;
 
-pub const NODE_NAME_ANIMATION: &str = "animation";
+pub const NODE_NAME_ANIMATIONS: &str = "animations";
 pub const NODE_NAME_SHAPE_GROUP: &str = "shape-group";
 pub const NODE_NAME_SHAPE_SWITCH: &str = "shape-switch";
 pub const NODE_NAME_OBJECT_GROUP: &str = "object-group";
 pub const NODE_NAME_OBJECT_SWITCH: &str = "object-switch";
 
 /// Animation descriptor. It should has specific structure like below:
-/// ```kdl
-/// animation {
-///     shape-group {}
-///     // ...
-///
-///     shape-switch {}
-///     // ...
-///
-///     object-group {}
-///     // ...
-///
-///     object-switch {}
-///     // ...
-/// }
-/// ```
 #[derive(Debug, Clone)]
-pub struct Animation {
+pub struct Animations {
     elements: Vec<AnimationElement>,
 }
 
-impl FromNode for Animation {
+impl FromNode for Animations {
     type Err = DeclError;
 
     fn from_node(node: &KdlNode) -> Result<Self, Self::Err> {
-        validate_self_node(node, NODE_NAME_ANIMATION)?;
+        validate_self_node(node, NODE_NAME_ANIMATIONS)?;
 
         let mut elements = vec![];
         let children = node
             .children()
-            .ok_or(DeclError::MustHaveChildren(NODE_NAME_ANIMATION.into()))?;
+            .ok_or(DeclError::MustHaveChildren(NODE_NAME_ANIMATIONS.into()))?;
         for child in children.nodes() {
             let child_name = child.name().value();
             let element = match child_name {
@@ -51,7 +36,7 @@ impl FromNode for Animation {
             elements.push(element);
         }
 
-        Ok(Animation { elements })
+        Ok(Animations { elements })
     }
 }
 

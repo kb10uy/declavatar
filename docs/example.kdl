@@ -1,7 +1,7 @@
 version "1.0"
 
 avatar "avatarname" {
-    animation {
+    animations {
         shape-group "表情" {
             mesh "Face"
             parameter "Expression"
@@ -52,14 +52,14 @@ avatar "avatarname" {
         }
     }
 
-    driver {
+    drivers {
         group "夏" {
             set target="表情" option="にっこり"
             set target="服装" option="裸足"
         }
     }
 
-    parameter {
+    parameters {
         int "hoge"
         bool "fuga"
         float "param1"

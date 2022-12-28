@@ -1,14 +1,17 @@
-mod animation;
-mod avatar;
+pub mod animations;
 pub mod document;
-mod driver;
-mod entry;
-mod menu;
+pub mod drivers;
+pub mod menu;
+pub mod parameters;
 
-use std::error::Error;
+use std::{collections::HashMap, error::Error, result::Result as StdResult};
 
-use kdl::KdlNode;
+use kdl::{KdlEntry, KdlNode, KdlValue};
+use semver::{Version, VersionReq};
 use thiserror::Error as ThisError;
+
+/// Result type for decl module.
+pub type Result<T> = StdResult<T, DeclError>;
 
 /// Describes errors in parsing declaration.
 #[derive(Debug, Clone, ThisError, PartialEq, Eq)]
@@ -39,32 +42,119 @@ pub enum DeclError {
 
     #[error("node '{0}' has duplicate")]
     DuplicateNodeFound(&'static str),
+
+    #[error("feature '{feature}' not defined in {current} (required {requirement})")]
+    VersionDoesNotMeet {
+        current: Version,
+        requirement: VersionReq,
+        feature: String,
+    },
+}
+
+/// Indicates that this struct can be constructed from KDL node.
+pub trait DeclNode: Sized {
+    /// Node name for this struct.
+    const NODE_NAME: &'static str;
+
+    /// Version requirement for this node struct.
+    const REQUIRED_VERSION: VersionReq;
+
+    /// Parses the node.
+    fn parse(node: &KdlNode) -> Result<Self>;
 }
 
 /// Parses into a value from KDL node.
-pub trait FromNode: Sized {
-    /// Corresponding error type.
-    type Err: Error;
+pub trait DeclNodeExt {
+    fn parse<T: DeclNode>(&self, version: &Version) -> Result<T>;
+}
 
+impl DeclNodeExt for KdlNode {
+    fn parse<T: DeclNode>(&self, version: &Version) -> Result<T> {
+        if !T::REQUIRED_VERSION.matches(version) {
+            return Err(DeclError::VersionDoesNotMeet {
+                current: version.clone(),
+                requirement: T::REQUIRED_VERSION.clone(),
+                feature: format!("{} node", T::NODE_NAME),
+            });
+        }
+
+        let self_name = self.name().value();
+        if self_name != T::NODE_NAME {
+            return Err(DeclError::IncorrectNodeName(self_name, T::NODE_NAME.into()));
+        }
+
+        T::parse(self)
+    }
+}
+
+/// Parses into a value from KDL entry.
+pub trait FromValue: Sized {
     /// Parses the node.
-    fn from_node(node: &KdlNode) -> Result<Self, Self::Err>;
+    fn from_value(value: &KdlValue) -> Result<Self>;
 }
 
-pub trait FromNodeExt {
-    fn parse<T: FromNode>(&self) -> Result<T, T::Err>;
-}
-
-impl FromNodeExt for KdlNode {
-    fn parse<T: FromNode>(&self) -> Result<T, T::Err> {
-        T::from_node(self)
+impl FromValue for String {
+    fn from_value(value: &KdlValue) -> Result<String> {
+        value
+            .as_string()
+            .map(|s| s.to_string())
+            .ok_or(DeclError::IncorrectType("string"))
     }
 }
 
-/// Validates itself.
-pub fn validate_self_node(node: &KdlNode, name: &'static str) -> Result<(), DeclError> {
-    let node_name = node.name().value();
-    if node_name != name {
-        return Err(DeclError::IncorrectNodeName(name, node_name.into()));
+impl FromValue for i64 {
+    fn from_value(value: &KdlValue) -> Result<i64> {
+        value.as_i64().ok_or(DeclError::IncorrectType("integer"))
     }
-    Ok(())
+}
+
+impl FromValue for f64 {
+    fn from_value(value: &KdlValue) -> Result<f64> {
+        value.as_f64().ok_or(DeclError::IncorrectType("float"))
+    }
+}
+
+impl FromValue for bool {
+    fn from_value(value: &KdlValue) -> Result<bool> {
+        value.as_bool().ok_or(DeclError::IncorrectType("boolean"))
+    }
+}
+
+/// Splits node entries into arguments list and properties map.
+pub fn split_entries(entries: &[KdlEntry]) -> (Vec<&KdlValue>, HashMap<&str, &KdlValue>) {
+    let mut arguments = Vec::new();
+    let mut properties = HashMap::new();
+
+    for entry in entries {
+        if let Some(name) = entry.name() {
+            properties.insert(name.value(), entry.value());
+        } else {
+            arguments.push(entry.value());
+        }
+    }
+
+    (arguments, properties)
+}
+
+/// Gets an argument value from arguments list.
+pub fn get_argument<T: FromValue>(
+    arguments: &[&KdlValue],
+    index: usize,
+    name: &'static str,
+) -> Result<T> {
+    let value = arguments
+        .get(index)
+        .ok_or(DeclError::InsufficientArguments(0, name))?;
+    T::from_value(value)
+}
+
+/// Gets a property value from properties list.
+pub fn get_property<T: FromValue>(
+    properties: &HashMap<&str, &KdlValue>,
+    name: &'static str,
+) -> Result<T> {
+    let value = properties
+        .get(name)
+        .ok_or(DeclError::InsufficientArguments(0, name))?;
+    T::from_value(value)
 }

@@ -1,12 +1,12 @@
 use crate::decl::{
-    avatar::{Avatar, NODE_NAME_AVATAR},
-    entry::{get_argument, split_entries},
-    DeclError, FromNodeExt,
+    animations::Animations, drivers::Drivers, get_argument, split_entries,
+    DeclError, FromNode, FromNodeExt,
 };
 
-use kdl::KdlDocument;
+use kdl::{KdlDocument, KdlNode};
 
 pub const NODE_NAME_VERSION: &str = "version";
+pub const NODE_NAME_AVATAR: &str = "avatar";
 
 #[derive(Debug, Clone)]
 pub struct Document {
@@ -45,5 +45,44 @@ impl Document {
             return Err(DeclError::NodeNotFound(NODE_NAME_AVATAR, "root document"))
         };
         Ok(Document { version, avatar })
+    }
+}
+
+/// Avatar descriptor. It should has specific structure like below:
+#[derive(Debug, Clone)]
+pub struct Avatar {
+    name: String,
+    animations_blocks: Vec<Animations>,
+    drivers_blocks: Vec<Drivers>,
+}
+
+impl FromNode for Avatar {
+    type Err = DeclError;
+
+    fn from_node(node: &KdlNode) -> Result<Self, Self::Err> {
+        validate_self_node(node, NODE_NAME_AVATAR)?;
+
+        let (args, _props) = split_entries(node.entries());
+        let name = get_argument(&args, 0, "name")?;
+
+        let mut animations = vec![];
+        let mut drivers = vec![];
+        let children = node
+            .children()
+            .ok_or(DeclError::MustHaveChildren(NODE_NAME_AVATAR.into()))?;
+        for child in children.nodes() {
+            let child_name = child.name().value();
+            match child_name {
+                NODE_NAME_ANIMATIONS => animations.push(child.parse()?),
+                NODE_NAME_DRIVERS => drivers.push(child.parse()?),
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+            }
+        }
+
+        Ok(Avatar {
+            name,
+            animations_blocks: animations,
+            drivers_blocks: drivers,
+        })
     }
 }

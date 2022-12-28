@@ -1,28 +1,27 @@
 use crate::decl::{
-    entry::{get_argument, split_entries},
-    validate_self_node, DeclError, FromNode, FromNodeExt,
+    get_argument, split_entries, validate_self_node, DeclError, FromNode, FromNodeExt,
 };
 
 use kdl::KdlNode;
 
-pub const NODE_NAME_DRIVE: &str = "driver";
+pub const NODE_NAME_DRIVERS: &str = "drivers";
 pub const NODE_NAME_GROUP: &str = "group";
 
 #[derive(Debug, Clone)]
-pub struct Driver {
-    groups: Vec<Group>,
+pub struct Drivers {
+    groups: Vec<Driver>,
 }
 
-impl FromNode for Driver {
+impl FromNode for Drivers {
     type Err = DeclError;
 
     fn from_node(node: &KdlNode) -> Result<Self, Self::Err> {
-        validate_self_node(node, NODE_NAME_DRIVE)?;
+        validate_self_node(node, NODE_NAME_DRIVERS)?;
 
         let mut groups = vec![];
         let children = node
             .children()
-            .ok_or(DeclError::MustHaveChildren(NODE_NAME_DRIVE.into()))?;
+            .ok_or(DeclError::MustHaveChildren(NODE_NAME_DRIVERS.into()))?;
         for child in children.nodes() {
             let child_name = child.name().value();
             if child_name != NODE_NAME_GROUP {
@@ -31,16 +30,16 @@ impl FromNode for Driver {
             groups.push(child.parse()?);
         }
 
-        Ok(Driver { groups })
+        Ok(Drivers { groups })
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Group {
+pub struct Driver {
     name: String,
 }
 
-impl FromNode for Group {
+impl FromNode for Driver {
     type Err = DeclError;
 
     fn from_node(node: &KdlNode) -> Result<Self, Self::Err> {
@@ -49,6 +48,6 @@ impl FromNode for Group {
         let (args, _props) = split_entries(node.entries());
         let name = get_argument(&args, 0, "name")?;
 
-        Ok(Group { name })
+        Ok(Driver { name })
     }
 }
