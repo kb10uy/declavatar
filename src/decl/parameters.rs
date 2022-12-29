@@ -42,7 +42,7 @@ impl DeclNode for Parameters {
         for child in children {
             let child_name = child.name().value();
             let parameter = match child_name {
-                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => child.parse_multi(version),
+                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => child.parse_multi(version)?,
                 otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.into())),
             };
             parameters.push(parameter);
@@ -77,7 +77,7 @@ impl DeclNode for Parameter {
         let save = try_get_property(props, "save")?.unwrap_or(false);
         let ty = match name {
             NODE_NAME_INT => {
-                let default = try_get_property(props, "default")?.map(|x| x as u8);
+                let default = try_get_property(props, "default")?.map(|x: i64| x as u8);
                 ParameterType::Int(default)
             }
             NODE_NAME_FLOAT => {

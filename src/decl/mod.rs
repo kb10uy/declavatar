@@ -7,14 +7,22 @@ pub mod parameters;
 use std::{collections::HashMap, result::Result as StdResult};
 
 use kdl::{KdlEntry, KdlNode, KdlValue};
-use semver::{Comparator, Error as SemverError, Version, VersionReq};
+use semver::{BuildMetadata, Comparator, Error as SemverError, Prerelease, Version, VersionReq};
 use thiserror::Error as ThisError;
+
+pub const VERSION_REQ_SINCE_1_0: VersionReq = semver_req_since(Version {
+    major: 1,
+    minor: 0,
+    patch: 0,
+    pre: Prerelease::EMPTY,
+    build: BuildMetadata::EMPTY,
+});
 
 /// Result type for decl module.
 pub type Result<T> = StdResult<T, DeclError>;
 
 /// Describes errors in parsing declaration.
-#[derive(Debug, Clone, ThisError, PartialEq, Eq)]
+#[derive(Debug, ThisError)]
 pub enum DeclError {
     /// Incorrect node name detected (internal only).
     #[error("node name is incorrect: expected '{0}', found '{1}'")]
@@ -23,6 +31,10 @@ pub enum DeclError {
     /// Too short arguments for node.
     #[error("node arguments are insufficient: '{1}' (#{0}) needed")]
     InsufficientArguments(usize, &'static str),
+
+    /// Too short properties for node.
+    #[error("node properties are insufficient: '{0}' needed")]
+    InsufficientProperties(&'static str),
 
     /// Wrong type.
     #[error("entry value has incorrect type: expected {0}")]
@@ -108,7 +120,7 @@ impl DeclNodeExt for KdlNode {
         let nodes = match (self.children(), T::CHILDREN_EXISTENCE) {
             (Some(children), Some(true)) => children.nodes(),
             (None, Some(false)) => &[],
-            (children, None) => children.unwrap_or_default(),
+            (children, None) => children.map(|c| c.nodes()).unwrap_or_default(),
 
             (None, Some(true)) => {
                 return Err(DeclError::MustHaveChildren(T::NODE_NAME.into()));
@@ -139,13 +151,13 @@ fn split_entries(entries: &[KdlEntry]) -> (Vec<&KdlValue>, HashMap<&str, &KdlVal
 }
 
 /// Parses into a value from KDL entry.
-pub trait FromValue: Sized {
+pub trait FromValue<'a>: Sized {
     /// Parses the node.
-    fn from_value(value: &KdlValue) -> Result<Self>;
+    fn from_value(value: &'a KdlValue) -> Result<Self>;
 }
 
-impl FromValue for String {
-    fn from_value(value: &KdlValue) -> Result<String> {
+impl<'a> FromValue<'a> for String {
+    fn from_value(value: &'a KdlValue) -> Result<String> {
         value
             .as_string()
             .map(|s| s.to_string())
@@ -153,51 +165,57 @@ impl FromValue for String {
     }
 }
 
-impl FromValue for &str {
-    fn from_value(value: &KdlValue) -> Result<&str> {
+impl<'a> FromValue<'a> for &'a str {
+    fn from_value(value: &'a KdlValue) -> Result<&'a str> {
         value.as_string().ok_or(DeclError::IncorrectType("string"))
     }
 }
 
-impl FromValue for i64 {
-    fn from_value(value: &KdlValue) -> Result<i64> {
+impl<'a> FromValue<'a> for i64 {
+    fn from_value(value: &'a KdlValue) -> Result<i64> {
         value.as_i64().ok_or(DeclError::IncorrectType("integer"))
     }
 }
 
-impl FromValue for f64 {
-    fn from_value(value: &KdlValue) -> Result<f64> {
+impl<'a> FromValue<'a> for f64 {
+    fn from_value(value: &'a KdlValue) -> Result<f64> {
         value.as_f64().ok_or(DeclError::IncorrectType("float"))
     }
 }
 
-impl FromValue for bool {
-    fn from_value(value: &KdlValue) -> Result<bool> {
+impl<'a> FromValue<'a> for bool {
+    fn from_value(value: &'a KdlValue) -> Result<bool> {
         value.as_bool().ok_or(DeclError::IncorrectType("boolean"))
     }
 }
 
 /// Gets an argument value from arguments list.
-pub fn get_argument<T: FromValue>(
-    arguments: &[&KdlValue],
+pub fn get_argument<'a, T: FromValue<'a>>(
+    arguments: &[&'a KdlValue],
     index: usize,
     name: &'static str,
 ) -> Result<T> {
     let value = arguments
         .get(index)
-        .ok_or(DeclError::InsufficientArguments(0, name))?;
+        .ok_or(DeclError::InsufficientArguments(index, name))?;
     T::from_value(value)
 }
 
-/// Gets a property value from properties list.
-pub fn get_property<T: FromValue>(
-    properties: &HashMap<&str, &KdlValue>,
+/// Gets an argument value from arguments list.
+pub fn try_get_argument<'a, T: FromValue<'a>>(
+    arguments: &[&'a KdlValue],
+    index: usize,
     name: &'static str,
-) -> Result<T> {
-    let value = properties
-        .get(name)
-        .ok_or(DeclError::InsufficientArguments(0, name))?;
-    T::from_value(value)
+) -> Result<Option<T>> {
+    arguments.get(index).map(|a| T::from_value(a)).transpose()
+}
+
+/// Gets a property value from properties list.
+pub fn try_get_property<'a, T: FromValue<'a>>(
+    properties: &HashMap<&str, &'a KdlValue>,
+    name: &'static str,
+) -> Result<Option<T>> {
+    properties.get(name).map(|a| T::from_value(a)).transpose()
 }
 
 pub const fn semver_req_since(version: Version) -> VersionReq {
