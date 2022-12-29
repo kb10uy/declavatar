@@ -1,33 +1,39 @@
 use crate::decl::{
-    animations::Animations, drivers::Drivers, get_argument, split_entries,
-    DeclError, FromNode, FromNodeExt,
+    get_argument, split_entries, DeclError, DeclNode, Result, VERSION_REQ_SINCE_1_0,
 };
 
-use kdl::{KdlDocument, KdlNode};
+use std::collections::HashMap;
+
+use kdl::{KdlDocument, KdlNode, KdlValue};
+use semver::{Version, VersionReq};
 
 pub const NODE_NAME_VERSION: &str = "version";
 pub const NODE_NAME_AVATAR: &str = "avatar";
 
+/*
 #[derive(Debug, Clone)]
 pub struct Document {
-    version: String,
+    version: Version,
     avatar: Avatar,
 }
 
 impl Document {
     pub fn parse(document: &KdlDocument) -> Result<Document, DeclError> {
-        let mut version = None;
+        // Detect version
+        let mut nodes = document.nodes();
+        let Some(version_node) = nodes.get(0) else {
+            return Err(DeclError::NodeNotFound(NODE_NAME_VERSION, "root document"))
+        };
+        let (version_args, _) = split_entries(version_node.entries());
+        let version_text = get_argument(&version_args, 0, "version")?;
+        let version = Version::parse(version_text)?;
+
+        // Other nodes
         let mut avatar = None;
-        for node in document.nodes() {
+
+        for node in nodes[1..] {
             let node_name = node.name().value();
             match node_name {
-                NODE_NAME_VERSION => match version {
-                    None => {
-                        let (args, _) = split_entries(node.entries());
-                        version = Some(get_argument(&args, 0, "version")?);
-                    }
-                    _ => return Err(DeclError::DuplicateNodeFound(NODE_NAME_VERSION)),
-                },
                 NODE_NAME_AVATAR => match avatar {
                     None => {
                         avatar = Some(node.parse()?);
@@ -38,9 +44,6 @@ impl Document {
             }
         }
 
-        let Some(version) = version else {
-            return Err(DeclError::NodeNotFound(NODE_NAME_VERSION, "root document"))
-        };
         let Some(avatar) = avatar else {
             return Err(DeclError::NodeNotFound(NODE_NAME_AVATAR, "root document"))
         };
@@ -54,35 +57,46 @@ pub struct Avatar {
     name: String,
     animations_blocks: Vec<Animations>,
     drivers_blocks: Vec<Drivers>,
+    parameters_blocks: Vec<Parameters>,
+    menu_blocks: Vec<Menu>,
 }
 
-impl FromNode for Avatar {
-    type Err = DeclError;
+impl DeclNode for Avatar {
+    const NODE_NAME: &'static str = NODE_NAME_AVATAR;
 
-    fn from_node(node: &KdlNode) -> Result<Self, Self::Err> {
-        validate_self_node(node, NODE_NAME_AVATAR)?;
+    // >= 1.0.0
+    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
 
-        let (args, _props) = split_entries(node.entries());
+    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
+
+    fn parse(
+        args: Vec<&KdlValue>,
+        props: HashMap<&str, &KdlValue>,
+        children: &[KdlNode],
+    ) -> Result<Self> {
         let name = get_argument(&args, 0, "name")?;
 
-        let mut animations = vec![];
-        let mut drivers = vec![];
-        let children = node
-            .children()
-            .ok_or(DeclError::MustHaveChildren(NODE_NAME_AVATAR.into()))?;
-        for child in children.nodes() {
+        let mut animations_blocks = vec![];
+        let mut drivers_blocks = vec![];
+        let mut parameters_blocks = vec![];
+        let mut menu_blocks = vec![];
+
+        for child in children {
             let child_name = child.name().value();
             match child_name {
-                NODE_NAME_ANIMATIONS => animations.push(child.parse()?),
-                NODE_NAME_DRIVERS => drivers.push(child.parse()?),
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                NODE_NAME_ANIMATIONS => animations_blocks.push(child.parse()?),
+                NODE_NAME_DRIVERS => drivers_blocks.push(child.parse()?),
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.into())),
             }
         }
 
         Ok(Avatar {
             name,
-            animations_blocks: animations,
-            drivers_blocks: drivers,
+            animations_blocks,
+            drivers_blocks,
+            parameters_blocks,
+            menu_blocks,
         })
     }
 }
+*/

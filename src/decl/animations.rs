@@ -1,4 +1,4 @@
-use crate::decl::{validate_self_node, DeclError, FromNode, FromNodeExt};
+use crate::decl::{DeclError, DeclNode, DeclNodeExt, VERSION_REQ_SINCE_1_0};
 
 use kdl::KdlNode;
 
@@ -8,6 +8,7 @@ pub const NODE_NAME_SHAPE_SWITCH: &str = "shape-switch";
 pub const NODE_NAME_OBJECT_GROUP: &str = "object-group";
 pub const NODE_NAME_OBJECT_SWITCH: &str = "object-switch";
 
+/*
 /// Animation descriptor. It should has specific structure like below:
 #[derive(Debug, Clone)]
 pub struct Animations {
@@ -91,3 +92,4 @@ impl FromNode for ObjectSwitch {
         Ok(ObjectSwitch {})
     }
 }
+*/

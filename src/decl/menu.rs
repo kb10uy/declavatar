@@ -1,11 +1,9 @@
-use crate::decl::{DeclError, DeclNode, DeclNodeExt, VERSION_REQ_SINCE_1_0};
+use crate::decl::{get_argument, DeclError, DeclNode, DeclNodeExt, VERSION_REQ_SINCE_1_0};
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
 use semver::{Version, VersionReq};
-
-use super::get_argument;
 
 pub const NODE_NAME_MENU: &str = "menu";
 pub const NODE_NAME_SUBMENU: &str = "submenu";

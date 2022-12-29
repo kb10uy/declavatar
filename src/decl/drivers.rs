@@ -1,5 +1,5 @@
 use crate::decl::{
-    get_argument, split_entries, validate_self_node, DeclError, FromNode, FromNodeExt,
+    get_argument, split_entries, DeclError, DeclNode, DeclNodeExt, VERSION_REQ_SINCE_1_0,
 };
 
 use kdl::KdlNode;
@@ -7,6 +7,7 @@ use kdl::KdlNode;
 pub const NODE_NAME_DRIVERS: &str = "drivers";
 pub const NODE_NAME_GROUP: &str = "group";
 
+/*
 #[derive(Debug, Clone)]
 pub struct Drivers {
     groups: Vec<Driver>,
@@ -51,3 +52,4 @@ impl FromNode for Driver {
         Ok(Driver { name })
     }
 }
+*/
