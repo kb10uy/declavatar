@@ -4,10 +4,10 @@ pub mod drivers;
 pub mod menu;
 pub mod parameters;
 
-use std::{collections::HashMap, error::Error, result::Result as StdResult};
+use std::{collections::HashMap, result::Result as StdResult};
 
 use kdl::{KdlEntry, KdlNode, KdlValue};
-use semver::{Version, VersionReq};
+use semver::{Comparator, Error as SemverError, Version, VersionReq};
 use thiserror::Error as ThisError;
 
 /// Result type for decl module.
@@ -49,6 +49,9 @@ pub enum DeclError {
         requirement: VersionReq,
         feature: String,
     },
+
+    #[error("version definition error: {0}")]
+    VersionError(#[from] SemverError),
 }
 
 /// Indicates that this struct can be constructed from KDL node.
@@ -59,17 +62,39 @@ pub trait DeclNode: Sized {
     /// Version requirement for this node struct.
     const REQUIRED_VERSION: VersionReq;
 
+    /// Whether this node should or not have children block.
+    /// When `Some(true)`, it must.
+    /// When `Some(false)`, it must not.
+    /// When `None`, it is arbitrary.
+    const CHILDREN_EXISTENCE: Option<bool>;
+
     /// Parses the node.
-    fn parse(node: &KdlNode) -> Result<Self>;
+    fn parse(
+        version: &Version,
+        name: &str,
+        args: &[&KdlValue],
+        props: &HashMap<&str, &KdlValue>,
+        children: &[KdlNode],
+    ) -> Result<Self>;
 }
 
 /// Parses into a value from KDL node.
 pub trait DeclNodeExt {
     fn parse<T: DeclNode>(&self, version: &Version) -> Result<T>;
+    fn parse_multi<T: DeclNode>(&self, version: &Version) -> Result<T>;
 }
 
 impl DeclNodeExt for KdlNode {
     fn parse<T: DeclNode>(&self, version: &Version) -> Result<T> {
+        let self_name = self.name().value();
+        if self_name != T::NODE_NAME {
+            return Err(DeclError::IncorrectNodeName(self_name, T::NODE_NAME.into()));
+        }
+
+        Self::parse_multi(self, version)
+    }
+
+    fn parse_multi<T: DeclNode>(&self, version: &Version) -> Result<T> {
         if !T::REQUIRED_VERSION.matches(version) {
             return Err(DeclError::VersionDoesNotMeet {
                 current: version.clone(),
@@ -79,12 +104,38 @@ impl DeclNodeExt for KdlNode {
         }
 
         let self_name = self.name().value();
-        if self_name != T::NODE_NAME {
-            return Err(DeclError::IncorrectNodeName(self_name, T::NODE_NAME.into()));
-        }
+        let (args, props) = split_entries(self.entries());
+        let nodes = match (self.children(), T::CHILDREN_EXISTENCE) {
+            (Some(children), Some(true)) => children.nodes(),
+            (None, Some(false)) => &[],
+            (children, None) => children.unwrap_or_default(),
 
-        T::parse(self)
+            (None, Some(true)) => {
+                return Err(DeclError::MustHaveChildren(T::NODE_NAME.into()));
+            }
+            (Some(_), Some(false)) => {
+                return Err(DeclError::InvalidNodeDetected(T::NODE_NAME.into()));
+            }
+        };
+
+        T::parse(version, self_name, &args, &props, nodes)
     }
+}
+
+/// Splits node entries into arguments list and properties map.
+fn split_entries(entries: &[KdlEntry]) -> (Vec<&KdlValue>, HashMap<&str, &KdlValue>) {
+    let mut arguments = Vec::new();
+    let mut properties = HashMap::new();
+
+    for entry in entries {
+        if let Some(name) = entry.name() {
+            properties.insert(name.value(), entry.value());
+        } else {
+            arguments.push(entry.value());
+        }
+    }
+
+    (arguments, properties)
 }
 
 /// Parses into a value from KDL entry.
@@ -99,6 +150,12 @@ impl FromValue for String {
             .as_string()
             .map(|s| s.to_string())
             .ok_or(DeclError::IncorrectType("string"))
+    }
+}
+
+impl FromValue for &str {
+    fn from_value(value: &KdlValue) -> Result<&str> {
+        value.as_string().ok_or(DeclError::IncorrectType("string"))
     }
 }
 
@@ -118,22 +175,6 @@ impl FromValue for bool {
     fn from_value(value: &KdlValue) -> Result<bool> {
         value.as_bool().ok_or(DeclError::IncorrectType("boolean"))
     }
-}
-
-/// Splits node entries into arguments list and properties map.
-pub fn split_entries(entries: &[KdlEntry]) -> (Vec<&KdlValue>, HashMap<&str, &KdlValue>) {
-    let mut arguments = Vec::new();
-    let mut properties = HashMap::new();
-
-    for entry in entries {
-        if let Some(name) = entry.name() {
-            properties.insert(name.value(), entry.value());
-        } else {
-            arguments.push(entry.value());
-        }
-    }
-
-    (arguments, properties)
 }
 
 /// Gets an argument value from arguments list.
@@ -157,4 +198,23 @@ pub fn get_property<T: FromValue>(
         .get(name)
         .ok_or(DeclError::InsufficientArguments(0, name))?;
     T::from_value(value)
+}
+
+pub const fn semver_req_since(version: Version) -> VersionReq {
+    let Version {
+        major,
+        minor,
+        patch,
+        pre,
+        ..
+    } = version;
+    VersionReq {
+        comparators: vec![Comparator {
+            op: semver::Op::GreaterEq,
+            major,
+            minor: Some(minor),
+            patch: Some(patch),
+            pre,
+        }],
+    }
 }
