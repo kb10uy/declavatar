@@ -156,6 +156,12 @@ pub trait FromValue<'a>: Sized {
     fn from_value(value: &'a KdlValue) -> Result<Self>;
 }
 
+impl<'a> FromValue<'a> for &'a KdlValue {
+    fn from_value(value: &'a KdlValue) -> Result<&'a KdlValue> {
+        Ok(value)
+    }
+}
+
 impl<'a> FromValue<'a> for String {
     fn from_value(value: &'a KdlValue) -> Result<String> {
         value
@@ -208,6 +214,17 @@ pub fn try_get_argument<'a, T: FromValue<'a>>(
     name: &'static str,
 ) -> Result<Option<T>> {
     arguments.get(index).map(|a| T::from_value(a)).transpose()
+}
+
+/// Gets a property value from properties list.
+pub fn get_property<'a, T: FromValue<'a>>(
+    properties: &HashMap<&str, &'a KdlValue>,
+    name: &'static str,
+) -> Result<T> {
+    let value = properties
+        .get(name)
+        .ok_or(DeclError::InsufficientProperties(name))?;
+    T::from_value(value)
 }
 
 /// Gets a property value from properties list.

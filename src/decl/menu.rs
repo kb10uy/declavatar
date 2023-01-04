@@ -1,4 +1,7 @@
-use crate::decl::{get_argument, DeclError, DeclNode, DeclNodeExt, VERSION_REQ_SINCE_1_0};
+use crate::decl::{
+    get_argument, get_property, split_entries, try_get_property, DeclError, DeclNode, DeclNodeExt,
+    Result, VERSION_REQ_SINCE_1_0,
+};
 
 use std::collections::HashMap;
 
@@ -12,8 +15,8 @@ pub const NODE_NAME_TOGGLE: &str = "toggle";
 pub const NODE_NAME_RADIAL: &str = "radial";
 pub const NODE_NAME_TWO_AXIS: &str = "two-axis";
 pub const NODE_NAME_FOUR_AXIS: &str = "four-axis";
-pub const NODE_NAME_HORIZONTAL: &str = "four-axis";
-pub const NODE_NAME_VERTICAL: &str = "four-axis";
+pub const NODE_NAME_HORIZONTAL: &str = "horizontal";
+pub const NODE_NAME_VERTICAL: &str = "vertical";
 pub const NODE_NAME_UP: &str = "up";
 pub const NODE_NAME_DOWN: &str = "down";
 pub const NODE_NAME_LEFT: &str = "left";
@@ -44,7 +47,7 @@ impl DeclNode for Menu {
         args: &[&KdlValue],
         props: &HashMap<&str, &kdl::KdlValue>,
         children: &[KdlNode],
-    ) -> super::Result<Self> {
+    ) -> Result<Self> {
         let mut elements = vec![];
         for child in children {
             let child_name = child.name().value();
@@ -89,7 +92,7 @@ impl DeclNode for SubMenu {
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
-    ) -> super::Result<Self> {
+    ) -> Result<Self> {
         let submenu_name = get_argument(args, 0, "name")?;
         let mut elements = vec![];
         for child in children {
@@ -146,8 +149,44 @@ impl DeclNode for Boolean {
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
-    ) -> super::Result<Self> {
-        todo!()
+    ) -> Result<Self> {
+        let name = get_argument(args, 0, "name")?;
+        let toggle = name == NODE_NAME_TOGGLE;
+
+        let target_group = try_get_property(props, "group")?;
+        let target_parameter = try_get_property(props, "parameter")?;
+        let target = match (target_group, target_parameter) {
+            (Some(group), None) => {
+                let option = get_property(props, "option")?;
+                BooleanTarget::Group { group, option }
+            }
+            (None, Some(name)) => {
+                let value: &KdlValue = get_property(props, "option")?;
+                let int_value = value.as_i64();
+                let bool_value = value.as_bool();
+                if let Some(value) = int_value {
+                    BooleanTarget::IntParameter {
+                        name,
+                        value: value as u8,
+                    }
+                } else if let Some(value) = bool_value {
+                    BooleanTarget::BoolParameter { name, value }
+                } else {
+                    return Err(DeclError::IncorrectType("int or bool"));
+                }
+            }
+            _ => {
+                return Err(DeclError::InvalidNodeDetected(
+                    "ambiguous menu parameter".into(),
+                ));
+            }
+        };
+
+        Ok(Boolean {
+            name,
+            toggle,
+            target,
+        })
     }
 }
 
@@ -161,8 +200,8 @@ pub struct Puppet {
 pub enum Axes {
     Radial(String),
     TwoAxis {
-        horizontal: (String, String, String),
-        vertical: (String, String, String),
+        horizontal: (String, (String, String)),
+        vertical: (String, (String, String)),
     },
     FourAxis {
         left: (String, String),
@@ -170,6 +209,61 @@ pub enum Axes {
         up: (String, String),
         down: (String, String),
     },
+}
+
+impl Axes {
+    fn extract_nodes_just<'a>(
+        children: &'a [KdlNode],
+        node_names: &'a [&'a str],
+    ) -> Result<Option<HashMap<&'a str, &'a KdlNode>>> {
+        use std::collections::hash_map::Entry;
+
+        let mut extracted = HashMap::new();
+        for child in children {
+            let child_name = child.name().value();
+            if !node_names.contains(&child_name) {
+                continue;
+            }
+
+            match extracted.entry(child_name) {
+                Entry::Vacant(mut e) => {
+                    e.insert(child);
+                }
+                Entry::Occupied(_) => {
+                    return Err(DeclError::DuplicateNodeFound(child_name.into()));
+                }
+            }
+        }
+
+        if extracted.len() == node_names.len() {
+            Ok(Some(extracted))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn make_two_axis_pair(node: &KdlNode) -> Result<(String, (String, String))> {
+        let (args, props) = split_entries(node.entries());
+
+        let pair = (
+            get_property(&props, "parameter")?,
+            (
+                get_argument(&args, 0, "first_name")?,
+                get_argument(&args, 1, "second_name")?,
+            ),
+        );
+        Ok(pair)
+    }
+
+    fn make_four_axis_pair(node: &KdlNode) -> Result<(String, String)> {
+        let (args, props) = split_entries(node.entries());
+
+        let pair = (
+            get_property(&props, "parameter")?,
+            get_argument(&args, 0, "name")?,
+        );
+        Ok(pair)
+    }
 }
 
 impl DeclNode for Puppet {
@@ -185,7 +279,52 @@ impl DeclNode for Puppet {
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
-    ) -> super::Result<Self> {
-        todo!()
+    ) -> Result<Self> {
+        let puppet_name = get_argument(args, 0, "name")?;
+        let axes = match name {
+            NODE_NAME_RADIAL => {
+                let parameter = get_property(props, "parameter")?;
+                Axes::Radial(parameter)
+            }
+            NODE_NAME_TWO_AXIS => {
+                let axes_children = Axes::extract_nodes_just(
+                    children,
+                    &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
+                )?
+                .ok_or(DeclError::MustHaveChildren("2 axes".into()))?;
+
+                let horizontal = Axes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
+                let vertical = Axes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
+
+                Axes::TwoAxis {
+                    horizontal,
+                    vertical,
+                }
+            }
+            NODE_NAME_FOUR_AXIS => {
+                let axes_children = Axes::extract_nodes_just(
+                    children,
+                    &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
+                )?
+                .ok_or(DeclError::MustHaveChildren("2 axes".into()))?;
+
+                let left = Axes::make_four_axis_pair(axes_children[NODE_NAME_LEFT])?;
+                let right = Axes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT])?;
+                let up = Axes::make_four_axis_pair(axes_children[NODE_NAME_UP])?;
+                let down = Axes::make_four_axis_pair(axes_children[NODE_NAME_DOWN])?;
+
+                Axes::FourAxis {
+                    left,
+                    right,
+                    up,
+                    down,
+                }
+            }
+        };
+
+        Ok(Puppet {
+            name: puppet_name,
+            axes,
+        })
     }
 }
