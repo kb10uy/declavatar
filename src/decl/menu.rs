@@ -131,7 +131,7 @@ pub struct Boolean {
 
 #[derive(Debug, Clone)]
 pub enum BooleanTarget {
-    Group { group: String, option: String },
+    Group { name: String, option: String },
     IntParameter { name: String, value: u8 },
     BoolParameter { name: String, value: bool },
 }
@@ -158,7 +158,7 @@ impl DeclNode for Boolean {
         let target = match (target_group, target_parameter) {
             (Some(group), None) => {
                 let option = get_property(props, "option")?;
-                BooleanTarget::Group { group, option }
+                BooleanTarget::Group { name: group, option }
             }
             (None, Some(name)) => {
                 let value: &KdlValue = get_property(props, "option")?;
