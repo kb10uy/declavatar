@@ -37,7 +37,7 @@ avatar "avatarname" {
             default {
                 object "Stockings" value=true
                 object "Shoes" value=true
-                objectg "Jacket" value=true
+                object "Jacket" value=true
             }
 
             option "裸足" {

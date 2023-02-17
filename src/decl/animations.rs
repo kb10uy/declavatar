@@ -18,7 +18,8 @@ pub const NODE_NAME_PARAMETER: &str = "parameter";
 pub const NODE_NAME_PREVENT: &str = "prevent";
 pub const NODE_NAME_DEFAULT: &str = "default";
 pub const NODE_NAME_OPTION: &str = "option";
-pub const NODE_NAME_SHAPE: &str = "option";
+pub const NODE_NAME_SHAPE: &str = "shape";
+pub const NODE_NAME_OBJECT: &str = "object";
 
 #[derive(Debug, Clone)]
 pub struct Animations {
@@ -115,6 +116,7 @@ impl DeclNode for ShapeGroup {
                 NODE_NAME_OPTION => {
                     options.push(child.parse_multi(version)?);
                 }
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
             }
         }
 
@@ -244,6 +246,7 @@ impl DeclNode for ShapeSwitch {
                         enabled,
                     });
                 }
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
             }
         }
 
@@ -267,7 +270,11 @@ impl DeclNode for ShapeSwitch {
 }
 
 #[derive(Debug, Clone)]
-pub struct ObjectGroup {}
+pub struct ObjectGroup {
+    parameter: String,
+    default_block: Option<ObjectGroupBlock>,
+    options: Vec<ObjectGroupBlock>,
+}
 
 impl DeclNode for ObjectGroup {
     const NODE_NAME: &'static str = NODE_NAME_OBJECT_GROUP;
@@ -283,7 +290,83 @@ impl DeclNode for ObjectGroup {
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
-        todo!()
+        let mut parameter = None;
+        let mut default_block = None;
+        let mut options = vec![];
+
+        for child in children {
+            let child_name = child.name().value();
+            let (child_args, child_props) = split_entries(child.entries());
+            match child_name {
+                NODE_NAME_PARAMETER => {
+                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                }
+                NODE_NAME_DEFAULT => {
+                    default_block = Some(child.parse_multi(version)?);
+                }
+                NODE_NAME_OPTION => {
+                    options.push(child.parse_multi(version)?);
+                }
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+            }
+        }
+
+        let parameter = parameter.ok_or(DeclError::NodeNotFound(
+            NODE_NAME_PARAMETER,
+            NODE_NAME_SHAPE_GROUP,
+        ))?;
+
+        Ok(ObjectGroup {
+            parameter,
+            default_block,
+            options,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjectGroupBlock {
+    name: Option<String>,
+    objects: Vec<(String, Option<bool>)>,
+}
+
+impl DeclNode for ObjectGroupBlock {
+    const NODE_NAME: &'static str = "";
+
+    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
+
+    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
+
+    fn parse(
+        version: &Version,
+        name: &str,
+        args: &[&KdlValue],
+        props: &HashMap<&str, &KdlValue>,
+        children: &[KdlNode],
+    ) -> Result<Self> {
+        let block_name = match name {
+            NODE_NAME_OPTION => Some(get_argument(args, 0, "name")?),
+            NODE_NAME_DEFAULT => None,
+            _ => unreachable!("block type already refined here"),
+        };
+
+        let mut objects = vec![];
+        for child in children {
+            let child_name = child.name().value();
+            if child_name != NODE_NAME_OBJECT {
+                return Err(DeclError::InvalidNodeDetected(child_name.into()));
+            }
+
+            let (child_args, child_props) = split_entries(child.entries());
+            let shape_name = get_argument(&child_args, 0, "object_name")?;
+            let shape_value = try_get_property(&child_props, "value")?;
+            objects.push((shape_name, shape_value));
+        }
+
+        Ok(ObjectGroupBlock {
+            name: block_name,
+            objects,
+        })
     }
 }
 
