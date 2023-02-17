@@ -185,7 +185,20 @@ impl DeclNode for ShapeGroupBlock {
 }
 
 #[derive(Debug, Clone)]
-pub struct ShapeSwitch {}
+pub struct ShapeSwitch {
+    mesh: String,
+    parameter: String,
+    prevent_mouth: Option<bool>,
+    prevent_eyelids: Option<bool>,
+    shapes: Vec<ShapeSwitchPair>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ShapeSwitchPair {
+    shape: String,
+    enabled: Option<f64>,
+    disabled: Option<f64>,
+}
 
 impl DeclNode for ShapeSwitch {
     const NODE_NAME: &'static str = NODE_NAME_SHAPE_SWITCH;
@@ -201,7 +214,55 @@ impl DeclNode for ShapeSwitch {
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
-        todo!()
+        let mut mesh = None;
+        let mut parameter = None;
+        let mut prevent_mouth = None;
+        let mut prevent_eyelids = None;
+        let mut shapes = vec![];
+
+        for child in children {
+            let child_name = child.name().value();
+            let (child_args, child_props) = split_entries(child.entries());
+            match child_name {
+                NODE_NAME_MESH => {
+                    mesh = Some(get_argument(&child_args, 0, "mesh")?);
+                }
+                NODE_NAME_PARAMETER => {
+                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                }
+                NODE_NAME_PREVENT => {
+                    prevent_mouth = try_get_property(&child_props, "mouth")?;
+                    prevent_eyelids = try_get_property(&child_props, "eyelids")?;
+                }
+                NODE_NAME_SHAPE => {
+                    let shape = get_argument(&child_args, 0, "name")?;
+                    let enabled = try_get_property(&child_props, "enabled")?;
+                    let disabled = try_get_property(&child_props, "disabled")?;
+                    shapes.push(ShapeSwitchPair {
+                        shape,
+                        disabled,
+                        enabled,
+                    });
+                }
+            }
+        }
+
+        let mesh = mesh.ok_or(DeclError::NodeNotFound(
+            NODE_NAME_MESH,
+            NODE_NAME_SHAPE_SWITCH,
+        ))?;
+        let parameter = parameter.ok_or(DeclError::NodeNotFound(
+            NODE_NAME_PARAMETER,
+            NODE_NAME_SHAPE_SWITCH,
+        ))?;
+
+        Ok(ShapeSwitch {
+            mesh,
+            parameter,
+            prevent_mouth,
+            prevent_eyelids,
+            shapes,
+        })
     }
 }
 
