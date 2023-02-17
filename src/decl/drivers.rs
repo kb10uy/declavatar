@@ -1,11 +1,9 @@
-use crate::decl::{
-    get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result, VERSION_REQ_SINCE_1_0,
-};
+use crate::decl::{get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result};
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
-use semver::{Version, VersionReq};
+use semver::Version;
 
 use super::get_property;
 
@@ -24,15 +22,13 @@ pub struct Drivers {
 impl DeclNode for Drivers {
     const NODE_NAME: &'static str = NODE_NAME_DRIVERS;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut groups = vec![];
@@ -59,13 +55,11 @@ pub struct Group {
 impl DeclNode for Group {
     const NODE_NAME: &'static str = NODE_NAME_GROUP;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
+        _name: &str,
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
@@ -152,16 +146,14 @@ impl Drive {
 impl DeclNode for Drive {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(false);
 
     fn parse(
-        version: &Version,
+        _version: &Version,
         name: &str,
-        args: &[&KdlValue],
+        _args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
+        _children: &[KdlNode],
     ) -> Result<Self> {
         let drive = match name {
             NODE_NAME_SET => {

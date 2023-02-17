@@ -1,13 +1,11 @@
-use crate::decl::{
-    get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result, VERSION_REQ_SINCE_1_0,
-};
+use crate::decl::{get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result};
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
-use semver::{Version, VersionReq};
+use semver::Version;
 
-pub const NODE_NAME_PARAMETER: &str = "parameter";
+pub const NODE_NAME_PARAMETERS: &str = "parameters";
 pub const NODE_NAME_INT: &str = "int";
 pub const NODE_NAME_FLOAT: &str = "float";
 pub const NODE_NAME_BOOL: &str = "bool";
@@ -25,17 +23,15 @@ impl Parameters {
 }
 
 impl DeclNode for Parameters {
-    const NODE_NAME: &'static str = NODE_NAME_PARAMETER;
-
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
+    const NODE_NAME: &'static str = NODE_NAME_PARAMETERS;
 
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut parameters = vec![];
@@ -62,16 +58,14 @@ pub struct Parameter {
 impl DeclNode for Parameter {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(false);
 
     fn parse(
-        version: &Version,
+        _version: &Version,
         name: &str,
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
+        _children: &[KdlNode],
     ) -> Result<Self> {
         let parameter_name = get_argument(args, 0, "name")?;
         let save = try_get_property(props, "save")?.unwrap_or(false);

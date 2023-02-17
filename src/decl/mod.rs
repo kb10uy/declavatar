@@ -7,16 +7,8 @@ pub mod parameters;
 use std::{collections::HashMap, result::Result as StdResult};
 
 use kdl::{KdlEntry, KdlNode, KdlValue};
-use semver::{BuildMetadata, Comparator, Error as SemverError, Prerelease, Version, VersionReq};
+use semver::{Error as SemverError, Version, VersionReq};
 use thiserror::Error as ThisError;
-
-pub const VERSION_REQ_SINCE_1_0: VersionReq = semver_req_since(Version {
-    major: 1,
-    minor: 0,
-    patch: 0,
-    pre: Prerelease::EMPTY,
-    build: BuildMetadata::EMPTY,
-});
 
 /// Result type for decl module.
 pub type Result<T> = StdResult<T, DeclError>;
@@ -71,9 +63,6 @@ pub trait DeclNode: Sized {
     /// Node name for this struct.
     const NODE_NAME: &'static str;
 
-    /// Version requirement for this node struct.
-    const REQUIRED_VERSION: VersionReq;
-
     /// Whether this node should or not have children block.
     /// When `Some(true)`, it must.
     /// When `Some(false)`, it must not.
@@ -100,21 +89,13 @@ impl DeclNodeExt for KdlNode {
     fn parse<T: DeclNode>(&self, version: &Version) -> Result<T> {
         let self_name = self.name().value();
         if self_name != T::NODE_NAME {
-            return Err(DeclError::IncorrectNodeName(self_name, T::NODE_NAME.into()));
+            return Err(DeclError::IncorrectNodeName(T::NODE_NAME, self_name.into()));
         }
 
         Self::parse_multi(self, version)
     }
 
     fn parse_multi<T: DeclNode>(&self, version: &Version) -> Result<T> {
-        if !T::REQUIRED_VERSION.matches(version) {
-            return Err(DeclError::VersionDoesNotMeet {
-                current: version.clone(),
-                requirement: T::REQUIRED_VERSION.clone(),
-                feature: format!("{} node", T::NODE_NAME),
-            });
-        }
-
         let self_name = self.name().value();
         let (args, props) = split_entries(self.entries());
         let nodes = match (self.children(), T::CHILDREN_EXISTENCE) {
@@ -211,7 +192,6 @@ pub fn get_argument<'a, T: FromValue<'a>>(
 pub fn try_get_argument<'a, T: FromValue<'a>>(
     arguments: &[&'a KdlValue],
     index: usize,
-    name: &'static str,
 ) -> Result<Option<T>> {
     arguments.get(index).map(|a| T::from_value(a)).transpose()
 }
@@ -233,23 +213,4 @@ pub fn try_get_property<'a, T: FromValue<'a>>(
     name: &'static str,
 ) -> Result<Option<T>> {
     properties.get(name).map(|a| T::from_value(a)).transpose()
-}
-
-pub const fn semver_req_since(version: Version) -> VersionReq {
-    let Version {
-        major,
-        minor,
-        patch,
-        pre,
-        ..
-    } = version;
-    VersionReq {
-        comparators: vec![Comparator {
-            op: semver::Op::GreaterEq,
-            major,
-            minor: Some(minor),
-            patch: Some(patch),
-            pre,
-        }],
-    }
 }

@@ -1,12 +1,11 @@
 use crate::decl::{
     get_argument, split_entries, try_get_property, DeclError, DeclNode, DeclNodeExt, Result,
-    VERSION_REQ_SINCE_1_0,
 };
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
-use semver::{Version, VersionReq};
+use semver::Version;
 
 pub const NODE_NAME_ANIMATIONS: &str = "animations";
 pub const NODE_NAME_SHAPE_GROUP: &str = "shape-group";
@@ -29,15 +28,13 @@ pub struct Animations {
 impl DeclNode for Animations {
     const NODE_NAME: &'static str = NODE_NAME_ANIMATIONS;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut elements = vec![];
@@ -78,15 +75,13 @@ pub struct ShapeGroup {
 impl DeclNode for ShapeGroup {
     const NODE_NAME: &'static str = NODE_NAME_SHAPE_GROUP;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut mesh = None;
@@ -149,15 +144,13 @@ pub struct ShapeGroupBlock {
 impl DeclNode for ShapeGroupBlock {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
-        version: &Version,
+        _version: &Version,
         name: &str,
         args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let block_name = match name {
@@ -205,15 +198,13 @@ pub struct ShapeSwitchPair {
 impl DeclNode for ShapeSwitch {
     const NODE_NAME: &'static str = NODE_NAME_SHAPE_SWITCH;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
-        version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _version: &Version,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut mesh = None;
@@ -279,15 +270,13 @@ pub struct ObjectGroup {
 impl DeclNode for ObjectGroup {
     const NODE_NAME: &'static str = NODE_NAME_OBJECT_GROUP;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut parameter = None;
@@ -296,7 +285,7 @@ impl DeclNode for ObjectGroup {
 
         for child in children {
             let child_name = child.name().value();
-            let (child_args, child_props) = split_entries(child.entries());
+            let (child_args, _) = split_entries(child.entries());
             match child_name {
                 NODE_NAME_PARAMETER => {
                     parameter = Some(get_argument(&child_args, 0, "parameter")?);
@@ -333,15 +322,13 @@ pub struct ObjectGroupBlock {
 impl DeclNode for ObjectGroupBlock {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
-        version: &Version,
+        _version: &Version,
         name: &str,
         args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let block_name = match name {
@@ -386,15 +373,13 @@ pub struct ObjectSwitchPair {
 impl DeclNode for ObjectSwitch {
     const NODE_NAME: &'static str = NODE_NAME_OBJECT_SWITCH;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
-        version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _version: &Version,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut parameter = None;

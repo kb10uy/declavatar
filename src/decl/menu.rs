@@ -1,12 +1,12 @@
 use crate::decl::{
     get_argument, get_property, split_entries, try_get_property, DeclError, DeclNode, DeclNodeExt,
-    Result, VERSION_REQ_SINCE_1_0,
+    Result,
 };
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
-use semver::{Version, VersionReq};
+use semver::Version;
 
 pub const NODE_NAME_MENU: &str = "menu";
 pub const NODE_NAME_SUBMENU: &str = "submenu";
@@ -37,15 +37,13 @@ pub enum MenuElement {
 impl DeclNode for Menu {
     const NODE_NAME: &'static str = NODE_NAME_MENU;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &kdl::KdlValue>,
+        _name: &str,
+        _args: &[&KdlValue],
+        _props: &HashMap<&str, &kdl::KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let mut elements = vec![];
@@ -82,15 +80,13 @@ pub struct SubMenu {
 impl DeclNode for SubMenu {
     const NODE_NAME: &'static str = NODE_NAME_SUBMENU;
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(true);
 
     fn parse(
         version: &Version,
-        name: &str,
+        _name: &str,
         args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
+        _props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
         let submenu_name = get_argument(args, 0, "name")?;
@@ -139,16 +135,14 @@ pub enum BooleanTarget {
 impl DeclNode for Boolean {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = Some(false);
 
     fn parse(
-        version: &Version,
-        name: &str,
+        _version: &Version,
+        _name: &str,
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
+        _children: &[KdlNode],
     ) -> Result<Self> {
         let name = get_argument(args, 0, "name")?;
         let toggle = name == NODE_NAME_TOGGLE;
@@ -158,7 +152,10 @@ impl DeclNode for Boolean {
         let target = match (target_group, target_parameter) {
             (Some(group), None) => {
                 let option = get_property(props, "option")?;
-                BooleanTarget::Group { name: group, option }
+                BooleanTarget::Group {
+                    name: group,
+                    option,
+                }
             }
             (None, Some(name)) => {
                 let value: &KdlValue = get_property(props, "option")?;
@@ -214,23 +211,23 @@ pub enum Axes {
 impl Axes {
     fn extract_nodes_just<'a>(
         children: &'a [KdlNode],
-        node_names: &'a [&'a str],
+        node_names: &'a [&'static str],
     ) -> Result<Option<HashMap<&'a str, &'a KdlNode>>> {
         use std::collections::hash_map::Entry;
 
         let mut extracted = HashMap::new();
         for child in children {
             let child_name = child.name().value();
-            if !node_names.contains(&child_name) {
+            let Some(expected_name) = node_names.iter().find(|&&n| n == child_name) else {
                 continue;
-            }
+            };
 
             match extracted.entry(child_name) {
-                Entry::Vacant(mut e) => {
+                Entry::Vacant(e) => {
                     e.insert(child);
                 }
                 Entry::Occupied(_) => {
-                    return Err(DeclError::DuplicateNodeFound(child_name.into()));
+                    return Err(DeclError::DuplicateNodeFound(expected_name));
                 }
             }
         }
@@ -269,12 +266,10 @@ impl Axes {
 impl DeclNode for Puppet {
     const NODE_NAME: &'static str = "";
 
-    const REQUIRED_VERSION: VersionReq = VERSION_REQ_SINCE_1_0;
-
     const CHILDREN_EXISTENCE: Option<bool> = None;
 
     fn parse(
-        version: &Version,
+        _version: &Version,
         name: &str,
         args: &[&KdlValue],
         props: &HashMap<&str, &KdlValue>,
@@ -320,6 +315,7 @@ impl DeclNode for Puppet {
                     down,
                 }
             }
+            _ => unreachable!("axis type already refined"),
         };
 
         Ok(Puppet {
