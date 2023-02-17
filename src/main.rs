@@ -1,6 +1,6 @@
 mod decl;
 
-use crate::decl::document::Document;
+// use crate::decl::document::Document;
 
 use std::{
     env::args,
@@ -29,7 +29,7 @@ fn main() -> MietteResult<()> {
     file.read_to_string(&mut source).into_diagnostic()?;
 
     let kdl: KdlDocument = source.parse()?;
-    let document = Document::parse(&kdl).into_diagnostic()?;
-    println!("{document:?}");
+    // let document = Document::parse(&kdl).into_diagnostic()?;
+    // println!("{document:?}");
     Ok(())
 }

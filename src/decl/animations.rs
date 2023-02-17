@@ -1,6 +1,4 @@
-use crate::decl::{
-    get_argument, split_entries, try_get_property, DeclError, DeclNode, DeclNodeExt, Result,
-};
+use crate::decl::{DeclError, Result};
 
 use std::collections::HashMap;
 
@@ -19,7 +17,7 @@ pub const NODE_NAME_DEFAULT: &str = "default";
 pub const NODE_NAME_OPTION: &str = "option";
 pub const NODE_NAME_SHAPE: &str = "shape";
 pub const NODE_NAME_OBJECT: &str = "object";
-
+/*
 #[derive(Debug, Clone)]
 pub struct Animations {
     elements: Vec<AnimationElement>,
@@ -414,3 +412,4 @@ impl DeclNode for ObjectSwitch {
         Ok(ObjectSwitch { parameter, objects })
     }
 }
+*/

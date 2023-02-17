@@ -1,12 +1,13 @@
+/*
 use crate::decl::{
     animations::{Animations, NODE_NAME_ANIMATIONS},
     drivers::{Drivers, NODE_NAME_DRIVERS},
     get_argument,
     menu::{Menu, NODE_NAME_MENU},
     parameters::{Parameters, NODE_NAME_PARAMETERS},
-    split_entries, DeclError, DeclNode, DeclNodeExt, Result,
+    split_entries, DeclError, Result,
 };
-
+*/
 use std::collections::HashMap;
 
 use kdl::{KdlDocument, KdlNode, KdlValue};
@@ -14,7 +15,7 @@ use semver::Version;
 
 pub const NODE_NAME_VERSION: &str = "version";
 pub const NODE_NAME_AVATAR: &str = "avatar";
-
+/*
 #[derive(Debug, Clone)]
 pub struct Document {
     version: Version,
@@ -103,3 +104,4 @@ impl DeclNode for Avatar {
         })
     }
 }
+*/

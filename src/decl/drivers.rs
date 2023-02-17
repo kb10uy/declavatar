@@ -1,11 +1,9 @@
-use crate::decl::{get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result};
+use crate::decl::{DeclError, Result};
 
 use std::collections::HashMap;
 
 use kdl::{KdlNode, KdlValue};
 use semver::Version;
-
-use super::get_property;
 
 pub const NODE_NAME_DRIVERS: &str = "drivers";
 pub const NODE_NAME_GROUP: &str = "group";
@@ -13,7 +11,7 @@ pub const NODE_NAME_SET: &str = "set";
 pub const NODE_NAME_ADD: &str = "add";
 pub const NODE_NAME_RANDOM: &str = "random";
 pub const NODE_NAME_COPY: &str = "copy";
-
+/*
 #[derive(Debug, Clone)]
 pub struct Drivers {
     groups: Vec<Group>,
@@ -206,3 +204,4 @@ pub enum DriveTarget {
     FloatParameter { name: String, value: f64 },
     BoolParameter { name: String, value: bool },
 }
+*/

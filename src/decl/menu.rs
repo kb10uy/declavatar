@@ -1,7 +1,4 @@
-use crate::decl::{
-    get_argument, get_property, split_entries, try_get_property, DeclError, DeclNode, DeclNodeExt,
-    Result,
-};
+use crate::decl::{DeclError, Result};
 
 use std::collections::HashMap;
 
@@ -21,7 +18,7 @@ pub const NODE_NAME_UP: &str = "up";
 pub const NODE_NAME_DOWN: &str = "down";
 pub const NODE_NAME_LEFT: &str = "left";
 pub const NODE_NAME_RIGHT: &str = "right";
-
+/*
 #[derive(Debug, Clone)]
 pub struct Menu {
     elements: Vec<MenuElement>,
@@ -338,3 +335,4 @@ impl DeclNode for Puppet {
         })
     }
 }
+*/

@@ -1,9 +1,6 @@
-use crate::decl::{get_argument, try_get_property, DeclError, DeclNode, DeclNodeExt, Result};
+use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, Result};
 
-use std::collections::HashMap;
-
-use kdl::{KdlNode, KdlValue};
-use semver::Version;
+use kdl::KdlNode;
 
 pub const NODE_NAME_PARAMETERS: &str = "parameters";
 pub const NODE_NAME_INT: &str = "int";
@@ -16,70 +13,61 @@ pub struct Parameters {
 }
 
 impl Parameters {
-    /// Returns sum of bits consumption in this block.
-    pub fn packed_bits_in_block(&self) -> usize {
-        self.parameters.iter().map(|p| p.ty.packed_bits()).sum()
-    }
-}
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, _, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_PARAMETERS), Some(true))?;
 
-impl DeclNode for Parameters {
-    const NODE_NAME: &'static str = NODE_NAME_PARAMETERS;
-
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut parameters = vec![];
         for child in children {
             let child_name = child.name().value();
             let parameter = match child_name {
-                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => child.parse_multi(version)?,
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.into())),
+                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => {
+                    Parameter::parse(child, source)?
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ))
+                }
             };
             parameters.push(parameter);
         }
 
         Ok(Parameters { parameters })
     }
+
+    /// Returns sum of bits consumption in this block.
+    pub fn packed_bits_in_block(&self) -> usize {
+        self.parameters.iter().map(|p| p.ty.packed_bits()).sum()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Parameter {
     ty: ParameterType,
-    save: bool,
+    save: Option<bool>,
     name: String,
 }
 
-impl DeclNode for Parameter {
-    const NODE_NAME: &'static str = "";
+impl Parameter {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (name, entries, children) = deconstruct_node(source, node, None, Some(false))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(false);
-
-    fn parse(
-        _version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        props: &HashMap<&str, &KdlValue>,
-        _children: &[KdlNode],
-    ) -> Result<Self> {
-        let parameter_name = get_argument(args, 0, "name")?;
-        let save = try_get_property(props, "save")?.unwrap_or(false);
+        let parameter_name = entries.get_argument(0, "name")?;
+        let save = entries.try_get_property("save")?;
         let ty = match name {
             NODE_NAME_INT => {
-                let default = try_get_property(props, "default")?.map(|x: i64| x as u8);
+                let default = entries.try_get_property("default")?.map(|x: i64| x as u8);
                 ParameterType::Int(default)
             }
             NODE_NAME_FLOAT => {
-                let default = try_get_property(props, "default")?;
+                let default = entries.try_get_property("default")?;
                 ParameterType::Float(default)
             }
             NODE_NAME_BOOL => {
-                let default = try_get_property(props, "default")?;
+                let default = entries.try_get_property("default")?;
                 ParameterType::Bool(default)
             }
             _ => unreachable!("parameter type already refined here"),
