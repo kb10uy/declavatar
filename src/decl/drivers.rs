@@ -111,11 +111,11 @@ impl Drive {
         let target_parameter = try_get_property(props, "parameter")?;
         let drive_target = match (target_group, target_parameter) {
             (Some(name), None) => {
-                let option = get_property(props, "option")?;
+                let option = try_get_property(props, "option")?;
                 DriveTarget::Group { name, option }
             }
             (None, Some(name)) => {
-                let value: &KdlValue = get_property(props, "option")?;
+                let value: &KdlValue = get_property(props, "value")?;
                 let int_value = value.as_i64();
                 let float_value = value.as_f64();
                 let bool_value = value.as_bool();
@@ -134,7 +134,7 @@ impl Drive {
             }
             _ => {
                 return Err(DeclError::InvalidNodeDetected(
-                    "ambiguous menu parameter".into(),
+                    "ambiguous driver target".into(),
                 ));
             }
         };
@@ -201,7 +201,7 @@ impl DeclNode for Drive {
 
 #[derive(Debug, Clone)]
 pub enum DriveTarget {
-    Group { name: String, option: String },
+    Group { name: String, option: Option<String> },
     IntParameter { name: String, value: u8 },
     FloatParameter { name: String, value: f64 },
     BoolParameter { name: String, value: bool },

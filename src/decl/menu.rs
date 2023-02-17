@@ -127,9 +127,18 @@ pub struct Boolean {
 
 #[derive(Debug, Clone)]
 pub enum BooleanTarget {
-    Group { name: String, option: String },
-    IntParameter { name: String, value: u8 },
-    BoolParameter { name: String, value: bool },
+    Group {
+        name: String,
+        option: Option<String>,
+    },
+    IntParameter {
+        name: String,
+        value: u8,
+    },
+    BoolParameter {
+        name: String,
+        value: bool,
+    },
 }
 
 impl DeclNode for Boolean {
@@ -151,14 +160,14 @@ impl DeclNode for Boolean {
         let target_parameter = try_get_property(props, "parameter")?;
         let target = match (target_group, target_parameter) {
             (Some(group), None) => {
-                let option = get_property(props, "option")?;
+                let option = try_get_property(props, "option")?;
                 BooleanTarget::Group {
                     name: group,
                     option,
                 }
             }
             (None, Some(name)) => {
-                let value: &KdlValue = get_property(props, "option")?;
+                let value: &KdlValue = get_property(props, "value")?;
                 let int_value = value.as_i64();
                 let bool_value = value.as_bool();
                 if let Some(value) = int_value {
@@ -286,7 +295,7 @@ impl DeclNode for Puppet {
                     children,
                     &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
                 )?
-                .ok_or(DeclError::MustHaveChildren("2 axes".into()))?;
+                .ok_or(DeclError::MustHaveChildren(NODE_NAME_TWO_AXIS.into()))?;
 
                 let horizontal = Axes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
                 let vertical = Axes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
@@ -299,9 +308,14 @@ impl DeclNode for Puppet {
             NODE_NAME_FOUR_AXIS => {
                 let axes_children = Axes::extract_nodes_just(
                     children,
-                    &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
+                    &[
+                        NODE_NAME_LEFT,
+                        NODE_NAME_RIGHT,
+                        NODE_NAME_UP,
+                        NODE_NAME_DOWN,
+                    ],
                 )?
-                .ok_or(DeclError::MustHaveChildren("2 axes".into()))?;
+                .ok_or(DeclError::MustHaveChildren(NODE_NAME_FOUR_AXIS.into()))?;
 
                 let left = Axes::make_four_axis_pair(axes_children[NODE_NAME_LEFT])?;
                 let right = Axes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT])?;

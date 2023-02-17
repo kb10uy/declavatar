@@ -55,16 +55,16 @@ avatar "avatarname" {
     drivers {
         group "夏" local=true {
             set group="表情" option="にっこり"
-            set parameter="parameter1" value=1
+            set parameter="parameter1" value=1.0
             set parameter="fuga" value=false
             add parameter="hoge" value=10
             random group="表情"
-            random parameter="hoge" min=0 max=10
+            random parameter="hoge" min=0.0 max=10.0
             random parameter="fuga" chance=0.3
             copy from="hoge" to="fuga" from_min=0.1 from_max=0.3 to_min=0.0 to_max=1.0
 
-            set target="表情" option="にっこり"
-            set target="服装" option="裸足"
+            set group="表情" option="にっこり"
+            set group="服装" option="裸足"
         }
     }
 
@@ -77,10 +77,10 @@ avatar "avatarname" {
 
     menu {
         submenu "服装" {
-            button "発光" target="発光"
+            button "発光" group="発光"
 
             // toggle "label" parameter="paramname" value=1
-            toggle "裸足" target="服装" option="裸足"
+            toggle "裸足" group="服装" option="裸足"
 
             radial "Radial Puppet" parameter="hoge"
 
