@@ -371,7 +371,17 @@ impl DeclNode for ObjectGroupBlock {
 }
 
 #[derive(Debug, Clone)]
-pub struct ObjectSwitch {}
+pub struct ObjectSwitch {
+    parameter: String,
+    objects: Vec<ObjectSwitchPair>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjectSwitchPair {
+    shape: String,
+    enabled: Option<bool>,
+    disabled: Option<bool>,
+}
 
 impl DeclNode for ObjectSwitch {
     const NODE_NAME: &'static str = NODE_NAME_OBJECT_SWITCH;
@@ -387,6 +397,35 @@ impl DeclNode for ObjectSwitch {
         props: &HashMap<&str, &KdlValue>,
         children: &[KdlNode],
     ) -> Result<Self> {
-        todo!()
+        let mut parameter = None;
+        let mut objects = vec![];
+
+        for child in children {
+            let child_name = child.name().value();
+            let (child_args, child_props) = split_entries(child.entries());
+            match child_name {
+                NODE_NAME_PARAMETER => {
+                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                }
+                NODE_NAME_OBJECT => {
+                    let shape = get_argument(&child_args, 0, "name")?;
+                    let enabled = try_get_property(&child_props, "enabled")?;
+                    let disabled = try_get_property(&child_props, "disabled")?;
+                    objects.push(ObjectSwitchPair {
+                        shape,
+                        disabled,
+                        enabled,
+                    });
+                }
+                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+            }
+        }
+
+        let parameter = parameter.ok_or(DeclError::NodeNotFound(
+            NODE_NAME_PARAMETER,
+            NODE_NAME_SHAPE_SWITCH,
+        ))?;
+
+        Ok(ObjectSwitch { parameter, objects })
     }
 }
