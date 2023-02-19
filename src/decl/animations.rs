@@ -1,9 +1,6 @@
-use crate::decl::{DeclError, Result};
+use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, Result};
 
-use std::collections::HashMap;
-
-use kdl::{KdlNode, KdlValue};
-use semver::Version;
+use kdl::KdlNode;
 
 pub const NODE_NAME_ANIMATIONS: &str = "animations";
 pub const NODE_NAME_SHAPE_GROUP: &str = "shape-group";
@@ -17,33 +14,40 @@ pub const NODE_NAME_DEFAULT: &str = "default";
 pub const NODE_NAME_OPTION: &str = "option";
 pub const NODE_NAME_SHAPE: &str = "shape";
 pub const NODE_NAME_OBJECT: &str = "object";
-/*
+
 #[derive(Debug, Clone)]
 pub struct Animations {
     elements: Vec<AnimationElement>,
 }
 
-impl DeclNode for Animations {
-    const NODE_NAME: &'static str = NODE_NAME_ANIMATIONS;
+impl Animations {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, _, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_ANIMATIONS), Some(true))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut elements = vec![];
         for child in children {
             let child_name = child.name().value();
             let element = match child_name {
-                NODE_NAME_SHAPE_GROUP => AnimationElement::ShapeGroup(child.parse(version)?),
-                NODE_NAME_SHAPE_SWITCH => AnimationElement::ShapeSwitch(child.parse(version)?),
-                NODE_NAME_OBJECT_GROUP => AnimationElement::ObjectGroup(child.parse(version)?),
-                NODE_NAME_OBJECT_SWITCH => AnimationElement::ObjectSwitch(child.parse(version)?),
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                NODE_NAME_SHAPE_GROUP => {
+                    AnimationElement::ShapeGroup(ShapeGroup::parse(child, source)?)
+                }
+                NODE_NAME_SHAPE_SWITCH => {
+                    AnimationElement::ShapeSwitch(ShapeSwitch::parse(child, source)?)
+                }
+                NODE_NAME_OBJECT_GROUP => {
+                    AnimationElement::ObjectGroup(ObjectGroup::parse(child, source)?)
+                }
+                NODE_NAME_OBJECT_SWITCH => {
+                    AnimationElement::ObjectSwitch(ObjectSwitch::parse(child, source)?)
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
             };
             elements.push(element);
         }
@@ -70,18 +74,11 @@ pub struct ShapeGroup {
     options: Vec<ShapeGroupBlock>,
 }
 
-impl DeclNode for ShapeGroup {
-    const NODE_NAME: &'static str = NODE_NAME_SHAPE_GROUP;
+impl ShapeGroup {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, entries, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_SHAPE_GROUP), Some(true))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut mesh = None;
         let mut parameter = None;
         let mut prevent_mouth = None;
@@ -90,37 +87,57 @@ impl DeclNode for ShapeGroup {
         let mut options = vec![];
 
         for child in children {
-            let child_name = child.name().value();
-            let (child_args, child_props) = split_entries(child.entries());
+            let (child_name, child_entries, _) =
+                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
+
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(get_argument(&child_args, 0, "mesh")?);
+                    mesh = Some(entries.get_argument(0, "mesh")?);
                 }
                 NODE_NAME_PARAMETER => {
-                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                    parameter = Some(entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_PREVENT => {
-                    prevent_mouth = try_get_property(&child_props, "mouth")?;
-                    prevent_eyelids = try_get_property(&child_props, "eyelids")?;
+                    prevent_mouth = entries.try_get_property("mouth")?;
+                    prevent_eyelids = entries.try_get_property("eyelids")?;
                 }
                 NODE_NAME_DEFAULT => {
-                    default_block = Some(child.parse_multi(version)?);
+                    if default_block.is_some() {
+                        return Err(DeclError::new(
+                            source,
+                            child.name().span(),
+                            DeclErrorKind::DuplicateNodeFound,
+                        ));
+                    }
+                    default_block = Some(ShapeGroupBlock::parse(child, source)?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(child.parse_multi(version)?);
+                    options.push(ShapeGroupBlock::parse(child, source)?);
                 }
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
             }
         }
 
-        let mesh = mesh.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_MESH,
-            NODE_NAME_SHAPE_GROUP,
-        ))?;
-        let parameter = parameter.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_PARAMETER,
-            NODE_NAME_SHAPE_GROUP,
-        ))?;
+        let mesh = mesh.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
+            )
+        })?;
+        let parameter = parameter.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+            )
+        })?;
 
         Ok(ShapeGroup {
             mesh,
@@ -139,34 +156,23 @@ pub struct ShapeGroupBlock {
     shapes: Vec<(String, Option<f64>)>,
 }
 
-impl DeclNode for ShapeGroupBlock {
-    const NODE_NAME: &'static str = "";
+impl ShapeGroupBlock {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (name, entries, children) = deconstruct_node(source, node, None, Some(true))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        _version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let block_name = match name {
-            NODE_NAME_OPTION => Some(get_argument(args, 0, "name")?),
+            NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
             NODE_NAME_DEFAULT => None,
             _ => unreachable!("block type already refined here"),
         };
 
         let mut shapes = vec![];
         for child in children {
-            let child_name = child.name().value();
-            if child_name != NODE_NAME_SHAPE {
-                return Err(DeclError::InvalidNodeDetected(child_name.into()));
-            }
+            let (_, child_entries, _) =
+                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
 
-            let (child_args, child_props) = split_entries(child.entries());
-            let shape_name = get_argument(&child_args, 0, "shape_name")?;
-            let shape_value = try_get_property(&child_props, "value")?;
+            let shape_name = child_entries.get_argument(0, "shape_name")?;
+            let shape_value = child_entries.try_get_property("value")?;
             shapes.push((shape_name, shape_value));
         }
 
@@ -186,25 +192,11 @@ pub struct ShapeSwitch {
     shapes: Vec<ShapeSwitchPair>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ShapeSwitchPair {
-    shape: String,
-    enabled: Option<f64>,
-    disabled: Option<f64>,
-}
+impl ShapeSwitch {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, entries, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_SHAPE_SWITCH), Some(true))?;
 
-impl DeclNode for ShapeSwitch {
-    const NODE_NAME: &'static str = NODE_NAME_SHAPE_SWITCH;
-
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        _version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut mesh = None;
         let mut parameter = None;
         let mut prevent_mouth = None;
@@ -212,41 +204,54 @@ impl DeclNode for ShapeSwitch {
         let mut shapes = vec![];
 
         for child in children {
-            let child_name = child.name().value();
-            let (child_args, child_props) = split_entries(child.entries());
+            let (child_name, child_entries, _) =
+                deconstruct_node(source, child, None, Some(false))?;
+
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(get_argument(&child_args, 0, "mesh")?);
+                    mesh = Some(child_entries.get_argument(0, "mesh")?);
                 }
                 NODE_NAME_PARAMETER => {
-                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                    parameter = Some(child_entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_PREVENT => {
-                    prevent_mouth = try_get_property(&child_props, "mouth")?;
-                    prevent_eyelids = try_get_property(&child_props, "eyelids")?;
+                    prevent_mouth = child_entries.try_get_property("mouth")?;
+                    prevent_eyelids = child_entries.try_get_property("eyelids")?;
                 }
                 NODE_NAME_SHAPE => {
-                    let shape = get_argument(&child_args, 0, "name")?;
-                    let enabled = try_get_property(&child_props, "enabled")?;
-                    let disabled = try_get_property(&child_props, "disabled")?;
+                    let shape = child_entries.get_argument(0, "name")?;
+                    let enabled = child_entries.try_get_property("enabled")?;
+                    let disabled = child_entries.try_get_property("disabled")?;
                     shapes.push(ShapeSwitchPair {
                         shape,
                         disabled,
                         enabled,
                     });
                 }
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
             }
         }
 
-        let mesh = mesh.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_MESH,
-            NODE_NAME_SHAPE_SWITCH,
-        ))?;
-        let parameter = parameter.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_PARAMETER,
-            NODE_NAME_SHAPE_SWITCH,
-        ))?;
+        let mesh = mesh.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
+            )
+        })?;
+        let parameter = parameter.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+            )
+        })?;
 
         Ok(ShapeSwitch {
             mesh,
@@ -259,49 +264,64 @@ impl DeclNode for ShapeSwitch {
 }
 
 #[derive(Debug, Clone)]
+pub struct ShapeSwitchPair {
+    shape: String,
+    enabled: Option<f64>,
+    disabled: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
 pub struct ObjectGroup {
     parameter: String,
     default_block: Option<ObjectGroupBlock>,
     options: Vec<ObjectGroupBlock>,
 }
 
-impl DeclNode for ObjectGroup {
-    const NODE_NAME: &'static str = NODE_NAME_OBJECT_GROUP;
+impl ObjectGroup {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, _, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_OBJECT_GROUP), Some(true))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut parameter = None;
         let mut default_block = None;
         let mut options = vec![];
 
         for child in children {
-            let child_name = child.name().value();
-            let (child_args, _) = split_entries(child.entries());
+            let (child_name, child_entries, _) = deconstruct_node(source, node, None, None)?;
             match child_name {
                 NODE_NAME_PARAMETER => {
-                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                    parameter = Some(child_entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_DEFAULT => {
-                    default_block = Some(child.parse_multi(version)?);
+                    if default_block.is_some() {
+                        return Err(DeclError::new(
+                            source,
+                            child.name().span(),
+                            DeclErrorKind::DuplicateNodeFound,
+                        ));
+                    }
+                    default_block = Some(ObjectGroupBlock::parse(child, source)?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(child.parse_multi(version)?);
+                    options.push(ObjectGroupBlock::parse(child, source)?);
                 }
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
             }
         }
 
-        let parameter = parameter.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_PARAMETER,
-            NODE_NAME_SHAPE_GROUP,
-        ))?;
+        let parameter = parameter.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+            )
+        })?;
 
         Ok(ObjectGroup {
             parameter,
@@ -317,35 +337,25 @@ pub struct ObjectGroupBlock {
     objects: Vec<(String, Option<bool>)>,
 }
 
-impl DeclNode for ObjectGroupBlock {
-    const NODE_NAME: &'static str = "";
+impl ObjectGroupBlock {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (name, entries, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_OBJECT_GROUP), Some(true))?;
 
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        _version: &Version,
-        name: &str,
-        args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let block_name = match name {
-            NODE_NAME_OPTION => Some(get_argument(args, 0, "name")?),
+            NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
             NODE_NAME_DEFAULT => None,
             _ => unreachable!("block type already refined here"),
         };
 
         let mut objects = vec![];
         for child in children {
-            let child_name = child.name().value();
-            if child_name != NODE_NAME_OBJECT {
-                return Err(DeclError::InvalidNodeDetected(child_name.into()));
-            }
+            let (_, child_entries, _) =
+                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
 
-            let (child_args, child_props) = split_entries(child.entries());
-            let shape_name = get_argument(&child_args, 0, "object_name")?;
-            let shape_value = try_get_property(&child_props, "value")?;
-            objects.push((shape_name, shape_value));
+            let object_name = child_entries.get_argument(0, "object_name")?;
+            let object_value = child_entries.try_get_property("value")?;
+            objects.push((object_name, object_value));
         }
 
         Ok(ObjectGroupBlock {
@@ -361,55 +371,57 @@ pub struct ObjectSwitch {
     objects: Vec<ObjectSwitchPair>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjectSwitchPair {
-    shape: String,
-    enabled: Option<bool>,
-    disabled: Option<bool>,
-}
+impl ObjectSwitch {
+    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
+        let (_, entries, children) =
+            deconstruct_node(source, node, Some(NODE_NAME_OBJECT_SWITCH), Some(true))?;
 
-impl DeclNode for ObjectSwitch {
-    const NODE_NAME: &'static str = NODE_NAME_OBJECT_SWITCH;
-
-    const CHILDREN_EXISTENCE: Option<bool> = Some(true);
-
-    fn parse(
-        _version: &Version,
-        _name: &str,
-        _args: &[&KdlValue],
-        _props: &HashMap<&str, &KdlValue>,
-        children: &[KdlNode],
-    ) -> Result<Self> {
         let mut parameter = None;
         let mut objects = vec![];
 
         for child in children {
-            let child_name = child.name().value();
-            let (child_args, child_props) = split_entries(child.entries());
+            let (child_name, child_entries, _) =
+                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
+
             match child_name {
                 NODE_NAME_PARAMETER => {
-                    parameter = Some(get_argument(&child_args, 0, "parameter")?);
+                    parameter = Some(child_entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_OBJECT => {
-                    let shape = get_argument(&child_args, 0, "name")?;
-                    let enabled = try_get_property(&child_props, "enabled")?;
-                    let disabled = try_get_property(&child_props, "disabled")?;
+                    let shape = child_entries.get_argument(0, "name")?;
+                    let enabled = child_entries.try_get_property("enabled")?;
+                    let disabled = child_entries.try_get_property("disabled")?;
                     objects.push(ObjectSwitchPair {
                         shape,
                         disabled,
                         enabled,
                     });
                 }
-                otherwise => return Err(DeclError::InvalidNodeDetected(otherwise.to_string())),
+                _ => {
+                    return Err(DeclError::new(
+                        source,
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
             }
         }
 
-        let parameter = parameter.ok_or(DeclError::NodeNotFound(
-            NODE_NAME_PARAMETER,
-            NODE_NAME_SHAPE_SWITCH,
-        ))?;
+        let parameter = parameter.ok_or_else(|| {
+            DeclError::new(
+                source,
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+            )
+        })?;
 
         Ok(ObjectSwitch { parameter, objects })
     }
 }
-*/
+
+#[derive(Debug, Clone)]
+pub struct ObjectSwitchPair {
+    shape: String,
+    enabled: Option<bool>,
+    disabled: Option<bool>,
+}

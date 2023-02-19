@@ -1,12 +1,10 @@
 use crate::decl::{
+    animations::{Animations, NODE_NAME_ANIMATIONS},
     deconstruct_node,
-    // animations::{Animations, NODE_NAME_ANIMATIONS},
     drivers::{Drivers, NODE_NAME_DRIVERS},
     menu::{Menu, NODE_NAME_MENU},
     parameters::{Parameters, NODE_NAME_PARAMETERS},
-    DeclError,
-    DeclErrorKind,
-    Result,
+    DeclError, DeclErrorKind, Result,
 };
 
 use kdl::{KdlDocument, KdlNode};
@@ -83,7 +81,7 @@ impl Document {
 #[derive(Debug, Clone)]
 pub struct Avatar {
     name: String,
-    // animations_blocks: Vec<Animations>,
+    animations_blocks: Vec<Animations>,
     drivers_blocks: Vec<Drivers>,
     parameters_blocks: Vec<Parameters>,
     menu_blocks: Vec<Menu>,
@@ -95,7 +93,7 @@ impl Avatar {
             deconstruct_node(source, node, Some(NODE_NAME_AVATAR), Some(true))?;
 
         let name = entries.get_argument(0, "name")?;
-        // let mut animations_blocks = vec![];
+        let mut animations_blocks = vec![];
         let mut drivers_blocks = vec![];
         let mut parameters_blocks = vec![];
         let mut menu_blocks = vec![];
@@ -103,7 +101,7 @@ impl Avatar {
         for child in children {
             let child_name = child.name().value();
             match child_name {
-                // NODE_NAME_ANIMATIONS => animations_blocks.push(child.parse(version)?),
+                NODE_NAME_ANIMATIONS => animations_blocks.push(Animations::parse(child, source)?),
                 NODE_NAME_DRIVERS => drivers_blocks.push(Drivers::parse(child, source)?),
                 NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child, source)?),
                 NODE_NAME_MENU => menu_blocks.push(Menu::parse(child, source)?),
@@ -119,7 +117,7 @@ impl Avatar {
 
         Ok(Avatar {
             name,
-            // animations_blocks,
+            animations_blocks,
             drivers_blocks,
             parameters_blocks,
             menu_blocks,
