@@ -2,7 +2,7 @@ use crate::decl::{
     deconstruct_node,
     // animations::{Animations, NODE_NAME_ANIMATIONS},
     // drivers::{Drivers, NODE_NAME_DRIVERS},
-    // menu::{Menu, NODE_NAME_MENU},
+    menu::{Menu, NODE_NAME_MENU},
     parameters::{Parameters, NODE_NAME_PARAMETERS},
     DeclError,
     DeclErrorKind,
@@ -62,7 +62,7 @@ impl Document {
                         ))
                     }
                 },
-                otherwise => {
+                _ => {
                     return Err(DeclError::new(
                         source,
                         node.name().span(),
@@ -86,7 +86,7 @@ pub struct Avatar {
     // animations_blocks: Vec<Animations>,
     // drivers_blocks: Vec<Drivers>,
     parameters_blocks: Vec<Parameters>,
-    // menu_blocks: Vec<Menu>,
+    menu_blocks: Vec<Menu>,
 }
 
 impl Avatar {
@@ -98,7 +98,7 @@ impl Avatar {
         // let mut animations_blocks = vec![];
         // let mut drivers_blocks = vec![];
         let mut parameters_blocks = vec![];
-        // let mut menu_blocks = vec![];
+        let mut menu_blocks = vec![];
 
         for child in children {
             let child_name = child.name().value();
@@ -106,8 +106,8 @@ impl Avatar {
                 // NODE_NAME_ANIMATIONS => animations_blocks.push(child.parse(version)?),
                 // NODE_NAME_DRIVERS => drivers_blocks.push(child.parse(version)?),
                 NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child, source)?),
-                // NODE_NAME_MENU => menu_blocks.push(child.parse(version)?),
-                otherwise => {
+                NODE_NAME_MENU => menu_blocks.push(Menu::parse(child, source)?),
+                _ => {
                     return Err(DeclError::new(
                         source,
                         child.name().span(),
@@ -122,7 +122,7 @@ impl Avatar {
             // animations_blocks,
             // drivers_blocks,
             parameters_blocks,
-            // menu_blocks,
+            menu_blocks,
         })
     }
 }

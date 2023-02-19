@@ -29,7 +29,7 @@ impl Parameters {
                         source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
-                    ))
+                    ));
                 }
             };
             parameters.push(parameter);
