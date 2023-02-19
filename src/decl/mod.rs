@@ -52,8 +52,12 @@ pub enum DeclErrorKind {
     #[error("this node must have children")]
     MustHaveChildren,
 
+    /// This node must have children block.
+    #[error("this node must not have children")]
+    MustNotHaveChildren,
+
     /// Invalid name node detected.
-    #[error("the node name is invalid")]
+    #[error("the node is invalid")]
     InvalidNodeDetected,
 
     /// Mandatory node not found.
@@ -117,7 +121,7 @@ pub fn deconstruct_node<'a>(
             return Err(DeclError::new(
                 source,
                 node_span,
-                DeclErrorKind::InvalidNodeDetected,
+                DeclErrorKind::MustNotHaveChildren,
             ));
         }
         (Some(false), None) => &[],

@@ -45,7 +45,7 @@ impl Animations {
                     return Err(DeclError::new(
                         source,
                         child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
+                        DeclErrorKind::MustHaveChildren,
                     ));
                 }
             };
@@ -76,7 +76,7 @@ pub struct ShapeGroup {
 
 impl ShapeGroup {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, entries, children) =
+        let (_, _, children) =
             deconstruct_node(source, node, Some(NODE_NAME_SHAPE_GROUP), Some(true))?;
 
         let mut mesh = None;
@@ -87,19 +87,18 @@ impl ShapeGroup {
         let mut options = vec![];
 
         for child in children {
-            let (child_name, child_entries, _) =
-                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
+            let (child_name, child_entries, _) = deconstruct_node(source, child, None, None)?;
 
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(entries.get_argument(0, "mesh")?);
+                    mesh = Some(child_entries.get_argument(0, "mesh")?);
                 }
                 NODE_NAME_PARAMETER => {
-                    parameter = Some(entries.get_argument(0, "parameter")?);
+                    parameter = Some(child_entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_PREVENT => {
-                    prevent_mouth = entries.try_get_property("mouth")?;
-                    prevent_eyelids = entries.try_get_property("eyelids")?;
+                    prevent_mouth = child_entries.try_get_property("mouth")?;
+                    prevent_eyelids = child_entries.try_get_property("eyelids")?;
                 }
                 NODE_NAME_DEFAULT => {
                     if default_block.is_some() {
@@ -287,7 +286,7 @@ impl ObjectGroup {
         let mut options = vec![];
 
         for child in children {
-            let (child_name, child_entries, _) = deconstruct_node(source, node, None, None)?;
+            let (child_name, child_entries, _) = deconstruct_node(source, child, None, None)?;
             match child_name {
                 NODE_NAME_PARAMETER => {
                     parameter = Some(child_entries.get_argument(0, "parameter")?);
@@ -339,8 +338,7 @@ pub struct ObjectGroupBlock {
 
 impl ObjectGroupBlock {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, children) =
-            deconstruct_node(source, node, Some(NODE_NAME_OBJECT_GROUP), Some(true))?;
+        let (name, entries, children) = deconstruct_node(source, node, None, Some(true))?;
 
         let block_name = match name {
             NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
@@ -351,7 +349,7 @@ impl ObjectGroupBlock {
         let mut objects = vec![];
         for child in children {
             let (_, child_entries, _) =
-                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
+                deconstruct_node(source, child, Some(NODE_NAME_OBJECT), Some(false))?;
 
             let object_name = child_entries.get_argument(0, "object_name")?;
             let object_value = child_entries.try_get_property("value")?;
@@ -381,7 +379,7 @@ impl ObjectSwitch {
 
         for child in children {
             let (child_name, child_entries, _) =
-                deconstruct_node(source, child, Some(NODE_NAME_SHAPE), Some(false))?;
+                deconstruct_node(source, child, None, Some(false))?;
 
             match child_name {
                 NODE_NAME_PARAMETER => {
