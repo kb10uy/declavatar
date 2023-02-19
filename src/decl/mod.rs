@@ -30,6 +30,7 @@ pub struct DeclError {
 }
 
 /// Describes errors in parsing declaration.
+#[allow(dead_code)]
 #[derive(Debug, ThisError, Diagnostic)]
 pub enum DeclErrorKind {
     /// Incorrect node name detected (internal only).
@@ -139,6 +140,7 @@ pub struct NodeEntries<'a> {
     properties: HashMap<&'a str, &'a KdlEntry>,
 }
 
+#[allow(dead_code)]
 impl<'a> NodeEntries<'a> {
     fn split_entries(node: &'a KdlNode, source: &'a str) -> NodeEntries<'a> {
         let mut arguments = Vec::new();
