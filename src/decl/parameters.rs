@@ -9,7 +9,7 @@ pub const NODE_NAME_BOOL: &str = "bool";
 
 #[derive(Debug, Clone)]
 pub struct Parameters {
-    parameters: Vec<Parameter>,
+    pub parameters: Vec<Parameter>,
 }
 
 impl Parameters {
@@ -46,10 +46,10 @@ impl Parameters {
 
 #[derive(Debug, Clone)]
 pub struct Parameter {
-    ty: ParameterType,
-    save: Option<bool>,
-    local: Option<bool>,
-    name: String,
+    pub ty: ParameterType,
+    pub save: Option<bool>,
+    pub local: Option<bool>,
+    pub name: String,
 }
 
 impl Parameter {
