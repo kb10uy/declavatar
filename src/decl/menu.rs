@@ -120,7 +120,7 @@ pub struct Boolean {
 
 impl Boolean {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, _) = deconstruct_node(source, node, None, Some(true))?;
+        let (name, entries, _) = deconstruct_node(source, node, None, Some(false))?;
         let toggle = name == NODE_NAME_TOGGLE;
 
         let item_name = entries.get_argument(0, "name")?;
