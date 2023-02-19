@@ -371,7 +371,7 @@ pub struct ObjectSwitch {
 
 impl ObjectSwitch {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, entries, children) =
+        let (_, _, children) =
             deconstruct_node(source, node, Some(NODE_NAME_OBJECT_SWITCH), Some(true))?;
 
         let mut parameter = None;

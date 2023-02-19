@@ -54,7 +54,7 @@ pub struct Parameter {
 
 impl Parameter {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, children) = deconstruct_node(source, node, None, Some(false))?;
+        let (name, entries, _) = deconstruct_node(source, node, None, Some(false))?;
 
         let parameter_name = entries.get_argument(0, "name")?;
         let save = entries.try_get_property("save")?;

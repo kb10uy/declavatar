@@ -1,3 +1,4 @@
+mod avatar;
 mod decl;
 
 use crate::decl::document::Document;
