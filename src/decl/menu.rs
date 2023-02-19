@@ -50,7 +50,7 @@ impl Menu {
                     let puppet = Puppet::parse(child, source)?;
                     MenuElement::Puppet(puppet)
                 }
-                otherwise => {
+                _ => {
                     return Err(DeclError::new(
                         source,
                         child.name().span(),
@@ -93,7 +93,7 @@ impl SubMenu {
                     let puppet = Puppet::parse(child, source)?;
                     MenuElement::Puppet(puppet)
                 }
-                otherwise => {
+                _ => {
                     return Err(DeclError::new(
                         source,
                         child.name().span(),

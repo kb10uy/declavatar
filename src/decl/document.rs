@@ -1,7 +1,7 @@
 use crate::decl::{
     deconstruct_node,
     // animations::{Animations, NODE_NAME_ANIMATIONS},
-    // drivers::{Drivers, NODE_NAME_DRIVERS},
+    drivers::{Drivers, NODE_NAME_DRIVERS},
     menu::{Menu, NODE_NAME_MENU},
     parameters::{Parameters, NODE_NAME_PARAMETERS},
     DeclError,
@@ -84,7 +84,7 @@ impl Document {
 pub struct Avatar {
     name: String,
     // animations_blocks: Vec<Animations>,
-    // drivers_blocks: Vec<Drivers>,
+    drivers_blocks: Vec<Drivers>,
     parameters_blocks: Vec<Parameters>,
     menu_blocks: Vec<Menu>,
 }
@@ -96,7 +96,7 @@ impl Avatar {
 
         let name = entries.get_argument(0, "name")?;
         // let mut animations_blocks = vec![];
-        // let mut drivers_blocks = vec![];
+        let mut drivers_blocks = vec![];
         let mut parameters_blocks = vec![];
         let mut menu_blocks = vec![];
 
@@ -104,7 +104,7 @@ impl Avatar {
             let child_name = child.name().value();
             match child_name {
                 // NODE_NAME_ANIMATIONS => animations_blocks.push(child.parse(version)?),
-                // NODE_NAME_DRIVERS => drivers_blocks.push(child.parse(version)?),
+                NODE_NAME_DRIVERS => drivers_blocks.push(Drivers::parse(child, source)?),
                 NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child, source)?),
                 NODE_NAME_MENU => menu_blocks.push(Menu::parse(child, source)?),
                 _ => {
@@ -120,7 +120,7 @@ impl Avatar {
         Ok(Avatar {
             name,
             // animations_blocks,
-            // drivers_blocks,
+            drivers_blocks,
             parameters_blocks,
             menu_blocks,
         })
