@@ -48,6 +48,7 @@ impl Parameters {
 pub struct Parameter {
     ty: ParameterType,
     save: Option<bool>,
+    local: Option<bool>,
     name: String,
 }
 
@@ -57,6 +58,7 @@ impl Parameter {
 
         let parameter_name = entries.get_argument(0, "name")?;
         let save = entries.try_get_property("save")?;
+        let local = entries.try_get_property("local")?;
         let ty = match name {
             NODE_NAME_INT => {
                 let default = entries.try_get_property("default")?.map(|x: i64| x as u8);
@@ -76,6 +78,7 @@ impl Parameter {
         Ok(Parameter {
             ty,
             save,
+            local,
             name: parameter_name,
         })
     }

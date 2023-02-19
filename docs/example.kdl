@@ -69,6 +69,7 @@ avatar "avatarname" {
     }
 
     parameters {
+        int "hoge" local=true
         int "hoge"
         bool "fuga"
         float "param1"
