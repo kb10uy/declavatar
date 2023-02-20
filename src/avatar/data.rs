@@ -1,79 +1,50 @@
-use crate::{
-    avatar::error::{AvatarError, Result},
-    decl::parameters::{ParameterType as DeclParameterType, Parameters as DeclParameters},
-};
-
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Avatar {
-    name: String,
-    parameters: HashMap<String, Parameter>,
+    pub name: String,
+    pub parameters: HashMap<String, Parameter>,
+    pub animation_groups: Vec<AnimationGroup>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
-    name: String,
-    value_type: ParameterType,
-    sync_type: ParameterSync,
+    pub name: String,
+    pub value_type: ParameterType,
+    pub sync_type: ParameterSync,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ParameterType {
     Int(u8),
     Float(f64),
     Bool(bool),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl ParameterType {
+    pub const INT_TYPE: ParameterType = ParameterType::Int(0);
+    pub const FLOAT_TYPE: ParameterType = ParameterType::Float(0.0);
+    pub const BOOL_TYPE: ParameterType = ParameterType::Bool(false);
+
+    pub const fn type_name(&self) -> &'static str {
+        match self {
+            ParameterType::Int(_) => "int",
+            ParameterType::Float(_) => "float",
+            ParameterType::Bool(_) => "bool",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParameterSync {
     Local,
     Synced(bool),
 }
 
-pub fn compile_parameters(
-    parameters_blocks: Vec<DeclParameters>,
-) -> Result<HashMap<String, Parameter>> {
-    use std::collections::hash_map::Entry;
-
-    let mut parameters = HashMap::new();
-
-    let decl_parameters = parameters_blocks
-        .into_iter()
-        .map(|pb| pb.parameters)
-        .flatten();
-    for decl_parameter in decl_parameters {
-        let name = decl_parameter.name.clone();
-        let value_type = match decl_parameter.ty {
-            DeclParameterType::Int(dv) => ParameterType::Int(dv.unwrap_or(0)),
-            DeclParameterType::Float(dv) => ParameterType::Float(dv.unwrap_or(0.0)),
-            DeclParameterType::Bool(dv) => ParameterType::Bool(dv.unwrap_or(false)),
-        };
-        let sync_type = match (decl_parameter.local, decl_parameter.save) {
-            (Some(true), None | Some(false)) => ParameterSync::Local,
-            (None | Some(false), None) => ParameterSync::Synced(false),
-            (None | Some(false), Some(save)) => ParameterSync::Synced(save),
-            (Some(true), Some(true)) => {
-                return Err(AvatarError::CannotSaveLocalParameter(decl_parameter.name));
-            }
-        };
-
-        match parameters.entry(decl_parameter.name) {
-            Entry::Occupied(p) => {
-                let defined: &Parameter = p.get();
-                if defined.value_type != value_type || defined.sync_type != sync_type {
-                    return Err(AvatarError::IncompatibleParameterDefinition(name));
-                }
-            }
-            Entry::Vacant(v) => {
-                v.insert(Parameter {
-                    name,
-                    value_type,
-                    sync_type,
-                });
-            }
-        }
-    }
-
-    Ok(parameters)
+#[derive(Debug, Clone, PartialEq)]
+pub enum AnimationGroup {
+    ShapeGroup(),
+    ShapeSwitch(),
+    ObjectGroup(),
+    ObjectSwitch(),
 }

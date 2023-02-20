@@ -1,6 +1,14 @@
 version "1.0.0"
 
 avatar "avatarname" {
+    parameters {
+        int "hoge"
+        bool "fuga"
+        float "Expression"
+        float "param1"
+        float "param2"
+    }
+
     animations {
         shape-group "表情" {
             mesh "Face"
@@ -66,14 +74,6 @@ avatar "avatarname" {
             set group="表情" option="にっこり"
             set group="服装" option="裸足"
         }
-    }
-
-    parameters {
-        int "hoge" local=true
-        int "hoge"
-        bool "fuga"
-        float "param1"
-        float "param2"
     }
 
     menu {

@@ -16,8 +16,8 @@ pub const NODE_NAME_AVATAR: &str = "avatar";
 
 #[derive(Debug, Clone)]
 pub struct Document {
-    version: Version,
-    avatar: Avatar,
+    pub version: Version,
+    pub avatar: Avatar,
 }
 
 impl Document {
@@ -80,11 +80,11 @@ impl Document {
 /// Avatar descriptor. It should has specific structure like below:
 #[derive(Debug, Clone)]
 pub struct Avatar {
-    name: String,
-    animations_blocks: Vec<Animations>,
-    drivers_blocks: Vec<Drivers>,
-    parameters_blocks: Vec<Parameters>,
-    menu_blocks: Vec<Menu>,
+    pub name: String,
+    pub animations_blocks: Vec<Animations>,
+    pub drivers_blocks: Vec<Drivers>,
+    pub parameters_blocks: Vec<Parameters>,
+    pub menu_blocks: Vec<Menu>,
 }
 
 impl Avatar {

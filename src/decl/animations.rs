@@ -17,7 +17,7 @@ pub const NODE_NAME_OBJECT: &str = "object";
 
 #[derive(Debug, Clone)]
 pub struct Animations {
-    elements: Vec<AnimationElement>,
+    pub elements: Vec<AnimationElement>,
 }
 
 impl Animations {
@@ -66,18 +66,21 @@ pub enum AnimationElement {
 
 #[derive(Debug, Clone)]
 pub struct ShapeGroup {
-    mesh: String,
-    parameter: String,
-    prevent_mouth: Option<bool>,
-    prevent_eyelids: Option<bool>,
-    default_block: Option<ShapeGroupBlock>,
-    options: Vec<ShapeGroupBlock>,
+    pub name: String,
+    pub mesh: String,
+    pub parameter: String,
+    pub prevent_mouth: Option<bool>,
+    pub prevent_eyelids: Option<bool>,
+    pub default_block: Option<ShapeGroupBlock>,
+    pub options: Vec<ShapeGroupBlock>,
 }
 
 impl ShapeGroup {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) =
+        let (_, entries, children) =
             deconstruct_node(source, node, Some(NODE_NAME_SHAPE_GROUP), Some(true))?;
+
+        let name = entries.get_argument(0, "name")?;
 
         let mut mesh = None;
         let mut parameter = None;
@@ -139,6 +142,7 @@ impl ShapeGroup {
         })?;
 
         Ok(ShapeGroup {
+            name,
             mesh,
             parameter,
             prevent_mouth,
@@ -184,17 +188,20 @@ impl ShapeGroupBlock {
 
 #[derive(Debug, Clone)]
 pub struct ShapeSwitch {
-    mesh: String,
-    parameter: String,
-    prevent_mouth: Option<bool>,
-    prevent_eyelids: Option<bool>,
-    shapes: Vec<ShapeSwitchPair>,
+    pub name: String,
+    pub mesh: String,
+    pub parameter: String,
+    pub prevent_mouth: Option<bool>,
+    pub prevent_eyelids: Option<bool>,
+    pub shapes: Vec<ShapeSwitchPair>,
 }
 
 impl ShapeSwitch {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
         let (_, entries, children) =
             deconstruct_node(source, node, Some(NODE_NAME_SHAPE_SWITCH), Some(true))?;
+
+        let name = entries.get_argument(0, "name")?;
 
         let mut mesh = None;
         let mut parameter = None;
@@ -253,6 +260,7 @@ impl ShapeSwitch {
         })?;
 
         Ok(ShapeSwitch {
+            name,
             mesh,
             parameter,
             prevent_mouth,
@@ -271,15 +279,18 @@ pub struct ShapeSwitchPair {
 
 #[derive(Debug, Clone)]
 pub struct ObjectGroup {
-    parameter: String,
-    default_block: Option<ObjectGroupBlock>,
-    options: Vec<ObjectGroupBlock>,
+    pub name: String,
+    pub parameter: String,
+    pub default_block: Option<ObjectGroupBlock>,
+    pub options: Vec<ObjectGroupBlock>,
 }
 
 impl ObjectGroup {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) =
+        let (_, entries, children) =
             deconstruct_node(source, node, Some(NODE_NAME_OBJECT_GROUP), Some(true))?;
+
+        let name = entries.get_argument(0, "name")?;
 
         let mut parameter = None;
         let mut default_block = None;
@@ -323,6 +334,7 @@ impl ObjectGroup {
         })?;
 
         Ok(ObjectGroup {
+            name,
             parameter,
             default_block,
             options,
@@ -365,14 +377,17 @@ impl ObjectGroupBlock {
 
 #[derive(Debug, Clone)]
 pub struct ObjectSwitch {
-    parameter: String,
-    objects: Vec<ObjectSwitchPair>,
+    pub name: String,
+    pub parameter: String,
+    pub objects: Vec<ObjectSwitchPair>,
 }
 
 impl ObjectSwitch {
     pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) =
+        let (_, entries, children) =
             deconstruct_node(source, node, Some(NODE_NAME_OBJECT_SWITCH), Some(true))?;
+
+        let name = entries.get_argument(0, "name")?;
 
         let mut parameter = None;
         let mut objects = vec![];
@@ -413,7 +428,11 @@ impl ObjectSwitch {
             )
         })?;
 
-        Ok(ObjectSwitch { parameter, objects })
+        Ok(ObjectSwitch {
+            name,
+            parameter,
+            objects,
+        })
     }
 }
 

@@ -1,7 +1,7 @@
 mod avatar;
 mod decl;
 
-use crate::decl::document::Document;
+use crate::{avatar::compiler::compile_avatar, decl::document::Document};
 
 use std::{
     env::args,
@@ -31,6 +31,8 @@ fn main() -> MietteResult<()> {
 
     let kdl: KdlDocument = source.parse()?;
     let document = Document::parse(&kdl, &source)?;
-    println!("{document:?}");
+
+    let compiled_avatar = compile_avatar(document.avatar)?;
+    println!("{compiled_avatar:?}");
     Ok(())
 }
