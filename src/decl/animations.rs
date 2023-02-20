@@ -155,8 +155,8 @@ impl ShapeGroup {
 
 #[derive(Debug, Clone)]
 pub struct ShapeGroupBlock {
-    name: Option<String>,
-    shapes: Vec<(String, Option<f64>)>,
+    pub name: Option<String>,
+    pub shapes: Vec<(String, Option<f64>)>,
 }
 
 impl ShapeGroupBlock {
@@ -272,9 +272,9 @@ impl ShapeSwitch {
 
 #[derive(Debug, Clone)]
 pub struct ShapeSwitchPair {
-    shape: String,
-    enabled: Option<f64>,
-    disabled: Option<f64>,
+    pub shape: String,
+    pub enabled: Option<f64>,
+    pub disabled: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -344,8 +344,8 @@ impl ObjectGroup {
 
 #[derive(Debug, Clone)]
 pub struct ObjectGroupBlock {
-    name: Option<String>,
-    objects: Vec<(String, Option<bool>)>,
+    pub name: Option<String>,
+    pub objects: Vec<(String, Option<bool>)>,
 }
 
 impl ObjectGroupBlock {
@@ -405,7 +405,7 @@ impl ObjectSwitch {
                     let enabled = child_entries.try_get_property("enabled")?;
                     let disabled = child_entries.try_get_property("disabled")?;
                     objects.push(ObjectSwitchPair {
-                        shape,
+                        object: shape,
                         disabled,
                         enabled,
                     });
@@ -438,7 +438,7 @@ impl ObjectSwitch {
 
 #[derive(Debug, Clone)]
 pub struct ObjectSwitchPair {
-    shape: String,
-    enabled: Option<bool>,
-    disabled: Option<bool>,
+    pub object: String,
+    pub disabled: Option<bool>,
+    pub enabled: Option<bool>,
 }

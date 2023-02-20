@@ -1,16 +1,23 @@
 use crate::{
     avatar::{
-        data::{AnimationGroup, Avatar, Parameter, ParameterSync, ParameterType},
+        data::{
+            AnimationGroup, AnimationGroupContent, AnimationOption, Avatar, ObjectTarget,
+            Parameter, ParameterSync, ParameterType, ShapeTarget,
+        },
         error::{AvatarError, Result},
     },
     decl::{
-        animations::{AnimationElement as DeclAnimationElement, Animations as DeclAnimations},
+        animations::{
+            AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
+            ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch,
+            ShapeGroup as DeclShapeGroup, ShapeSwitch as DeclShapeSwitch,
+        },
         document::Avatar as DeclAvatar,
         parameters::{ParameterType as DeclParameterType, Parameters as DeclParameters},
     },
 };
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn compile_avatar(avatar: DeclAvatar) -> Result<Avatar> {
     let name = {
@@ -89,42 +96,19 @@ fn compile_animations(
         .flatten();
     for decl_animation in decl_animations {
         // TODO: check name duplicates
+        // TODO: check parameter duplicate use
         let animation_group = match decl_animation {
-            DeclAnimationElement::ShapeGroup(sg) => {
-                ensure_parameter(
-                    parameters,
-                    &sg.parameter,
-                    &ParameterType::INT_TYPE,
-                    &sg.name,
-                )?;
-                todo!();
+            DeclAnimationElement::ShapeGroup(shape_group) => {
+                compile_animation_shape_group(shape_group, parameters)?
             }
-            DeclAnimationElement::ShapeSwitch(ss) => {
-                ensure_parameter(
-                    parameters,
-                    &ss.parameter,
-                    &ParameterType::BOOL_TYPE,
-                    &ss.name,
-                )?;
-                todo!();
+            DeclAnimationElement::ShapeSwitch(shape_switch) => {
+                compile_animation_shape_switch(shape_switch, parameters)?
             }
-            DeclAnimationElement::ObjectGroup(og) => {
-                ensure_parameter(
-                    parameters,
-                    &og.parameter,
-                    &ParameterType::INT_TYPE,
-                    &og.name,
-                )?;
-                todo!();
+            DeclAnimationElement::ObjectGroup(object_group) => {
+                compile_animation_object_group(object_group, parameters)?
             }
-            DeclAnimationElement::ObjectSwitch(os) => {
-                ensure_parameter(
-                    parameters,
-                    &os.parameter,
-                    &ParameterType::BOOL_TYPE,
-                    &os.name,
-                )?;
-                todo!();
+            DeclAnimationElement::ObjectSwitch(object_switch) => {
+                compile_animation_object_switch(object_switch, parameters)?
             }
         };
         animation_groups.push(animation_group);
@@ -158,4 +142,176 @@ fn ensure_parameter(
             expected: ty.type_name(),
         }),
     }
+}
+
+fn compile_animation_shape_group(
+    sg: DeclShapeGroup,
+    parameters: &HashMap<String, Parameter>,
+) -> Result<AnimationGroup> {
+    ensure_parameter(
+        parameters,
+        &sg.parameter,
+        &ParameterType::INT_TYPE,
+        &sg.name,
+    )?;
+
+    let mut options = HashMap::new();
+    let mut default_shapes: Vec<_> = sg
+        .default_block
+        .map(|b| b.shapes)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(0.0)))
+        .collect();
+    let mut default_shape_names: HashSet<_> = default_shapes.iter().map(|s| s.0.clone()).collect();
+
+    for decl_option in sg.options {
+        let name = decl_option.name.expect("option block must have name");
+        let option: Vec<_> = decl_option
+            .shapes
+            .into_iter()
+            .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(1.0)))
+            .collect();
+
+        for target in &option {
+            if default_shape_names.contains(&target.0) {
+                continue;
+            }
+            default_shapes.push(ShapeTarget(target.0.clone(), 0.0));
+            default_shape_names.insert(target.0.clone());
+        }
+
+        options.insert(AnimationOption::Option(name), option);
+    }
+
+    options.insert(AnimationOption::Default, default_shapes);
+
+    Ok(AnimationGroup {
+        name: sg.name,
+        parameter: sg.parameter,
+        content: AnimationGroupContent::ShapeGroup {
+            mesh: sg.mesh,
+            prevent_mouth: sg.prevent_mouth.unwrap_or(false),
+            prevent_eyelids: sg.prevent_eyelids.unwrap_or(false),
+            options,
+        },
+    })
+}
+
+fn compile_animation_shape_switch(
+    ss: DeclShapeSwitch,
+    parameters: &HashMap<String, Parameter>,
+) -> Result<AnimationGroup> {
+    ensure_parameter(
+        parameters,
+        &ss.parameter,
+        &ParameterType::BOOL_TYPE,
+        &ss.name,
+    )?;
+
+    let mut disabled = vec![];
+    let mut enabled = vec![];
+    for shape in ss.shapes {
+        disabled.push(ShapeTarget(
+            shape.shape.clone(),
+            shape.disabled.unwrap_or(0.0),
+        ));
+        enabled.push(ShapeTarget(
+            shape.shape.clone(),
+            shape.enabled.unwrap_or(1.0),
+        ));
+    }
+
+    Ok(AnimationGroup {
+        name: ss.name,
+        parameter: ss.parameter,
+        content: AnimationGroupContent::ShapeSwitch {
+            mesh: ss.mesh,
+            prevent_mouth: ss.prevent_mouth.unwrap_or(false),
+            prevent_eyelids: ss.prevent_eyelids.unwrap_or(false),
+            disabled,
+            enabled,
+        },
+    })
+}
+
+fn compile_animation_object_group(
+    og: DeclObjectGroup,
+    parameters: &HashMap<String, Parameter>,
+) -> Result<AnimationGroup> {
+    ensure_parameter(
+        parameters,
+        &og.parameter,
+        &ParameterType::INT_TYPE,
+        &og.name,
+    )?;
+
+    let mut options = HashMap::new();
+    let mut default_objects: Vec<_> = og
+        .default_block
+        .map(|b| b.objects)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(false)))
+        .collect();
+    let mut default_object_names: HashSet<_> =
+        default_objects.iter().map(|s| s.0.clone()).collect();
+
+    for decl_option in og.options {
+        let name = decl_option.name.expect("option block must have name");
+        let option: Vec<_> = decl_option
+            .objects
+            .into_iter()
+            .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(true)))
+            .collect();
+
+        for target in &option {
+            if default_object_names.contains(&target.0) {
+                continue;
+            }
+            default_objects.push(ObjectTarget(target.0.clone(), false));
+            default_object_names.insert(target.0.clone());
+        }
+
+        options.insert(AnimationOption::Option(name), option);
+    }
+
+    options.insert(AnimationOption::Default, default_objects);
+
+    Ok(AnimationGroup {
+        name: og.name,
+        parameter: og.parameter,
+        content: AnimationGroupContent::ObjectGroup { options },
+    })
+}
+
+fn compile_animation_object_switch(
+    os: DeclObjectSwitch,
+    parameters: &HashMap<String, Parameter>,
+) -> Result<AnimationGroup> {
+    ensure_parameter(
+        parameters,
+        &os.parameter,
+        &ParameterType::BOOL_TYPE,
+        &os.name,
+    )?;
+
+    let mut disabled = vec![];
+    let mut enabled = vec![];
+    for object in os.objects {
+        disabled.push(ObjectTarget(
+            object.object.clone(),
+            object.disabled.unwrap_or(false),
+        ));
+        enabled.push(ObjectTarget(
+            object.object.clone(),
+            object.enabled.unwrap_or(true),
+        ));
+    }
+
+    Ok(AnimationGroup {
+        name: os.name,
+        parameter: os.parameter,
+        content: AnimationGroupContent::ObjectSwitch { disabled, enabled },
+    })
 }

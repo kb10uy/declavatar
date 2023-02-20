@@ -41,10 +41,45 @@ pub enum ParameterSync {
     Synced(bool),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AnimationOption {
+    Default,
+    Option(String),
+}
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum AnimationGroup {
-    ShapeGroup(),
-    ShapeSwitch(),
-    ObjectGroup(),
-    ObjectSwitch(),
+pub struct ShapeTarget(pub String, pub f64);
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ObjectTarget(pub String, pub bool);
+
+#[derive(Debug, Clone)]
+pub struct AnimationGroup {
+    pub name: String,
+    pub parameter: String,
+    pub content: AnimationGroupContent,
+}
+
+#[derive(Debug, Clone)]
+pub enum AnimationGroupContent {
+    ShapeGroup {
+        mesh: String,
+        prevent_mouth: bool,
+        prevent_eyelids: bool,
+        options: HashMap<AnimationOption, Vec<ShapeTarget>>,
+    },
+    ShapeSwitch {
+        mesh: String,
+        prevent_mouth: bool,
+        prevent_eyelids: bool,
+        disabled: Vec<ShapeTarget>,
+        enabled: Vec<ShapeTarget>,
+    },
+    ObjectGroup {
+        options: HashMap<AnimationOption, Vec<ObjectTarget>>,
+    },
+    ObjectSwitch {
+        disabled: Vec<ObjectTarget>,
+        enabled: Vec<ObjectTarget>,
+    },
 }
