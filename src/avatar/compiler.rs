@@ -90,6 +90,8 @@ fn compile_animations(
 ) -> Result<Vec<AnimationGroup>> {
     let mut animation_groups = vec![];
 
+    let mut used_group_names: HashSet<&str> = HashSet::new();
+    let mut used_parameters: HashSet<&str> = HashSet::new();
     let decl_animations = animations_blocks
         .into_iter()
         .map(|ab| ab.elements)
