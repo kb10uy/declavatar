@@ -1,3 +1,5 @@
+use std::convert::Infallible;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Level {
     Information,
@@ -42,10 +44,27 @@ impl Message {
     }
 }
 
-pub trait Diagnostic {
-    fn info<I: Instrument>(&mut self, instrument: &I, message: String);
-    fn warn<I: Instrument>(&mut self, instrument: &I, message: String);
-    fn error<I: Instrument>(&mut self, instrument: &I, message: String);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum InstrumentKey {
+    Unkeyed,
+    Array(usize),
+    Map(String),
+}
+
+pub trait Diagnostic<'a>
+where
+    Self: 'a,
+{
+    type Scoped: Diagnostic<'a>;
+
+    fn info<I: Instrument>(&mut self, key: InstrumentKey, message: String);
+    fn warn<I: Instrument>(&mut self, key: InstrumentKey, message: String);
+    fn error<I: Instrument>(
+        &mut self,
+        key: InstrumentKey,
+        message: String,
+    ) -> Result<Infallible, ()>;
+    fn with<I: Instrument>(&'a mut self, key: InstrumentKey) -> Self::Scoped;
     fn append(&mut self, messages: Vec<Message>);
     fn commit(self);
 }
@@ -67,33 +86,48 @@ impl CompilerInfo {
     pub fn errornous(&self) -> bool {
         self.errornous
     }
+}
 
-    pub fn of<'a, I: Instrument>(&'a mut self, parent: &I) -> ScopedCompilerInfo<'a, CompilerInfo> {
-        let prefix = format!("{} / ", parent.show());
+impl<'a> Diagnostic<'a> for CompilerInfo {
+    type Scoped = ScopedCompilerInfo<'a, CompilerInfo>;
+
+    fn info<I: Instrument>(&mut self, key: InstrumentKey, message: String) {
+        self.messages.push(Message::info(
+            construct_instrument(None, I::INSTRUMENT_NAME, key),
+            message,
+        ));
+    }
+
+    fn warn<I: Instrument>(&mut self, key: InstrumentKey, message: String) {
+        self.messages.push(Message::warn(
+            construct_instrument(None, I::INSTRUMENT_NAME, key),
+            message,
+        ));
+    }
+
+    fn error<I: Instrument>(
+        &mut self,
+        key: InstrumentKey,
+        message: String,
+    ) -> Result<Infallible, ()> {
+        self.messages.push(Message::error(
+            construct_instrument(None, I::INSTRUMENT_NAME, key),
+            message,
+        ));
+        self.errornous = true;
+        Err(())
+    }
+
+    fn with<I: Instrument>(
+        &'a mut self,
+        key: InstrumentKey,
+    ) -> ScopedCompilerInfo<'a, CompilerInfo> {
         ScopedCompilerInfo {
             parent: self,
-            prefix,
+            prefix: construct_instrument(None, I::INSTRUMENT_NAME, key),
             messages: vec![],
             errornous: false,
         }
-    }
-}
-
-impl Diagnostic for CompilerInfo {
-    fn info<I: Instrument>(&mut self, instrument: &I, message: String) {
-        self.messages
-            .push(Message::info(instrument.show(), message));
-    }
-
-    fn warn<I: Instrument>(&mut self, instrument: &I, message: String) {
-        self.messages
-            .push(Message::warn(instrument.show(), message));
-    }
-
-    fn error<I: Instrument>(&mut self, instrument: &I, message: String) {
-        self.messages
-            .push(Message::error(instrument.show(), message));
-        self.errornous = true;
     }
 
     fn append(&mut self, mut messages: Vec<Message>) {
@@ -111,16 +145,16 @@ pub struct ScopedCompilerInfo<'p, P> {
     errornous: bool,
 }
 
-impl<'p, P: Diagnostic> ScopedCompilerInfo<'p, P> {
+impl<'p, P: Diagnostic<'p>> ScopedCompilerInfo<'p, P> {
     pub fn errornous(&self) -> bool {
         self.errornous
     }
 
     pub fn of<'a: 'p, I: Instrument>(
         &'a mut self,
-        parent: &I,
+        key: InstrumentKey,
     ) -> ScopedCompilerInfo<'a, ScopedCompilerInfo<'a, P>> {
-        let prefix = format!("{}{} / ", self.prefix, parent.show());
+        let prefix = construct_instrument(Some(&self.prefix), I::INSTRUMENT_NAME, key);
         ScopedCompilerInfo {
             parent: self,
             prefix,
@@ -130,27 +164,46 @@ impl<'p, P: Diagnostic> ScopedCompilerInfo<'p, P> {
     }
 }
 
-impl<'p, P: Diagnostic> Diagnostic for ScopedCompilerInfo<'p, P> {
-    fn info<I: Instrument>(&mut self, instrument: &I, message: String) {
+impl<'p, P: Diagnostic<'p>> Diagnostic<'p> for ScopedCompilerInfo<'p, P> {
+    type Scoped = ScopedCompilerInfo<'p, ScopedCompilerInfo<'p, P>>;
+
+    fn info<I: Instrument>(&mut self, key: InstrumentKey, message: String) {
         self.messages.push(Message::info(
-            format!("{}{}", self.prefix, instrument.show()),
+            construct_instrument(Some(&self.prefix), I::INSTRUMENT_NAME, key),
             message,
         ));
     }
 
-    fn warn<I: Instrument>(&mut self, instrument: &I, message: String) {
+    fn warn<I: Instrument>(&mut self, key: InstrumentKey, message: String) {
         self.messages.push(Message::warn(
-            format!("{}{}", self.prefix, instrument.show()),
+            construct_instrument(Some(&self.prefix), I::INSTRUMENT_NAME, key),
             message,
         ));
     }
 
-    fn error<I: Instrument>(&mut self, instrument: &I, message: String) {
+    fn error<I: Instrument>(
+        &mut self,
+        key: InstrumentKey,
+        message: String,
+    ) -> Result<Infallible, ()> {
         self.messages.push(Message::error(
-            format!("{}{}", self.prefix, instrument.show()),
+            construct_instrument(Some(&self.prefix), I::INSTRUMENT_NAME, key),
             message,
         ));
         self.errornous = true;
+        Err(())
+    }
+
+    fn with<I: Instrument>(
+        &'p mut self,
+        key: InstrumentKey,
+    ) -> ScopedCompilerInfo<'p, ScopedCompilerInfo<'p, P>> {
+        ScopedCompilerInfo {
+            parent: self,
+            prefix: construct_instrument(None, I::INSTRUMENT_NAME, key),
+            messages: vec![],
+            errornous: false,
+        }
     }
 
     fn append(&mut self, mut messages: Vec<Message>) {
@@ -164,33 +217,24 @@ impl<'p, P: Diagnostic> Diagnostic for ScopedCompilerInfo<'p, P> {
 }
 
 pub trait Instrument {
-    fn show(&self) -> String;
+    const INSTRUMENT_NAME: &'static str;
 }
 
-impl<I: Instrument> Instrument for &I {
-    fn show(&self) -> String {
-        let this = *self;
-        this.show()
-    }
-}
+fn construct_instrument(prefix: Option<&str>, i: &str, key: InstrumentKey) -> String {
+    let mut instrument = String::new();
 
-impl<I: Instrument> Instrument for (I, usize) {
-    fn show(&self) -> String {
-        let (instrument, index) = self;
-        format!("{} #{index}", instrument.show())
+    if let Some(p) = prefix {
+        instrument.push_str(p);
+        instrument.push_str(" / ");
     }
-}
 
-impl<'a, I: Instrument> Instrument for (I, String) {
-    fn show(&self) -> String {
-        let (instrument, key) = self;
-        format!("{} #{key}", instrument.show())
-    }
-}
+    instrument.push_str(i);
 
-impl<'a, I: Instrument> Instrument for (I, &'a str) {
-    fn show(&self) -> String {
-        let (instrument, key) = self;
-        format!("{} #{key}", instrument.show())
+    match key {
+        InstrumentKey::Unkeyed => (),
+        InstrumentKey::Array(i) => instrument.push_str(&i.to_string()),
+        InstrumentKey::Map(k) => instrument.push_str(&k),
     }
+
+    instrument
 }

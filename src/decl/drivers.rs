@@ -15,17 +15,16 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) = deconstruct_node(source, node, Some(NODE_NAME_DRIVERS), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_DRIVERS), Some(true))?;
 
         let mut groups = vec![];
         for child in children {
             let child_name = child.name().value();
             let group = match child_name {
-                NODE_NAME_GROUP => Group::parse(child, source)?,
+                NODE_NAME_GROUP => Group::parse(child)?,
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ));
@@ -46,9 +45,8 @@ pub struct Group {
 }
 
 impl Group {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, entries, children) =
-            deconstruct_node(source, node, Some(NODE_NAME_GROUP), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_GROUP), Some(true))?;
 
         let name = entries.get_argument(0, "name")?;
         let local = entries.try_get_property("local")?;
@@ -58,11 +56,10 @@ impl Group {
             let child_name = child.name().value();
             let drive = match child_name {
                 NODE_NAME_SET | NODE_NAME_ADD | NODE_NAME_RANDOM | NODE_NAME_COPY => {
-                    Drive::parse(child, source)?
+                    Drive::parse(child)?
                 }
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ));
@@ -98,18 +95,18 @@ pub enum Drive {
 }
 
 impl Drive {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, _) = deconstruct_node(source, node, None, Some(false))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let drive = match name {
             NODE_NAME_SET => {
-                let drive_target = Drive::parse_drive_target(&entries, node, source)?;
+                let drive_target = Drive::parse_drive_target(&entries, node)?;
                 Drive::Set(drive_target)
             }
             NODE_NAME_ADD => {
                 // Just reuses DriveTarget.
                 // Only Integer/FloatParameter affects, verifies that following step.
-                let drive_target = Drive::parse_drive_target(&entries, node, source)?;
+                let drive_target = Drive::parse_drive_target(&entries, node)?;
                 Drive::Set(drive_target)
             }
             NODE_NAME_RANDOM => {
@@ -144,11 +141,7 @@ impl Drive {
         Ok(drive)
     }
 
-    fn parse_drive_target(
-        entries: &NodeEntries,
-        parent: &KdlNode,
-        source: &str,
-    ) -> Result<DriveTarget> {
+    fn parse_drive_target(entries: &NodeEntries, parent: &KdlNode) -> Result<DriveTarget> {
         let target_group = entries.try_get_property("group")?;
         let target_parameter = entries.try_get_property("parameter")?;
         let drive_target = match (target_group, target_parameter) {
@@ -173,7 +166,6 @@ impl Drive {
                 } else {
                     let entry_span = parent.get("value").expect("must have entry").span();
                     return Err(DeclError::new(
-                        source,
                         entry_span,
                         DeclErrorKind::IncorrectType("int or bool"),
                     ));
@@ -181,7 +173,6 @@ impl Drive {
             }
             _ => {
                 return Err(DeclError::new(
-                    source,
                     parent.name().span(),
                     DeclErrorKind::InvalidNodeDetected,
                 ));

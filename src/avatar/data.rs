@@ -1,3 +1,5 @@
+use crate::avatar::diagnostic::Instrument;
+
 use std::collections::HashMap;
 
 use serde::Serialize;
@@ -9,11 +11,19 @@ pub struct Avatar {
     pub animation_groups: Vec<AnimationGroup>,
 }
 
+impl Instrument for Avatar {
+    const INSTRUMENT_NAME: &'static str = "avatar";
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Parameter {
     pub name: String,
     pub value_type: ParameterType,
     pub sync_type: ParameterSync,
+}
+
+impl Instrument for Parameter {
+    const INSTRUMENT_NAME: &'static str = "parameter";
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -45,33 +55,15 @@ pub enum ParameterSync {
     Synced(bool),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(tag = "type", content = "name", into = "String")]
-pub enum AnimationOption {
-    Default,
-    Option(String),
-}
-
-impl From<AnimationOption> for String {
-    fn from(value: AnimationOption) -> Self {
-        match value {
-            AnimationOption::Default => "d".into(),
-            AnimationOption::Option(s) => format!("o:{s}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ShapeTarget(pub String, pub f64);
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ObjectTarget(pub String, pub bool);
-
 #[derive(Debug, Clone, Serialize)]
 pub struct AnimationGroup {
     pub name: String,
     pub parameter: String,
     pub content: AnimationGroupContent,
+}
+
+impl Instrument for AnimationGroup {
+    const INSTRUMENT_NAME: &'static str = "animation group";
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,3 +90,25 @@ pub enum AnimationGroupContent {
         enabled: Vec<ObjectTarget>,
     },
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(tag = "type", content = "name", into = "String")]
+pub enum AnimationOption {
+    Default,
+    Option(String),
+}
+
+impl From<AnimationOption> for String {
+    fn from(value: AnimationOption) -> Self {
+        match value {
+            AnimationOption::Default => "d".into(),
+            AnimationOption::Option(s) => format!("o:{s}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ShapeTarget(pub String, pub f64);
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ObjectTarget(pub String, pub bool);

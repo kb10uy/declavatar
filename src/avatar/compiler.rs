@@ -4,6 +4,7 @@ use crate::{
             AnimationGroup, AnimationGroupContent, AnimationOption, Avatar, ObjectTarget,
             Parameter, ParameterSync, ParameterType, ShapeTarget,
         },
+        diagnostic::{CompilerInfo, Diagnostic, InstrumentKey},
         error::{AvatarError, Result},
     },
     decl::{
@@ -20,6 +21,8 @@ use crate::{
 use std::collections::{HashMap, HashSet};
 
 pub fn compile_avatar(avatar: DeclAvatar) -> Result<Avatar> {
+    let mut ci = CompilerInfo::new();
+
     let name = {
         let decl_name = avatar.name.trim();
         if decl_name == "" {
@@ -28,8 +31,15 @@ pub fn compile_avatar(avatar: DeclAvatar) -> Result<Avatar> {
         decl_name.to_string()
     };
 
-    let parameters = compile_parameters(avatar.parameters_blocks)?;
-    let animation_groups = compile_animations(avatar.animations_blocks, &parameters)?;
+    let parameters = compile_parameters(
+        avatar.parameters_blocks,
+        ci.with::<Avatar>(InstrumentKey::Unkeyed),
+    )?;
+    let animation_groups = compile_animations(
+        avatar.animations_blocks,
+        &parameters,
+        ci.with::<Avatar>(InstrumentKey::Unkeyed),
+    )?;
     Ok(Avatar {
         name,
         parameters,
@@ -37,8 +47,9 @@ pub fn compile_avatar(avatar: DeclAvatar) -> Result<Avatar> {
     })
 }
 
-fn compile_parameters(
+fn compile_parameters<'a, D: Diagnostic<'a>>(
     parameters_blocks: Vec<DeclParameters>,
+    mut ci: D,
 ) -> Result<HashMap<String, Parameter>> {
     use std::collections::hash_map::Entry;
 
@@ -60,15 +71,25 @@ fn compile_parameters(
             (None | Some(false), None) => ParameterSync::Synced(false),
             (None | Some(false), Some(save)) => ParameterSync::Synced(save),
             (Some(true), Some(true)) => {
-                return Err(AvatarError::CannotSaveLocalParameter(decl_parameter.name));
+                ci.error::<Parameter>(
+                    InstrumentKey::Map(decl_parameter.name.into()),
+                    format!("local parameter cannot be saved"),
+                )
+                .err();
+                continue;
             }
         };
 
-        match parameters.entry(decl_parameter.name) {
+        match parameters.entry(decl_parameter.name.clone()) {
             Entry::Occupied(p) => {
                 let defined: &Parameter = p.get();
                 if defined.value_type != value_type || defined.sync_type != sync_type {
-                    return Err(AvatarError::IncompatibleParameterDefinition(name));
+                    ci.error::<Parameter>(
+                        InstrumentKey::Map(decl_parameter.name.into()),
+                        format!("incompatible declaration detected"),
+                    )
+                    .err();
+                    continue;
                 }
             }
             Entry::Vacant(v) => {
@@ -81,24 +102,24 @@ fn compile_parameters(
         }
     }
 
+    ci.commit();
     Ok(parameters)
 }
 
-fn compile_animations(
+fn compile_animations<'a, D: Diagnostic<'a>>(
     animations_blocks: Vec<DeclAnimations>,
     parameters: &HashMap<String, Parameter>,
+    mut ci: D,
 ) -> Result<Vec<AnimationGroup>> {
     let mut animation_groups = vec![];
 
-    let mut used_group_names: HashSet<&str> = HashSet::new();
-    let mut used_parameters: HashSet<&str> = HashSet::new();
+    let mut used_group_names: HashSet<String> = HashSet::new();
+    let mut used_parameters: HashSet<String> = HashSet::new();
     let decl_animations = animations_blocks
         .into_iter()
         .map(|ab| ab.elements)
         .flatten();
-    for decl_animation in decl_animations {
-        // TODO: check name duplicates
-        // TODO: check parameter duplicate use
+    for (i, decl_animation) in decl_animations.into_iter().enumerate() {
         let animation_group = match decl_animation {
             DeclAnimationElement::ShapeGroup(shape_group) => {
                 compile_animation_shape_group(shape_group, parameters)?
@@ -113,6 +134,31 @@ fn compile_animations(
                 compile_animation_object_switch(object_switch, parameters)?
             }
         };
+
+        if used_group_names.contains(&animation_group.name) {
+            ci.warn::<AnimationGroup>(
+                InstrumentKey::Array(i),
+                format!(
+                    "group name '{}' is used multiple times",
+                    animation_group.name
+                ),
+            );
+        } else {
+            used_group_names.insert(animation_group.name.clone());
+        }
+
+        if used_parameters.contains(&animation_group.parameter) {
+            ci.warn::<AnimationGroup>(
+                InstrumentKey::Map(animation_group.name.clone()),
+                format!(
+                    "parameter '{}' is used multiple times",
+                    animation_group.parameter
+                ),
+            );
+        } else {
+            used_parameters.insert(animation_group.parameter.clone());
+        }
+
         animation_groups.push(animation_group);
     }
 
@@ -124,6 +170,7 @@ fn ensure_parameter(
     name: &str,
     ty: &ParameterType,
     used_by: &str,
+    // ci: &mut D,
 ) -> Result<()> {
     let parameter = match parameters.get(name) {
         Some(p) => p,

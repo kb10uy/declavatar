@@ -18,12 +18,6 @@ pub enum AvatarError {
     #[error("avatar name '{0} is invalid'")]
     InvalidAvatarName(String),
 
-    #[error("parameter '{0}' is defined incompatibly")]
-    IncompatibleParameterDefinition(String),
-
-    #[error("parameter '{0}' is local, cannot be saved")]
-    CannotSaveLocalParameter(String),
-
     #[error("parameter '{name}' (used by '{used_by}') not found")]
     ParameterNotFound { name: String, used_by: String },
 

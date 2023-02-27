@@ -13,20 +13,16 @@ pub struct Parameters {
 }
 
 impl Parameters {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) =
-            deconstruct_node(source, node, Some(NODE_NAME_PARAMETERS), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_PARAMETERS), Some(true))?;
 
         let mut parameters = vec![];
         for child in children {
             let child_name = child.name().value();
             let parameter = match child_name {
-                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => {
-                    Parameter::parse(child, source)?
-                }
+                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => Parameter::parse(child)?,
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ));
@@ -53,8 +49,8 @@ pub struct Parameter {
 }
 
 impl Parameter {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, _) = deconstruct_node(source, node, None, Some(false))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let parameter_name = entries.get_argument(0, "name")?;
         let save = entries.try_get_property("save")?;

@@ -8,7 +8,7 @@ use crate::decl::{
 };
 
 use kdl::{KdlDocument, KdlNode};
-use miette::{SourceOffset, SourceSpan};
+use miette::SourceSpan;
 use semver::Version;
 
 pub const NODE_NAME_VERSION: &str = "version";
@@ -21,26 +21,17 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn parse(document: &KdlDocument, source: &str) -> Result<Document> {
+    pub fn parse(document: &KdlDocument, nul_span: &SourceSpan) -> Result<Document> {
         let nodes = document.nodes();
-        let first_span = SourceSpan::new(
-            SourceOffset::from_location(source, 1, 1),
-            SourceOffset::from_location(source, 1, 1),
-        );
 
         // Detect version
         let Some(version_node) = nodes.get(0) else {
-            return Err(DeclError::new(source, &first_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
+            return Err(DeclError::new(&nul_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
         };
-        let (_, entries, _) =
-            deconstruct_node(source, version_node, Some(NODE_NAME_VERSION), Some(false))?;
+        let (_, entries, _) = deconstruct_node(version_node, Some(NODE_NAME_VERSION), Some(false))?;
         let version_text = entries.get_argument(0, "version")?;
         let version = Version::parse(version_text).map_err(|e| {
-            DeclError::new(
-                source,
-                version_node.name().span(),
-                DeclErrorKind::VersionError(e),
-            )
+            DeclError::new(version_node.name().span(), DeclErrorKind::VersionError(e))
         })?;
 
         // Other nodes
@@ -50,11 +41,10 @@ impl Document {
             match node_name {
                 NODE_NAME_AVATAR => match avatar {
                     None => {
-                        avatar = Some(Avatar::parse(node, source)?);
+                        avatar = Some(Avatar::parse(node)?);
                     }
                     _ => {
                         return Err(DeclError::new(
-                            source,
                             node.name().span(),
                             DeclErrorKind::DuplicateNodeFound,
                         ))
@@ -62,7 +52,6 @@ impl Document {
                 },
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         node.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ))
@@ -71,7 +60,7 @@ impl Document {
         }
 
         let Some(avatar) = avatar else {
-            return Err(DeclError::new(source, &first_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
+            return Err(DeclError::new(&nul_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
         };
         Ok(Document { version, avatar })
     }
@@ -88,9 +77,8 @@ pub struct Avatar {
 }
 
 impl Avatar {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, entries, children) =
-            deconstruct_node(source, node, Some(NODE_NAME_AVATAR), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_AVATAR), Some(true))?;
 
         let name = entries.get_argument(0, "name")?;
         let mut animations_blocks = vec![];
@@ -101,13 +89,12 @@ impl Avatar {
         for child in children {
             let child_name = child.name().value();
             match child_name {
-                NODE_NAME_ANIMATIONS => animations_blocks.push(Animations::parse(child, source)?),
-                NODE_NAME_DRIVERS => drivers_blocks.push(Drivers::parse(child, source)?),
-                NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child, source)?),
-                NODE_NAME_MENU => menu_blocks.push(Menu::parse(child, source)?),
+                NODE_NAME_ANIMATIONS => animations_blocks.push(Animations::parse(child)?),
+                NODE_NAME_DRIVERS => drivers_blocks.push(Drivers::parse(child)?),
+                NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child)?),
+                NODE_NAME_MENU => menu_blocks.push(Menu::parse(child)?),
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ))

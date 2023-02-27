@@ -31,28 +31,27 @@ pub enum MenuElement {
 }
 
 impl Menu {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, _, children) = deconstruct_node(source, node, Some(NODE_NAME_MENU), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_MENU), Some(true))?;
 
         let mut elements = vec![];
         for child in children {
             let child_name = child.name().value();
             let element = match child_name {
                 NODE_NAME_SUBMENU => {
-                    let submenu = SubMenu::parse(child, source)?;
+                    let submenu = SubMenu::parse(child)?;
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = Boolean::parse(child, source)?;
+                    let boolean = Boolean::parse(child)?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
-                    let puppet = Puppet::parse(child, source)?;
+                    let puppet = Puppet::parse(child)?;
                     MenuElement::Puppet(puppet)
                 }
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ));
@@ -72,9 +71,8 @@ pub struct SubMenu {
 }
 
 impl SubMenu {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (_, entries, children) =
-            deconstruct_node(source, node, Some(NODE_NAME_SUBMENU), Some(true))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_SUBMENU), Some(true))?;
 
         let submenu_name = entries.get_argument(0, "name")?;
         let mut elements = vec![];
@@ -82,20 +80,19 @@ impl SubMenu {
             let child_name = child.name().value();
             let element = match child_name {
                 NODE_NAME_SUBMENU => {
-                    let submenu = SubMenu::parse(child, source)?;
+                    let submenu = SubMenu::parse(child)?;
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = Boolean::parse(child, source)?;
+                    let boolean = Boolean::parse(child)?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
-                    let puppet = Puppet::parse(child, source)?;
+                    let puppet = Puppet::parse(child)?;
                     MenuElement::Puppet(puppet)
                 }
                 _ => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::InvalidNodeDetected,
                     ));
@@ -119,8 +116,8 @@ pub struct Boolean {
 }
 
 impl Boolean {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, _) = deconstruct_node(source, node, None, Some(false))?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
         let toggle = name == NODE_NAME_TOGGLE;
 
         let item_name = entries.get_argument(0, "name")?;
@@ -148,7 +145,6 @@ impl Boolean {
                 } else {
                     let entry_span = node.get("value").expect("must have entry").span();
                     return Err(DeclError::new(
-                        source,
                         entry_span,
                         DeclErrorKind::IncorrectType("int or bool"),
                     ));
@@ -156,7 +152,6 @@ impl Boolean {
             }
             _ => {
                 return Err(DeclError::new(
-                    source,
                     node.name().span(),
                     DeclErrorKind::InvalidNodeDetected,
                 ));
@@ -194,8 +189,8 @@ pub struct Puppet {
 }
 
 impl Puppet {
-    pub fn parse(node: &KdlNode, source: &str) -> Result<Self> {
-        let (name, entries, children) = deconstruct_node(source, node, None, None)?;
+    pub fn parse(node: &KdlNode) -> Result<Self> {
+        let (name, entries, children) = deconstruct_node(node, None, None)?;
 
         let puppet_name = entries.get_argument(0, "name")?;
         let axes = match name {
@@ -207,15 +202,13 @@ impl Puppet {
                 let axes_children = Axes::extract_nodes_just(
                     children,
                     &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
-                    source,
                 )?
                 .ok_or_else(|| {
-                    DeclError::new(source, node.name().span(), DeclErrorKind::MustHaveChildren)
+                    DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
                 })?;
 
-                let horizontal =
-                    Axes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL], source)?;
-                let vertical = Axes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL], source)?;
+                let horizontal = Axes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
+                let vertical = Axes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
 
                 Axes::TwoAxis {
                     horizontal,
@@ -231,16 +224,15 @@ impl Puppet {
                         NODE_NAME_UP,
                         NODE_NAME_DOWN,
                     ],
-                    source,
                 )?
                 .ok_or_else(|| {
-                    DeclError::new(source, node.name().span(), DeclErrorKind::MustHaveChildren)
+                    DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
                 })?;
 
-                let left = Axes::make_four_axis_pair(axes_children[NODE_NAME_LEFT], source)?;
-                let right = Axes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT], source)?;
-                let up = Axes::make_four_axis_pair(axes_children[NODE_NAME_UP], source)?;
-                let down = Axes::make_four_axis_pair(axes_children[NODE_NAME_DOWN], source)?;
+                let left = Axes::make_four_axis_pair(axes_children[NODE_NAME_LEFT])?;
+                let right = Axes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT])?;
+                let up = Axes::make_four_axis_pair(axes_children[NODE_NAME_UP])?;
+                let down = Axes::make_four_axis_pair(axes_children[NODE_NAME_DOWN])?;
 
                 Axes::FourAxis {
                     left,
@@ -278,7 +270,6 @@ impl Axes {
     fn extract_nodes_just<'a>(
         children: &'a [KdlNode],
         node_names: &'a [&'static str],
-        source: &'a str,
     ) -> Result<Option<HashMap<&'a str, &'a KdlNode>>> {
         use std::collections::hash_map::Entry;
 
@@ -292,7 +283,6 @@ impl Axes {
                 }
                 Entry::Occupied(_) => {
                     return Err(DeclError::new(
-                        source,
                         child.name().span(),
                         DeclErrorKind::DuplicateNodeFound,
                     ));
@@ -307,8 +297,8 @@ impl Axes {
         }
     }
 
-    fn make_two_axis_pair(node: &KdlNode, source: &str) -> Result<(String, (String, String))> {
-        let (_, entries, _) = deconstruct_node(source, node, None, Some(false))?;
+    fn make_two_axis_pair(node: &KdlNode) -> Result<(String, (String, String))> {
+        let (_, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let pair = (
             entries.get_property("parameter")?,
@@ -320,8 +310,8 @@ impl Axes {
         Ok(pair)
     }
 
-    fn make_four_axis_pair(node: &KdlNode, source: &str) -> Result<(String, String)> {
-        let (_, entries, _) = deconstruct_node(source, node, None, Some(false))?;
+    fn make_four_axis_pair(node: &KdlNode) -> Result<(String, String)> {
+        let (_, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let pair = (
             entries.get_property("parameter")?,
