@@ -33,11 +33,6 @@ impl Parameters {
 
         Ok(Parameters { parameters })
     }
-
-    /// Returns sum of bits consumption in this block.
-    pub fn packed_bits_in_block(&self) -> usize {
-        self.parameters.iter().map(|p| p.ty.packed_bits()).sum()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -85,13 +80,4 @@ pub enum ParameterType {
     Int(Option<u8>),
     Float(Option<f64>),
     Bool(Option<bool>),
-}
-
-impl ParameterType {
-    pub const fn packed_bits(&self) -> usize {
-        match self {
-            ParameterType::Int(_) | ParameterType::Float(_) => 8,
-            ParameterType::Bool(_) => 1,
-        }
-    }
 }

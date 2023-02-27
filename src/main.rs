@@ -1,7 +1,8 @@
 mod avatar;
+mod compiler;
 mod decl;
 
-use crate::{avatar::compiler::compile_avatar, decl::document::Document};
+use crate::{avatar::compiler::compile_avatar, decl::parse_document};
 
 use std::{
     env::args,
@@ -9,7 +10,6 @@ use std::{
     io::{BufReader, Read},
 };
 
-use kdl::KdlDocument;
 use miette::{IntoDiagnostic, Result as MietteResult};
 use thiserror::Error as ThisError;
 
@@ -29,9 +29,7 @@ fn main() -> MietteResult<()> {
     let mut source = String::new();
     file.read_to_string(&mut source).into_diagnostic()?;
 
-    let kdl: KdlDocument = source.parse()?;
-    let document = Document::parse(&kdl, &source)?;
-
+    let document = parse_document(&source)?;
     let compiled_avatar = compile_avatar(document.avatar)?;
     let avatar_json = serde_json::to_string_pretty(&compiled_avatar).into_diagnostic()?;
     println!("{avatar_json}");

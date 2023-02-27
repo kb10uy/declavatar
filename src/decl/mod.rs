@@ -15,14 +15,14 @@ use std::collections::HashMap;
 use kdl::{KdlDocument, KdlEntry, KdlNode, KdlValue};
 use miette::{Result as MietteResult, SourceOffset, SourceSpan};
 
-pub fn parse(source: &str) -> MietteResult<Document> {
+pub fn parse_document(source: &str) -> MietteResult<Document> {
     let first_span = SourceSpan::new(
         SourceOffset::from_location(source, 1, 1),
         SourceOffset::from_location(source, 1, 1),
     );
 
     let kdl: KdlDocument = source.parse()?;
-    let document = Document::parse(&kdl, &first_span)?;
+    let document = Document::parse(&kdl, &first_span).map_err(|e| e.with_source(source))?;
     Ok(document)
 }
 
@@ -69,6 +69,7 @@ pub struct NodeEntries<'a> {
     properties: HashMap<&'a str, &'a KdlEntry>,
 }
 
+#[allow(dead_code)]
 impl<'a> NodeEntries<'a> {
     fn split_entries(node: &'a KdlNode) -> NodeEntries<'a> {
         let mut arguments = Vec::new();
