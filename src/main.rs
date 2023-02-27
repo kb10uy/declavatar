@@ -30,7 +30,16 @@ fn main() -> MietteResult<()> {
     file.read_to_string(&mut source).into_diagnostic()?;
 
     let document = parse_document(&source)?;
-    let compiled_avatar = compile_avatar(document.avatar)?;
-    println!("{compiled_avatar:?}");
+    match compile_avatar(document.avatar)? {
+        Ok(avatar) => {
+            println!("{avatar:?}");
+        }
+        Err(errors) => {
+            for error in errors {
+                println!("{error}");
+            }
+        }
+    }
+
     Ok(())
 }

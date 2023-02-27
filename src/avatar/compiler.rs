@@ -27,12 +27,21 @@ pub type AvatarCompiler = ErrorStackCompiler<AvatarError>;
 
 pub fn compile_avatar(avatar: DeclAvatar) -> Result<StdResult<Avatar, Vec<String>>> {
     let mut compiler = AvatarCompiler::new();
+    let compiled_avatar = compiler.parse(avatar)?;
 
-    let result = match compiler.parse(avatar)? {
-        Some(a) => Ok(a),
-        None => Err(compiler.messages().into_iter().map(|(_, m)| m).collect()),
-    };
-    Ok(result)
+    if compiler.errornous() {
+        Ok(Err(compiler
+            .messages()
+            .into_iter()
+            .map(|(_, m)| m)
+            .collect()))
+    } else if let Some(a) = compiled_avatar {
+        Ok(Ok(a))
+    } else {
+        Err(AvatarError::CompilerError(
+            "neither functional avatar nor error list has been generated".into(),
+        ))
+    }
 }
 
 impl Compile<DeclAvatar> for AvatarCompiler {

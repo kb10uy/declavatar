@@ -55,6 +55,10 @@ impl<E> ErrorStackCompiler<E> {
         }
     }
 
+    pub fn errornous(&self) -> bool {
+        self.errornous
+    }
+
     pub fn messages(self) -> Vec<(Severity, String)> {
         self.messages
     }
