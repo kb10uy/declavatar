@@ -24,6 +24,7 @@ pub enum ParameterType {
     Bool(bool),
 }
 
+#[allow(dead_code)]
 impl ParameterType {
     pub const INT_TYPE: ParameterType = ParameterType::Int(0);
     pub const FLOAT_TYPE: ParameterType = ParameterType::Float(0.0);

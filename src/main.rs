@@ -31,7 +31,6 @@ fn main() -> MietteResult<()> {
 
     let document = parse_document(&source)?;
     let compiled_avatar = compile_avatar(document.avatar)?;
-    let avatar_json = serde_json::to_string_pretty(&compiled_avatar).into_diagnostic()?;
-    println!("{avatar_json}");
+    println!("{compiled_avatar:?}");
     Ok(())
 }

@@ -6,7 +6,7 @@ use crate::{
         },
         error::{AvatarError, Result},
     },
-    compiler::{Compile, Compiler, ErrorStackCompiler},
+    compiler::{Compile, Compiler, ErrorStackCompiler, Validate},
     decl::{
         animations::{
             AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
@@ -18,34 +18,43 @@ use crate::{
     },
 };
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    result::Result as StdResult,
+};
 
 pub type AvatarCompiler = ErrorStackCompiler<AvatarError>;
 
-pub fn compile_avatar(avatar: DeclAvatar) -> Result<Avatar> {
+pub fn compile_avatar(avatar: DeclAvatar) -> Result<StdResult<Avatar, Vec<String>>> {
     let mut compiler = AvatarCompiler::new();
-    compiler.parse(avatar)
+
+    let result = match compiler.parse(avatar)? {
+        Some(a) => Ok(a),
+        None => Err(compiler.messages().into_iter().map(|(_, m)| m).collect()),
+    };
+    Ok(result)
 }
 
 impl Compile<DeclAvatar> for AvatarCompiler {
-    type Output = Avatar;
+    type Output = Option<Avatar>;
 
-    fn compile(&mut self, avatar: DeclAvatar) -> Result<Avatar> {
+    fn compile(&mut self, avatar: DeclAvatar) -> Result<Option<Avatar>> {
         let name = {
             let decl_name = avatar.name.trim();
             if decl_name == "" {
-                return Err(AvatarError::InvalidAvatarName(avatar.name));
+                self.error(format!("invalid avatar name"));
+                return Ok(None);
             }
             decl_name.to_string()
         };
 
         let parameters = self.parse(avatar.parameters_blocks)?;
         let animation_groups = self.parse((avatar.animations_blocks, &parameters))?;
-        Ok(Avatar {
+        Ok(Some(Avatar {
             name,
             parameters,
             animation_groups,
-        })
+        }))
     }
 }
 
@@ -124,20 +133,22 @@ impl Compile<(Vec<DeclAnimations>, &HashMap<String, Parameter>)> for AvatarCompi
             .into_iter()
             .map(|ab| ab.elements)
             .flatten();
-        for (i, decl_animation) in decl_animations.into_iter().enumerate() {
-            let animation_group = match decl_animation {
+        for decl_animation in decl_animations {
+            let Some(animation_group) = (match decl_animation {
                 DeclAnimationElement::ShapeGroup(shape_group) => {
-                    compile_animation_shape_group(shape_group, parameters)?
+                    self.compile((shape_group, parameters))?
                 }
                 DeclAnimationElement::ShapeSwitch(shape_switch) => {
-                    compile_animation_shape_switch(shape_switch, parameters)?
+                    self.compile((shape_switch, parameters))?
                 }
                 DeclAnimationElement::ObjectGroup(object_group) => {
-                    compile_animation_object_group(object_group, parameters)?
+                    self.compile((object_group, parameters))?
                 }
                 DeclAnimationElement::ObjectSwitch(object_switch) => {
-                    compile_animation_object_switch(object_switch, parameters)?
+                    self.compile((object_switch, parameters))?
                 }
+            }) else {
+                continue;
             };
 
             if used_group_names.contains(&animation_group.name) {
@@ -165,202 +176,207 @@ impl Compile<(Vec<DeclAnimations>, &HashMap<String, Parameter>)> for AvatarCompi
     }
 }
 
-fn ensure_parameter(
-    parameters: &HashMap<String, Parameter>,
-    name: &str,
-    ty: &ParameterType,
-    used_by: &str,
-    // ci: &mut D,
-) -> Result<()> {
-    let parameter = match parameters.get(name) {
-        Some(p) => p,
-        None => {
-            return Err(AvatarError::ParameterNotFound {
-                name: name.to_string(),
-                used_by: used_by.to_string(),
-            })
-        }
-    };
-    match (&parameter.value_type, ty) {
-        (ParameterType::Int(_), ParameterType::Int(_)) => Ok(()),
-        (ParameterType::Float(_), ParameterType::Float(_)) => Ok(()),
-        (ParameterType::Bool(_), ParameterType::Bool(_)) => Ok(()),
-        _ => Err(AvatarError::WrongParameterType {
-            name: name.to_string(),
-            used_by: used_by.to_string(),
-            expected: ty.type_name(),
-        }),
-    }
-}
+impl Compile<(DeclShapeGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
 
-fn compile_animation_shape_group(
-    sg: DeclShapeGroup,
-    parameters: &HashMap<String, Parameter>,
-) -> Result<AnimationGroup> {
-    ensure_parameter(
-        parameters,
-        &sg.parameter,
-        &ParameterType::INT_TYPE,
-        &sg.name,
-    )?;
+    fn compile(
+        &mut self,
+        (sg, parameters): (DeclShapeGroup, &HashMap<String, Parameter>),
+    ) -> Result<Option<AnimationGroup>> {
+        if !self.ensure((parameters, &sg.parameter, &ParameterType::INT_TYPE))? {
+            return Ok(None);
+        };
 
-    let mut options = HashMap::new();
-    let mut default_shapes: Vec<_> = sg
-        .default_block
-        .map(|b| b.shapes)
-        .unwrap_or_default()
-        .into_iter()
-        .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(0.0)))
-        .collect();
-    let mut default_shape_names: HashSet<_> = default_shapes.iter().map(|s| s.0.clone()).collect();
-
-    for decl_option in sg.options {
-        let name = decl_option.name.expect("option block must have name");
-        let option: Vec<_> = decl_option
-            .shapes
+        let mut options = HashMap::new();
+        let mut default_shapes: Vec<_> = sg
+            .default_block
+            .map(|b| b.shapes)
+            .unwrap_or_default()
             .into_iter()
-            .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(1.0)))
+            .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(0.0)))
             .collect();
+        let mut default_shape_names: HashSet<_> =
+            default_shapes.iter().map(|s| s.0.clone()).collect();
 
-        for target in &option {
-            if default_shape_names.contains(&target.0) {
-                continue;
+        for decl_option in sg.options {
+            let name = decl_option.name.expect("option block must have name");
+            let option: Vec<_> = decl_option
+                .shapes
+                .into_iter()
+                .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(1.0)))
+                .collect();
+
+            for target in &option {
+                if default_shape_names.contains(&target.0) {
+                    continue;
+                }
+                default_shapes.push(ShapeTarget(target.0.clone(), 0.0));
+                default_shape_names.insert(target.0.clone());
             }
-            default_shapes.push(ShapeTarget(target.0.clone(), 0.0));
-            default_shape_names.insert(target.0.clone());
+
+            options.insert(AnimationOption::Option(name), option);
         }
 
-        options.insert(AnimationOption::Option(name), option);
+        options.insert(AnimationOption::Default, default_shapes);
+
+        Ok(Some(AnimationGroup {
+            name: sg.name,
+            parameter: sg.parameter,
+            content: AnimationGroupContent::ShapeGroup {
+                mesh: sg.mesh,
+                prevent_mouth: sg.prevent_mouth.unwrap_or(false),
+                prevent_eyelids: sg.prevent_eyelids.unwrap_or(false),
+                options,
+            },
+        }))
     }
-
-    options.insert(AnimationOption::Default, default_shapes);
-
-    Ok(AnimationGroup {
-        name: sg.name,
-        parameter: sg.parameter,
-        content: AnimationGroupContent::ShapeGroup {
-            mesh: sg.mesh,
-            prevent_mouth: sg.prevent_mouth.unwrap_or(false),
-            prevent_eyelids: sg.prevent_eyelids.unwrap_or(false),
-            options,
-        },
-    })
 }
 
-fn compile_animation_shape_switch(
-    ss: DeclShapeSwitch,
-    parameters: &HashMap<String, Parameter>,
-) -> Result<AnimationGroup> {
-    ensure_parameter(
-        parameters,
-        &ss.parameter,
-        &ParameterType::BOOL_TYPE,
-        &ss.name,
-    )?;
+impl Compile<(DeclShapeSwitch, &HashMap<String, Parameter>)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
 
-    let mut disabled = vec![];
-    let mut enabled = vec![];
-    for shape in ss.shapes {
-        disabled.push(ShapeTarget(
-            shape.shape.clone(),
-            shape.disabled.unwrap_or(0.0),
-        ));
-        enabled.push(ShapeTarget(
-            shape.shape.clone(),
-            shape.enabled.unwrap_or(1.0),
-        ));
+    fn compile(
+        &mut self,
+        (ss, parameters): (DeclShapeSwitch, &HashMap<String, Parameter>),
+    ) -> Result<Option<AnimationGroup>> {
+        if !self.ensure((parameters, &ss.parameter, &ParameterType::BOOL_TYPE))? {
+            return Ok(None);
+        };
+
+        let mut disabled = vec![];
+        let mut enabled = vec![];
+        for shape in ss.shapes {
+            disabled.push(ShapeTarget(
+                shape.shape.clone(),
+                shape.disabled.unwrap_or(0.0),
+            ));
+            enabled.push(ShapeTarget(
+                shape.shape.clone(),
+                shape.enabled.unwrap_or(1.0),
+            ));
+        }
+
+        Ok(Some(AnimationGroup {
+            name: ss.name,
+            parameter: ss.parameter,
+            content: AnimationGroupContent::ShapeSwitch {
+                mesh: ss.mesh,
+                prevent_mouth: ss.prevent_mouth.unwrap_or(false),
+                prevent_eyelids: ss.prevent_eyelids.unwrap_or(false),
+                disabled,
+                enabled,
+            },
+        }))
     }
-
-    Ok(AnimationGroup {
-        name: ss.name,
-        parameter: ss.parameter,
-        content: AnimationGroupContent::ShapeSwitch {
-            mesh: ss.mesh,
-            prevent_mouth: ss.prevent_mouth.unwrap_or(false),
-            prevent_eyelids: ss.prevent_eyelids.unwrap_or(false),
-            disabled,
-            enabled,
-        },
-    })
 }
 
-fn compile_animation_object_group(
-    og: DeclObjectGroup,
-    parameters: &HashMap<String, Parameter>,
-) -> Result<AnimationGroup> {
-    ensure_parameter(
-        parameters,
-        &og.parameter,
-        &ParameterType::INT_TYPE,
-        &og.name,
-    )?;
+impl Compile<(DeclObjectGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
 
-    let mut options = HashMap::new();
-    let mut default_objects: Vec<_> = og
-        .default_block
-        .map(|b| b.objects)
-        .unwrap_or_default()
-        .into_iter()
-        .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(false)))
-        .collect();
-    let mut default_object_names: HashSet<_> =
-        default_objects.iter().map(|s| s.0.clone()).collect();
+    fn compile(
+        &mut self,
+        (og, parameters): (DeclObjectGroup, &HashMap<String, Parameter>),
+    ) -> Result<Option<AnimationGroup>> {
+        if !self.ensure((parameters, &og.parameter, &ParameterType::INT_TYPE))? {
+            return Ok(None);
+        };
 
-    for decl_option in og.options {
-        let name = decl_option.name.expect("option block must have name");
-        let option: Vec<_> = decl_option
-            .objects
+        let mut options = HashMap::new();
+        let mut default_objects: Vec<_> = og
+            .default_block
+            .map(|b| b.objects)
+            .unwrap_or_default()
             .into_iter()
-            .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(true)))
+            .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(false)))
             .collect();
+        let mut default_object_names: HashSet<_> =
+            default_objects.iter().map(|s| s.0.clone()).collect();
 
-        for target in &option {
-            if default_object_names.contains(&target.0) {
-                continue;
+        for decl_option in og.options {
+            let name = decl_option.name.expect("option block must have name");
+            let option: Vec<_> = decl_option
+                .objects
+                .into_iter()
+                .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(true)))
+                .collect();
+
+            for target in &option {
+                if default_object_names.contains(&target.0) {
+                    continue;
+                }
+                default_objects.push(ObjectTarget(target.0.clone(), false));
+                default_object_names.insert(target.0.clone());
             }
-            default_objects.push(ObjectTarget(target.0.clone(), false));
-            default_object_names.insert(target.0.clone());
+
+            options.insert(AnimationOption::Option(name), option);
         }
 
-        options.insert(AnimationOption::Option(name), option);
+        options.insert(AnimationOption::Default, default_objects);
+
+        Ok(Some(AnimationGroup {
+            name: og.name,
+            parameter: og.parameter,
+            content: AnimationGroupContent::ObjectGroup { options },
+        }))
     }
-
-    options.insert(AnimationOption::Default, default_objects);
-
-    Ok(AnimationGroup {
-        name: og.name,
-        parameter: og.parameter,
-        content: AnimationGroupContent::ObjectGroup { options },
-    })
 }
 
-fn compile_animation_object_switch(
-    os: DeclObjectSwitch,
-    parameters: &HashMap<String, Parameter>,
-) -> Result<AnimationGroup> {
-    ensure_parameter(
-        parameters,
-        &os.parameter,
-        &ParameterType::BOOL_TYPE,
-        &os.name,
-    )?;
+impl Compile<(DeclObjectSwitch, &HashMap<String, Parameter>)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
 
-    let mut disabled = vec![];
-    let mut enabled = vec![];
-    for object in os.objects {
-        disabled.push(ObjectTarget(
-            object.object.clone(),
-            object.disabled.unwrap_or(false),
-        ));
-        enabled.push(ObjectTarget(
-            object.object.clone(),
-            object.enabled.unwrap_or(true),
-        ));
+    fn compile(
+        &mut self,
+        (os, parameters): (DeclObjectSwitch, &HashMap<String, Parameter>),
+    ) -> Result<Option<AnimationGroup>> {
+        if !self.ensure((parameters, &os.parameter, &ParameterType::BOOL_TYPE))? {
+            return Ok(None);
+        };
+
+        let mut disabled = vec![];
+        let mut enabled = vec![];
+        for object in os.objects {
+            disabled.push(ObjectTarget(
+                object.object.clone(),
+                object.disabled.unwrap_or(false),
+            ));
+            enabled.push(ObjectTarget(
+                object.object.clone(),
+                object.enabled.unwrap_or(true),
+            ));
+        }
+
+        Ok(Some(AnimationGroup {
+            name: os.name,
+            parameter: os.parameter,
+            content: AnimationGroupContent::ObjectSwitch { disabled, enabled },
+        }))
     }
+}
 
-    Ok(AnimationGroup {
-        name: os.name,
-        parameter: os.parameter,
-        content: AnimationGroupContent::ObjectSwitch { disabled, enabled },
-    })
+impl Validate<(&HashMap<String, Parameter>, &str, &ParameterType)> for AvatarCompiler {
+    fn validate(
+        &mut self,
+        (parameters, name, ty): (&HashMap<String, Parameter>, &str, &ParameterType),
+    ) -> Result<bool> {
+        let parameter = match parameters.get(name) {
+            Some(p) => p,
+            None => {
+                self.error(format!("parameter '{}' not found", name));
+                return Ok(false);
+            }
+        };
+        match (&parameter.value_type, ty) {
+            (ParameterType::Int(_), ParameterType::Int(_)) => Ok(true),
+            (ParameterType::Float(_), ParameterType::Float(_)) => Ok(true),
+            (ParameterType::Bool(_), ParameterType::Bool(_)) => Ok(true),
+            _ => {
+                self.error(format!(
+                    "parameter '{}' has wrong type; {} expected",
+                    name,
+                    ty.type_name()
+                ));
+                Ok(false)
+            }
+        }
+    }
 }

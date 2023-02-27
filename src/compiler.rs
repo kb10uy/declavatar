@@ -13,9 +13,14 @@ pub trait Compiler {
     fn info(&mut self, message: String);
     fn warn(&mut self, message: String);
     fn error(&mut self, message: String);
+
     fn parse<T>(&mut self, source: T) -> Result<<Self as Compile<T>>::Output, Self::Error>
     where
         Self: Compile<T>;
+
+    fn ensure<T>(&mut self, source: T) -> Result<bool, Self::Error>
+    where
+        Self: Validate<T>;
 }
 
 pub trait Compile<T>
@@ -25,6 +30,13 @@ where
     type Output;
 
     fn compile(&mut self, source: T) -> Result<Self::Output, Self::Error>;
+}
+
+pub trait Validate<T>
+where
+    Self: Compiler,
+{
+    fn validate(&mut self, source: T) -> Result<bool, Self::Error>;
 }
 
 #[derive(Debug)]
@@ -41,6 +53,10 @@ impl<E> ErrorStackCompiler<E> {
             errornous: false,
             _error_type: Default::default(),
         }
+    }
+
+    pub fn messages(self) -> Vec<(Severity, String)> {
+        self.messages
     }
 }
 
@@ -65,5 +81,12 @@ impl<E> Compiler for ErrorStackCompiler<E> {
         Self: Compile<T>,
     {
         <Self as Compile<T>>::compile(self, source)
+    }
+
+    fn ensure<T>(&mut self, source: T) -> Result<bool, Self::Error>
+    where
+        Self: Validate<T>,
+    {
+        <Self as Validate<T>>::validate(self, source)
     }
 }

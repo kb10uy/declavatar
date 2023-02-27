@@ -13,18 +13,9 @@ pub struct AvatarError {
 }
 */
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, ThisError, Diagnostic)]
 pub enum AvatarError {
-    #[error("avatar name '{0} is invalid'")]
-    InvalidAvatarName(String),
-
-    #[error("parameter '{name}' (used by '{used_by}') not found")]
-    ParameterNotFound { name: String, used_by: String },
-
-    #[error("parameter '{name}' (used by '{used_by}') has wrong type, {expected} expected")]
-    WrongParameterType {
-        name: String,
-        used_by: String,
-        expected: &'static str,
-    },
+    #[error("internal compiler error: {0}")]
+    CompilerError(String),
 }
