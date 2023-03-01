@@ -60,10 +60,12 @@ impl Compile<DeclAvatar> for AvatarCompiler {
 
         let parameters = self.parse(avatar.parameters_blocks)?;
         let animation_groups = self.parse((avatar.animations_blocks, &parameters))?;
+        let driver_groups = self.parse((avatar.drivers_blocks, &parameters, &animation_groups))?;
         Ok(Some(Avatar {
             name,
             parameters,
             animation_groups,
+            driver_groups,
         }))
     }
 }

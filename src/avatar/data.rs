@@ -7,6 +7,7 @@ pub struct Avatar {
     pub name: String,
     pub parameters: HashMap<String, Parameter>,
     pub animation_groups: Vec<AnimationGroup>,
+    pub driver_groups: Vec<DriverGroup>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
