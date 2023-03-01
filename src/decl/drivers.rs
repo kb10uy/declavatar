@@ -11,7 +11,7 @@ pub const NODE_NAME_COPY: &str = "copy";
 
 #[derive(Debug, Clone)]
 pub struct Drivers {
-    groups: Vec<Group>,
+    pub groups: Vec<Group>,
 }
 
 impl Drivers {
@@ -39,9 +39,9 @@ impl Drivers {
 
 #[derive(Debug, Clone)]
 pub struct Group {
-    name: String,
-    local: Option<bool>,
-    drives: Vec<Drive>,
+    pub name: String,
+    pub local: Option<bool>,
+    pub drives: Vec<Drive>,
 }
 
 impl Group {
@@ -107,7 +107,7 @@ impl Drive {
                 // Just reuses DriveTarget.
                 // Only Integer/FloatParameter affects, verifies that following step.
                 let drive_target = Drive::parse_drive_target(&entries, node)?;
-                Drive::Set(drive_target)
+                Drive::Add(drive_target)
             }
             NODE_NAME_RANDOM => {
                 let group = entries.try_get_property("group")?;

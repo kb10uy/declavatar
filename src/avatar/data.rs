@@ -60,7 +60,8 @@ pub enum AnimationGroupContent {
         mesh: String,
         prevent_mouth: bool,
         prevent_eyelids: bool,
-        options: HashMap<AnimationOption, Vec<ShapeTarget>>,
+        default_targets: Vec<ShapeTarget>,
+        options: HashMap<String, (usize, Vec<ShapeTarget>)>,
     },
     ShapeSwitch {
         mesh: String,
@@ -70,7 +71,8 @@ pub enum AnimationGroupContent {
         enabled: Vec<ShapeTarget>,
     },
     ObjectGroup {
-        options: HashMap<AnimationOption, Vec<ObjectTarget>>,
+        default_targets: Vec<ObjectTarget>,
+        options: HashMap<String, (usize, Vec<ObjectTarget>)>,
     },
     ObjectSwitch {
         disabled: Vec<ObjectTarget>,
@@ -78,24 +80,29 @@ pub enum AnimationGroupContent {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(tag = "type", content = "name", into = "String")]
-pub enum AnimationOption {
-    Default,
-    Option(String),
-}
-
-impl From<AnimationOption> for String {
-    fn from(value: AnimationOption) -> Self {
-        match value {
-            AnimationOption::Default => "d".into(),
-            AnimationOption::Option(s) => format!("o:{s}"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ShapeTarget(pub String, pub f64);
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ObjectTarget(pub String, pub bool);
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DriverGroup {
+    pub name: String,
+    pub local: bool,
+    pub drivers: Vec<Driver>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum Driver {
+    SetInt(String, u8),
+    SetFloat(String, f64),
+    SetBool(String, bool),
+    AddInt(String, u8),
+    AddFloat(String, f64),
+    RandomInt(String, (u8, u8)),
+    RandomFloat(String, (f64, f64)),
+    RandomBool(String, f64),
+    Copy(String, String),
+    RangedCopy(String, String, (f64, f64), (f64, f64)),
+}

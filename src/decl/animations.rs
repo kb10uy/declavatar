@@ -81,6 +81,7 @@ impl ShapeGroup {
         let mut default_block = None;
         let mut options = vec![];
 
+        let mut option_order = 1;
         for child in children {
             let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
 
@@ -102,10 +103,11 @@ impl ShapeGroup {
                             DeclErrorKind::DuplicateNodeFound,
                         ));
                     }
-                    default_block = Some(ShapeGroupBlock::parse(child)?);
+                    default_block = Some(ShapeGroupBlock::parse(child, 0)?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(ShapeGroupBlock::parse(child)?);
+                    options.push(ShapeGroupBlock::parse(child, option_order)?);
+                    option_order += 1;
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -144,11 +146,12 @@ impl ShapeGroup {
 #[derive(Debug, Clone)]
 pub struct ShapeGroupBlock {
     pub name: Option<String>,
+    pub declared_order: usize,
     pub shapes: Vec<(String, Option<f64>)>,
 }
 
 impl ShapeGroupBlock {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    pub fn parse(node: &KdlNode, order: usize) -> Result<Self> {
         let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
 
         let block_name = match name {
@@ -169,6 +172,7 @@ impl ShapeGroupBlock {
 
         Ok(ShapeGroupBlock {
             name: block_name,
+            declared_order: order,
             shapes,
         })
     }
@@ -280,6 +284,7 @@ impl ObjectGroup {
         let mut default_block = None;
         let mut options = vec![];
 
+        let mut option_order = 1;
         for child in children {
             let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
             match child_name {
@@ -293,10 +298,11 @@ impl ObjectGroup {
                             DeclErrorKind::DuplicateNodeFound,
                         ));
                     }
-                    default_block = Some(ObjectGroupBlock::parse(child)?);
+                    default_block = Some(ObjectGroupBlock::parse(child, 0)?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(ObjectGroupBlock::parse(child)?);
+                    options.push(ObjectGroupBlock::parse(child, option_order)?);
+                    option_order += 1;
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -326,11 +332,12 @@ impl ObjectGroup {
 #[derive(Debug, Clone)]
 pub struct ObjectGroupBlock {
     pub name: Option<String>,
+    pub declared_order: usize,
     pub objects: Vec<(String, Option<bool>)>,
 }
 
 impl ObjectGroupBlock {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    pub fn parse(node: &KdlNode, order: usize) -> Result<Self> {
         let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
 
         let block_name = match name {
@@ -351,6 +358,7 @@ impl ObjectGroupBlock {
 
         Ok(ObjectGroupBlock {
             name: block_name,
+            declared_order: order,
             objects,
         })
     }

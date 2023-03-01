@@ -5,7 +5,7 @@ mod decl;
 
 use crate::capi::{Declavatar, StatusCode};
 
-use std::ffi::{c_char, c_void, CStr};
+use std::ffi::{c_char, CStr};
 
 macro_rules! as_ref {
     ($ptr:ident, &str) => {
@@ -53,13 +53,13 @@ macro_rules! as_ref {
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarInit() -> *mut c_void {
+pub extern "system" fn DeclavatarInit() -> *mut Declavatar {
     let boxed = Box::new(Declavatar::new());
-    Box::into_raw(boxed) as *mut c_void
+    Box::into_raw(boxed) as *mut Declavatar
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarFree(da: *mut c_void) -> StatusCode {
+pub extern "system" fn DeclavatarFree(da: *mut Declavatar) -> StatusCode {
     as_ref!(da, box Declavatar);
 
     drop(da);
@@ -68,8 +68,8 @@ pub extern "system" fn DeclavatarFree(da: *mut c_void) -> StatusCode {
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarReset(da: *mut c_void) -> StatusCode {
-    as_ref!(mut da, box Declavatar);
+pub extern "system" fn DeclavatarReset(da: *mut Declavatar) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
 
     da.reset();
 
@@ -77,8 +77,8 @@ pub extern "system" fn DeclavatarReset(da: *mut c_void) -> StatusCode {
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarCompile(da: *mut c_void, source: *const c_char) -> StatusCode {
-    as_ref!(mut da, box Declavatar);
+pub extern "system" fn DeclavatarCompile(da: *mut Declavatar, source: *const c_char) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
     as_ref!(source, &str);
 
     let result = da.compile(source);
@@ -87,8 +87,11 @@ pub extern "system" fn DeclavatarCompile(da: *mut c_void, source: *const c_char)
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarGetErrorsCount(da: *mut c_void, errors: *mut u32) -> StatusCode {
-    as_ref!(da, box Declavatar);
+pub extern "system" fn DeclavatarGetErrorsCount(
+    da: *mut Declavatar,
+    errors: *mut u32,
+) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
     as_ref!(errors, &mut u32);
 
     *errors = da.errors().len() as u32;
@@ -98,13 +101,13 @@ pub extern "system" fn DeclavatarGetErrorsCount(da: *mut c_void, errors: *mut u3
 
 #[no_mangle]
 pub extern "system" fn DeclavatarGetError(
-    da: *mut c_void,
+    da: *mut Declavatar,
     index: u32,
     error_kind: *mut u32,
     error_str: *mut *const c_char,
     error_len: *mut u32,
 ) -> StatusCode {
-    as_ref!(da, box Declavatar);
+    as_ref!(da, &mut Declavatar);
     as_ref!(error_kind, &mut u32);
     as_ref!(error_str, &mut *const c_char);
     as_ref!(error_len, &mut u32);
@@ -125,8 +128,8 @@ pub extern "system" fn DeclavatarGetError(
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarPushExampleErrors(da: *mut c_void) -> StatusCode {
-    as_ref!(mut da, box Declavatar);
+pub extern "system" fn DeclavatarPushExampleErrors(da: *mut Declavatar) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
 
     da.push_example_errors();
 
