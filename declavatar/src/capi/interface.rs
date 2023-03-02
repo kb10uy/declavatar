@@ -76,9 +76,27 @@ pub extern "system" fn DeclavatarCompile(da: *mut Declavatar, source: *const c_c
     as_ref!(da, &mut Declavatar);
     as_ref!(source, &str);
 
-    let result = da.compile(source);
+    match da.compile(source) {
+        Ok(()) => StatusCode::Success,
+        Err(e) => e,
+    }
+}
 
-    result
+#[no_mangle]
+pub extern "system" fn DeclavatarGetAvatarJson(
+    da: *mut Declavatar,
+    avatar_json: *mut *const c_char,
+) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
+    as_ref!(avatar_json, &mut *const c_char);
+
+    match da.avatar_json() {
+        Ok(json) => {
+            *avatar_json = json.as_ptr() as *const i8;
+            StatusCode::Success
+        }
+        Err(e) => e,
+    }
 }
 
 #[no_mangle]

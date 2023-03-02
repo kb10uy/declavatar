@@ -26,6 +26,7 @@ pub enum ErrorKind {
 pub struct Declavatar {
     in_use: bool,
     compiled_avatar: Option<Avatar>,
+    compiled_avatar_json: Option<String>,
     errors: Vec<(ErrorKind, String)>,
 }
 
@@ -34,6 +35,7 @@ impl Declavatar {
         Declavatar {
             in_use: false,
             compiled_avatar: None,
+            compiled_avatar_json: None,
             errors: vec![],
         }
     }
@@ -41,6 +43,7 @@ impl Declavatar {
     pub fn reset(&mut self) {
         self.in_use = false;
         self.compiled_avatar = None;
+        self.compiled_avatar_json = None;
         self.errors.clear();
     }
 
@@ -60,9 +63,9 @@ impl Declavatar {
         &self.errors
     }
 
-    pub fn compile(&mut self, source: &str) -> StatusCode {
+    pub fn compile(&mut self, source: &str) -> Result<(), StatusCode> {
         if self.in_use {
-            return StatusCode::AlreadyInUse;
+            return Err(StatusCode::AlreadyInUse);
         } else {
             self.in_use = true;
         }
@@ -72,25 +75,37 @@ impl Declavatar {
             Err(report) => {
                 self.errors
                     .push((ErrorKind::SyntaxError, report.to_string()));
-                return StatusCode::CompileError;
+                return Err(StatusCode::CompileError);
             }
         };
 
-        self.compiled_avatar = match compile_avatar(avatar_decl.avatar) {
-            Ok(Ok(avatar)) => Some(avatar),
+        let avatar = match compile_avatar(avatar_decl.avatar) {
+            Ok(Ok(avatar)) => avatar,
             Ok(Err(errors)) => {
                 for error in errors {
                     self.errors
                         .push((ErrorKind::SemanticError, error.to_string()));
                 }
-                return StatusCode::CompileError;
+                return Err(StatusCode::CompileError);
             }
             Err(e) => {
                 self.errors.push((ErrorKind::CompilerError, e.to_string()));
-                return StatusCode::CompileError;
+                return Err(StatusCode::CompileError);
             }
         };
+        let avatar_json = serde_json::to_string(&avatar).map_err(|_| StatusCode::CompileError)?;
 
-        StatusCode::Success
+        self.compiled_avatar = Some(avatar);
+        self.compiled_avatar_json = Some(avatar_json);
+
+        Ok(())
+    }
+
+    pub fn avatar_json(&self) -> Result<&str, StatusCode> {
+        let Some(json) = self.compiled_avatar_json.as_deref() else {
+            return Err(StatusCode::NotCompiled);
+        };
+
+        Ok(json)
     }
 }
