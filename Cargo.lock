@@ -55,6 +55,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "avatar-validator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
