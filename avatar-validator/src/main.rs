@@ -8,7 +8,7 @@ use std::{
 };
 
 use clap::Parser;
-use declavatar::{avatar::compiler::compile_avatar, decl::parse_document};
+use declavatar::{avatar::compile_avatar, decl::parse_document};
 use miette::{IntoDiagnostic, Result as MietteResult};
 
 fn main() -> MietteResult<()> {
