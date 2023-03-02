@@ -1,15 +1,10 @@
-mod avatar;
-mod compiler;
-mod decl;
-
-use crate::{avatar::compiler::compile_avatar, decl::parse_document};
-
 use std::{
     env::args,
     fs::File,
     io::{BufReader, Read},
 };
 
+use declavatar::{avatar::compiler::compile_avatar, decl::parse_document};
 use miette::{IntoDiagnostic, Result as MietteResult};
 use thiserror::Error as ThisError;
 
