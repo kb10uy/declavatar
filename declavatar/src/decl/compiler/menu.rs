@@ -1,4 +1,7 @@
-use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, Result};
+use crate::decl::{
+    compiler::{deconstruct_node, DeclError, DeclErrorKind, Result},
+    data::{BooleanControl, BooleanControlTarget, Menu, MenuElement, Puppet, PuppetAxes, SubMenu},
+};
 
 use std::collections::HashMap;
 
@@ -18,17 +21,15 @@ pub const NODE_NAME_DOWN: &str = "down";
 pub const NODE_NAME_LEFT: &str = "left";
 pub const NODE_NAME_RIGHT: &str = "right";
 
-#[derive(Debug, Clone)]
-pub struct Menu {
-    elements: Vec<MenuElement>,
-}
+/*
+struct ForShapeGroup;
+impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
+    type Output = ShapeGroup;
 
-#[derive(Debug, Clone)]
-pub enum MenuElement {
-    SubMenu(SubMenu),
-    Boolean(Boolean),
-    Puppet(Puppet),
+    fn compile(&mut self, (_, node): (ForShapeGroup, &KdlNode)) -> Result<ShapeGroup> {
+    }
 }
+*/
 
 impl Menu {
     pub fn parse(node: &KdlNode) -> Result<Self> {
@@ -43,7 +44,7 @@ impl Menu {
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = Boolean::parse(child)?;
+                    let boolean = BooleanControl::parse(child)?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
@@ -64,12 +65,6 @@ impl Menu {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SubMenu {
-    name: String,
-    elements: Vec<MenuElement>,
-}
-
 impl SubMenu {
     pub fn parse(node: &KdlNode) -> Result<Self> {
         let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_SUBMENU), Some(true))?;
@@ -84,7 +79,7 @@ impl SubMenu {
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = Boolean::parse(child)?;
+                    let boolean = BooleanControl::parse(child)?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
@@ -108,14 +103,7 @@ impl SubMenu {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Boolean {
-    name: String,
-    toggle: bool,
-    target: BooleanTarget,
-}
-
-impl Boolean {
+impl BooleanControl {
     pub fn parse(node: &KdlNode) -> Result<Self> {
         let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
         let toggle = name == NODE_NAME_TOGGLE;
@@ -126,7 +114,7 @@ impl Boolean {
         let target = match (target_group, target_parameter) {
             (Some(group), None) => {
                 let option = entries.try_get_property("option")?;
-                BooleanTarget::Group {
+                BooleanControlTarget::Group {
                     name: group,
                     option,
                 }
@@ -136,12 +124,12 @@ impl Boolean {
                 let int_value = value.as_i64();
                 let bool_value = value.as_bool();
                 if let Some(value) = int_value {
-                    BooleanTarget::IntParameter {
+                    BooleanControlTarget::IntParameter {
                         name,
                         value: value as u8,
                     }
                 } else if let Some(value) = bool_value {
-                    BooleanTarget::BoolParameter { name, value }
+                    BooleanControlTarget::BoolParameter { name, value }
                 } else {
                     let entry_span = node.get("value").expect("must have entry").span();
                     return Err(DeclError::new(
@@ -158,34 +146,12 @@ impl Boolean {
             }
         };
 
-        Ok(Boolean {
+        Ok(BooleanControl {
             name: item_name,
             toggle,
             target,
         })
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum BooleanTarget {
-    Group {
-        name: String,
-        option: Option<String>,
-    },
-    IntParameter {
-        name: String,
-        value: u8,
-    },
-    BoolParameter {
-        name: String,
-        value: bool,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub struct Puppet {
-    name: String,
-    axes: Axes,
 }
 
 impl Puppet {
@@ -196,10 +162,10 @@ impl Puppet {
         let axes = match name {
             NODE_NAME_RADIAL => {
                 let parameter = entries.get_property("parameter")?;
-                Axes::Radial(parameter)
+                PuppetAxes::Radial(parameter)
             }
             NODE_NAME_TWO_AXIS => {
-                let axes_children = Axes::extract_nodes_just(
+                let axes_children = PuppetAxes::extract_nodes_just(
                     children,
                     &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
                 )?
@@ -207,16 +173,17 @@ impl Puppet {
                     DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
                 })?;
 
-                let horizontal = Axes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
-                let vertical = Axes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
+                let horizontal =
+                    PuppetAxes::make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
+                let vertical = PuppetAxes::make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
 
-                Axes::TwoAxis {
+                PuppetAxes::TwoAxis {
                     horizontal,
                     vertical,
                 }
             }
             NODE_NAME_FOUR_AXIS => {
-                let axes_children = Axes::extract_nodes_just(
+                let axes_children = PuppetAxes::extract_nodes_just(
                     children,
                     &[
                         NODE_NAME_LEFT,
@@ -229,12 +196,12 @@ impl Puppet {
                     DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
                 })?;
 
-                let left = Axes::make_four_axis_pair(axes_children[NODE_NAME_LEFT])?;
-                let right = Axes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT])?;
-                let up = Axes::make_four_axis_pair(axes_children[NODE_NAME_UP])?;
-                let down = Axes::make_four_axis_pair(axes_children[NODE_NAME_DOWN])?;
+                let left = PuppetAxes::make_four_axis_pair(axes_children[NODE_NAME_LEFT])?;
+                let right = PuppetAxes::make_four_axis_pair(axes_children[NODE_NAME_RIGHT])?;
+                let up = PuppetAxes::make_four_axis_pair(axes_children[NODE_NAME_UP])?;
+                let down = PuppetAxes::make_four_axis_pair(axes_children[NODE_NAME_DOWN])?;
 
-                Axes::FourAxis {
+                PuppetAxes::FourAxis {
                     left,
                     right,
                     up,
@@ -251,22 +218,7 @@ impl Puppet {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Axes {
-    Radial(String),
-    TwoAxis {
-        horizontal: (String, (String, String)),
-        vertical: (String, (String, String)),
-    },
-    FourAxis {
-        left: (String, String),
-        right: (String, String),
-        up: (String, String),
-        down: (String, String),
-    },
-}
-
-impl Axes {
+impl PuppetAxes {
     fn extract_nodes_just<'a>(
         children: &'a [KdlNode],
         node_names: &'a [&'static str],

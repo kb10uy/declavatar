@@ -1,4 +1,13 @@
-use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, Result};
+use crate::{
+    compiler::Compile,
+    decl::{
+        compiler::{deconstruct_node, DeclCompiler, DeclError, DeclErrorKind, Result},
+        data::{
+            AnimationElement, Animations, ObjectGroup, ObjectGroupBlock, ObjectSwitch,
+            ObjectSwitchPair, ShapeGroup, ShapeGroupBlock, ShapeSwitch, ShapeSwitchPair,
+        },
+    },
+};
 
 use kdl::KdlNode;
 
@@ -15,24 +24,28 @@ pub const NODE_NAME_OPTION: &str = "option";
 pub const NODE_NAME_SHAPE: &str = "shape";
 pub const NODE_NAME_OBJECT: &str = "object";
 
-#[derive(Debug, Clone)]
-pub struct Animations {
-    pub elements: Vec<AnimationElement>,
-}
+struct ForAnimations;
+impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
+    type Output = Animations;
 
-impl Animations {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForAnimations, &KdlNode)) -> Result<Animations> {
         let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_ANIMATIONS), Some(true))?;
 
         let mut elements = vec![];
         for child in children {
             let child_name = child.name().value();
             let element = match child_name {
-                NODE_NAME_SHAPE_GROUP => AnimationElement::ShapeGroup(ShapeGroup::parse(child)?),
-                NODE_NAME_SHAPE_SWITCH => AnimationElement::ShapeSwitch(ShapeSwitch::parse(child)?),
-                NODE_NAME_OBJECT_GROUP => AnimationElement::ObjectGroup(ObjectGroup::parse(child)?),
+                NODE_NAME_SHAPE_GROUP => {
+                    AnimationElement::ShapeGroup(self.compile((ForShapeGroup, child))?)
+                }
+                NODE_NAME_SHAPE_SWITCH => {
+                    AnimationElement::ShapeSwitch(self.compile((ForShapeSwitch, child))?)
+                }
+                NODE_NAME_OBJECT_GROUP => {
+                    AnimationElement::ObjectGroup(self.compile((ForObjectGroup, child))?)
+                }
                 NODE_NAME_OBJECT_SWITCH => {
-                    AnimationElement::ObjectSwitch(ObjectSwitch::parse(child)?)
+                    AnimationElement::ObjectSwitch(self.compile((ForObjectSwitch, child))?)
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -48,27 +61,11 @@ impl Animations {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum AnimationElement {
-    ShapeGroup(ShapeGroup),
-    ShapeSwitch(ShapeSwitch),
-    ObjectGroup(ObjectGroup),
-    ObjectSwitch(ObjectSwitch),
-}
+struct ForShapeGroup;
+impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
+    type Output = ShapeGroup;
 
-#[derive(Debug, Clone)]
-pub struct ShapeGroup {
-    pub name: String,
-    pub mesh: String,
-    pub parameter: String,
-    pub prevent_mouth: Option<bool>,
-    pub prevent_eyelids: Option<bool>,
-    pub default_block: Option<ShapeGroupBlock>,
-    pub options: Vec<ShapeGroupBlock>,
-}
-
-impl ShapeGroup {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForShapeGroup, &KdlNode)) -> Result<ShapeGroup> {
         let (_, entries, children) =
             deconstruct_node(node, Some(NODE_NAME_SHAPE_GROUP), Some(true))?;
 
@@ -103,10 +100,10 @@ impl ShapeGroup {
                             DeclErrorKind::DuplicateNodeFound,
                         ));
                     }
-                    default_block = Some(ShapeGroupBlock::parse(child, 0)?);
+                    default_block = Some(self.compile((ForShapeGroupBlock, child, 0))?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(ShapeGroupBlock::parse(child, option_order)?);
+                    options.push(self.compile((ForShapeGroupBlock, child, 0))?);
                     option_order += 1;
                 }
                 _ => {
@@ -143,15 +140,14 @@ impl ShapeGroup {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ShapeGroupBlock {
-    pub name: Option<String>,
-    pub declared_order: usize,
-    pub shapes: Vec<(String, Option<f64>)>,
-}
+struct ForShapeGroupBlock;
+impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
+    type Output = ShapeGroupBlock;
 
-impl ShapeGroupBlock {
-    pub fn parse(node: &KdlNode, order: usize) -> Result<Self> {
+    fn compile(
+        &mut self,
+        (_, node, order): (ForShapeGroupBlock, &KdlNode, usize),
+    ) -> Result<ShapeGroupBlock> {
         let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
 
         let block_name = match name {
@@ -178,18 +174,11 @@ impl ShapeGroupBlock {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ShapeSwitch {
-    pub name: String,
-    pub mesh: String,
-    pub parameter: String,
-    pub prevent_mouth: Option<bool>,
-    pub prevent_eyelids: Option<bool>,
-    pub shapes: Vec<ShapeSwitchPair>,
-}
+struct ForShapeSwitch;
+impl Compile<(ForShapeSwitch, &KdlNode)> for DeclCompiler {
+    type Output = ShapeSwitch;
 
-impl ShapeSwitch {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForShapeSwitch, &KdlNode)) -> Result<ShapeSwitch> {
         let (_, entries, children) =
             deconstruct_node(node, Some(NODE_NAME_SHAPE_SWITCH), Some(true))?;
 
@@ -258,23 +247,11 @@ impl ShapeSwitch {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ShapeSwitchPair {
-    pub shape: String,
-    pub enabled: Option<f64>,
-    pub disabled: Option<f64>,
-}
+struct ForObjectGroup;
+impl Compile<(ForObjectGroup, &KdlNode)> for DeclCompiler {
+    type Output = ObjectGroup;
 
-#[derive(Debug, Clone)]
-pub struct ObjectGroup {
-    pub name: String,
-    pub parameter: String,
-    pub default_block: Option<ObjectGroupBlock>,
-    pub options: Vec<ObjectGroupBlock>,
-}
-
-impl ObjectGroup {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForObjectGroup, &KdlNode)) -> Result<ObjectGroup> {
         let (_, entries, children) =
             deconstruct_node(node, Some(NODE_NAME_OBJECT_GROUP), Some(true))?;
 
@@ -298,10 +275,10 @@ impl ObjectGroup {
                             DeclErrorKind::DuplicateNodeFound,
                         ));
                     }
-                    default_block = Some(ObjectGroupBlock::parse(child, 0)?);
+                    default_block = Some(self.compile((ForObjectGroupBlock, child, 0))?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(ObjectGroupBlock::parse(child, option_order)?);
+                    options.push(self.compile((ForObjectGroupBlock, child, 0))?);
                     option_order += 1;
                 }
                 _ => {
@@ -329,15 +306,14 @@ impl ObjectGroup {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjectGroupBlock {
-    pub name: Option<String>,
-    pub declared_order: usize,
-    pub objects: Vec<(String, Option<bool>)>,
-}
+struct ForObjectGroupBlock;
+impl Compile<(ForObjectGroupBlock, &KdlNode, usize)> for DeclCompiler {
+    type Output = ObjectGroupBlock;
 
-impl ObjectGroupBlock {
-    pub fn parse(node: &KdlNode, order: usize) -> Result<Self> {
+    fn compile(
+        &mut self,
+        (_, node, order): (ForObjectGroupBlock, &KdlNode, usize),
+    ) -> Result<ObjectGroupBlock> {
         let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
 
         let block_name = match name {
@@ -364,15 +340,11 @@ impl ObjectGroupBlock {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjectSwitch {
-    pub name: String,
-    pub parameter: String,
-    pub objects: Vec<ObjectSwitchPair>,
-}
+struct ForObjectSwitch;
+impl Compile<(ForObjectSwitch, &KdlNode)> for DeclCompiler {
+    type Output = ObjectSwitch;
 
-impl ObjectSwitch {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForObjectSwitch, &KdlNode)) -> Result<ObjectSwitch> {
         let (_, entries, children) =
             deconstruct_node(node, Some(NODE_NAME_OBJECT_SWITCH), Some(true))?;
 
@@ -420,11 +392,4 @@ impl ObjectSwitch {
             objects,
         })
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectSwitchPair {
-    pub object: String,
-    pub disabled: Option<bool>,
-    pub enabled: Option<bool>,
 }

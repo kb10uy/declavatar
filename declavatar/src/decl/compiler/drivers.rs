@@ -1,4 +1,4 @@
-use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, NodeEntries, Result};
+use crate::decl::compiler::{deconstruct_node, DeclError, DeclErrorKind, NodeEntries, Result};
 
 use kdl::{KdlNode, KdlValue};
 
