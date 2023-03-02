@@ -8,6 +8,7 @@ pub struct Avatar {
     pub parameters: HashMap<String, Parameter>,
     pub animation_groups: Vec<AnimationGroup>,
     pub driver_groups: Vec<DriverGroup>,
+    pub top_menu_group: MenuGroup,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -106,4 +107,62 @@ pub enum Driver {
     RandomBool(String, f64),
     Copy(String, String),
     RangedCopy(String, String, (f64, f64), (f64, f64)),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuGroup {
+    pub name: String,
+    pub items: Vec<MenuItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum MenuItem {
+    SubMenu(MenuGroup),
+    Button(MenuBoolean),
+    Toggle(MenuBoolean),
+    Radial(MenuRadial),
+    TwoAxis(MenuTwoAxis),
+    FourAxis(MenuFourAxis),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuBoolean {
+    pub name: String,
+    pub parameter: String,
+    pub value: ParameterType,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuRadial {
+    pub name: String,
+    pub parameter: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuTwoAxis {
+    pub name: String,
+    pub horizontal_axis: BiAxis,
+    pub vertical_axis: BiAxis,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuFourAxis {
+    pub name: String,
+    pub left_axis: UniAxis,
+    pub right_axis: UniAxis,
+    pub up_axis: UniAxis,
+    pub down_axis: UniAxis,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BiAxis {
+    pub parameter: String,
+    pub label_negative: String,
+    pub label_positive: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct UniAxis {
+    pub parameter: String,
+    pub label: String,
 }
