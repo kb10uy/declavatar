@@ -1,4 +1,11 @@
-use crate::decl::{deconstruct_node, DeclError, DeclErrorKind, Result};
+use crate::{
+    compiler::Compile,
+    decl::{
+        compiler::{deconstruct_node, DeclCompiler},
+        data::{Parameter, ParameterType, Parameters},
+        error::{DeclError, DeclErrorKind, Result},
+    },
+};
 
 use kdl::KdlNode;
 
@@ -7,20 +14,20 @@ pub const NODE_NAME_INT: &str = "int";
 pub const NODE_NAME_FLOAT: &str = "float";
 pub const NODE_NAME_BOOL: &str = "bool";
 
-#[derive(Debug, Clone)]
-pub struct Parameters {
-    pub parameters: Vec<Parameter>,
-}
+pub(super) struct ForParameters;
+impl Compile<(ForParameters, &KdlNode)> for DeclCompiler {
+    type Output = Parameters;
 
-impl Parameters {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForParameters, &KdlNode)) -> Result<Parameters> {
         let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_PARAMETERS), Some(true))?;
 
         let mut parameters = vec![];
         for child in children {
             let child_name = child.name().value();
             let parameter = match child_name {
-                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => Parameter::parse(child)?,
+                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => {
+                    self.compile((ForParameter, child))?
+                }
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
@@ -35,16 +42,11 @@ impl Parameters {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Parameter {
-    pub ty: ParameterType,
-    pub save: Option<bool>,
-    pub local: Option<bool>,
-    pub name: String,
-}
+struct ForParameter;
+impl Compile<(ForParameter, &KdlNode)> for DeclCompiler {
+    type Output = Parameter;
 
-impl Parameter {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForParameter, &KdlNode)) -> Result<Parameter> {
         let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let parameter_name = entries.get_argument(0, "name")?;
@@ -73,11 +75,4 @@ impl Parameter {
             name: parameter_name,
         })
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum ParameterType {
-    Int(Option<u8>),
-    Float(Option<f64>),
-    Bool(Option<bool>),
 }

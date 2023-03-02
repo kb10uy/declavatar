@@ -1,27 +1,31 @@
-use crate::decl::{
-    animations::{Animations, NODE_NAME_ANIMATIONS},
-    deconstruct_node,
-    drivers::{Drivers, NODE_NAME_DRIVERS},
-    menu::{Menu, NODE_NAME_MENU},
-    parameters::{Parameters, NODE_NAME_PARAMETERS},
-    DeclError, DeclErrorKind, Result,
+use crate::{
+    compiler::Compile,
+    decl::{
+        compiler::{
+            animations::ForAnimations, deconstruct_node, drivers::ForDrivers, menu::ForMenu,
+            parameters::ForParameters, DeclCompiler,
+        },
+        data::{Avatar, Document},
+        DeclError, DeclErrorKind, Result,
+    },
 };
 
 use kdl::{KdlDocument, KdlNode};
-use miette::SourceSpan;
+use miette::{SourceOffset, SourceSpan};
 use semver::Version;
 
 pub const NODE_NAME_VERSION: &str = "version";
 pub const NODE_NAME_AVATAR: &str = "avatar";
 
-#[derive(Debug, Clone)]
-pub struct Document {
-    pub version: Version,
-    pub avatar: Avatar,
-}
+struct ForShapeGroup;
+impl Compile<KdlDocument> for DeclCompiler {
+    type Output = Document;
 
-impl Document {
-    pub fn parse(document: &KdlDocument, nul_span: &SourceSpan) -> Result<Document> {
+    fn compile(&mut self, document: KdlDocument) -> Result<Document> {
+        let nul_span = SourceSpan::new(
+            SourceOffset::from_location("", 1, 1),
+            SourceOffset::from_location("", 1, 1),
+        );
         let nodes = document.nodes();
 
         // Detect version
@@ -41,7 +45,7 @@ impl Document {
             match node_name {
                 NODE_NAME_AVATAR => match avatar {
                     None => {
-                        avatar = Some(Avatar::parse(node)?);
+                        avatar = Some(self.compile((ForAvatar, node))?);
                     }
                     _ => {
                         return Err(DeclError::new(
@@ -66,18 +70,11 @@ impl Document {
     }
 }
 
-/// Avatar descriptor. It should has specific structure like below:
-#[derive(Debug, Clone)]
-pub struct Avatar {
-    pub name: String,
-    pub animations_blocks: Vec<Animations>,
-    pub drivers_blocks: Vec<Drivers>,
-    pub parameters_blocks: Vec<Parameters>,
-    pub menu_blocks: Vec<Menu>,
-}
+struct ForAvatar;
+impl Compile<(ForAvatar, &KdlNode)> for DeclCompiler {
+    type Output = Avatar;
 
-impl Avatar {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForAvatar, &KdlNode)) -> Result<Avatar> {
         let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_AVATAR), Some(true))?;
 
         let name = entries.get_argument(0, "name")?;
@@ -89,10 +86,14 @@ impl Avatar {
         for child in children {
             let child_name = child.name().value();
             match child_name {
-                NODE_NAME_ANIMATIONS => animations_blocks.push(Animations::parse(child)?),
-                NODE_NAME_DRIVERS => drivers_blocks.push(Drivers::parse(child)?),
-                NODE_NAME_PARAMETERS => parameters_blocks.push(Parameters::parse(child)?),
-                NODE_NAME_MENU => menu_blocks.push(Menu::parse(child)?),
+                NODE_NAME_ANIMATIONS => {
+                    animations_blocks.push(self.compile((ForAnimations, child))?)
+                }
+                NODE_NAME_DRIVERS => drivers_blocks.push(self.compile((ForDrivers, child))?),
+                NODE_NAME_PARAMETERS => {
+                    parameters_blocks.push(self.compile((ForParameters, child))?)
+                }
+                NODE_NAME_MENU => menu_blocks.push(self.compile((ForMenu, child))?),
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),

@@ -1,3 +1,40 @@
+use semver::Version;
+
+#[derive(Debug, Clone)]
+pub struct Document {
+    pub version: Version,
+    pub avatar: Avatar,
+}
+
+#[derive(Debug, Clone)]
+pub struct Avatar {
+    pub name: String,
+    pub parameters_blocks: Vec<Parameters>,
+    pub animations_blocks: Vec<Animations>,
+    pub drivers_blocks: Vec<Drivers>,
+    pub menu_blocks: Vec<Menu>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Parameters {
+    pub parameters: Vec<Parameter>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Parameter {
+    pub ty: ParameterType,
+    pub save: Option<bool>,
+    pub local: Option<bool>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParameterType {
+    Int(Option<u8>),
+    Float(Option<f64>),
+    Bool(Option<bool>),
+}
+
 #[derive(Debug, Clone)]
 pub struct Animations {
     pub elements: Vec<AnimationElement>,
@@ -73,6 +110,56 @@ pub struct ObjectSwitchPair {
     pub object: String,
     pub disabled: Option<bool>,
     pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Drivers {
+    pub groups: Vec<DriverGroup>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DriverGroup {
+    pub name: String,
+    pub local: Option<bool>,
+    pub drives: Vec<Drive>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Drive {
+    Set(DriveTarget),
+    Add(DriveTarget),
+    Random {
+        group: Option<String>,
+        parameter: Option<String>,
+        chance: Option<f64>,
+        range: (Option<f64>, Option<f64>),
+    },
+    Copy {
+        from: String,
+        to: String,
+        from_range: (Option<f64>, Option<f64>),
+        to_range: (Option<f64>, Option<f64>),
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum DriveTarget {
+    Group {
+        name: String,
+        option: Option<String>,
+    },
+    IntParameter {
+        name: String,
+        value: u8,
+    },
+    FloatParameter {
+        name: String,
+        value: f64,
+    },
+    BoolParameter {
+        name: String,
+        value: bool,
+    },
 }
 
 #[derive(Debug, Clone)]

@@ -25,7 +25,7 @@ pub const NODE_NAME_OPTION: &str = "option";
 pub const NODE_NAME_SHAPE: &str = "shape";
 pub const NODE_NAME_OBJECT: &str = "object";
 
-struct ForAnimations;
+pub(super) struct ForAnimations;
 impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
     type Output = Animations;
 

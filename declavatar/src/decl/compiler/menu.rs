@@ -27,17 +27,7 @@ pub const NODE_NAME_DOWN: &str = "down";
 pub const NODE_NAME_LEFT: &str = "left";
 pub const NODE_NAME_RIGHT: &str = "right";
 
-/*
-struct ForShapeGroup;
-impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
-    type Output = ShapeGroup;
-
-    fn compile(&mut self, (_, node): (ForShapeGroup, &KdlNode)) -> Result<ShapeGroup> {
-    }
-}
-*/
-
-struct ForMenu;
+pub(super) struct ForMenu;
 impl Compile<(ForMenu, &KdlNode)> for DeclCompiler {
     type Output = Menu;
 
@@ -183,16 +173,13 @@ impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
                 PuppetAxes::Radial(parameter)
             }
             NODE_NAME_TWO_AXIS => {
-                let axes_children = extract_nodes_just(
-                    children,
-                    &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL],
-                )?
-                .ok_or_else(|| {
-                    DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
-                })?;
+                let axes_children =
+                    extract_nodes_just(children, &[NODE_NAME_HORIZONTAL, NODE_NAME_VERTICAL])?
+                        .ok_or_else(|| {
+                            DeclError::new(node.name().span(), DeclErrorKind::MustHaveChildren)
+                        })?;
 
-                let horizontal =
-                    make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
+                let horizontal = make_two_axis_pair(axes_children[NODE_NAME_HORIZONTAL])?;
                 let vertical = make_two_axis_pair(axes_children[NODE_NAME_VERTICAL])?;
 
                 PuppetAxes::TwoAxis {

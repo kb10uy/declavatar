@@ -1,24 +1,25 @@
 pub mod data;
-pub mod document;
 pub mod error;
 
 mod compiler;
 
-use crate::decl::{
-    document::Document,
-    error::{DeclError, DeclErrorKind, Result},
+use crate::{
+    compiler::Compile,
+    decl::{
+        compiler::DeclCompiler,
+        data::Document,
+        error::{DeclError, DeclErrorKind, Result},
+    },
 };
 
 use kdl::KdlDocument;
-use miette::{Result as MietteResult, SourceOffset, SourceSpan};
+use miette::Result as MietteResult;
 
 pub fn parse_document(source: &str) -> MietteResult<Document> {
-    let first_span = SourceSpan::new(
-        SourceOffset::from_location(source, 1, 1),
-        SourceOffset::from_location(source, 1, 1),
-    );
-
     let kdl: KdlDocument = source.parse()?;
-    let document = Document::parse(&kdl, &first_span).map_err(|e| e.with_source(source))?;
+
+    let mut compiler = DeclCompiler::new();
+    let document = compiler.compile(kdl)?;
+
     Ok(document)
 }

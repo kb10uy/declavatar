@@ -1,4 +1,10 @@
-use crate::decl::compiler::{deconstruct_node, DeclError, DeclErrorKind, NodeEntries, Result};
+use crate::{
+    compiler::Compile,
+    decl::{
+        compiler::{deconstruct_node, DeclCompiler, DeclError, DeclErrorKind, NodeEntries, Result},
+        data::{Drive, DriveTarget, DriverGroup, Drivers},
+    },
+};
 
 use kdl::{KdlNode, KdlValue};
 
@@ -9,20 +15,18 @@ pub const NODE_NAME_ADD: &str = "add";
 pub const NODE_NAME_RANDOM: &str = "random";
 pub const NODE_NAME_COPY: &str = "copy";
 
-#[derive(Debug, Clone)]
-pub struct Drivers {
-    pub groups: Vec<Group>,
-}
+pub(super) struct ForDrivers;
+impl Compile<(ForDrivers, &KdlNode)> for DeclCompiler {
+    type Output = Drivers;
 
-impl Drivers {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForDrivers, &KdlNode)) -> Result<Drivers> {
         let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_DRIVERS), Some(true))?;
 
         let mut groups = vec![];
         for child in children {
             let child_name = child.name().value();
             let group = match child_name {
-                NODE_NAME_GROUP => Group::parse(child)?,
+                NODE_NAME_GROUP => self.compile((ForDriverGroup, child))?,
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
@@ -37,15 +41,11 @@ impl Drivers {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Group {
-    pub name: String,
-    pub local: Option<bool>,
-    pub drives: Vec<Drive>,
-}
+struct ForDriverGroup;
+impl Compile<(ForDriverGroup, &KdlNode)> for DeclCompiler {
+    type Output = DriverGroup;
 
-impl Group {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForDriverGroup, &KdlNode)) -> Result<DriverGroup> {
         let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_GROUP), Some(true))?;
 
         let name = entries.get_argument(0, "name")?;
@@ -56,7 +56,7 @@ impl Group {
             let child_name = child.name().value();
             let drive = match child_name {
                 NODE_NAME_SET | NODE_NAME_ADD | NODE_NAME_RANDOM | NODE_NAME_COPY => {
-                    Drive::parse(child)?
+                    self.compile((ForDrive, child))?
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -68,7 +68,7 @@ impl Group {
             drives.push(drive);
         }
 
-        Ok(Group {
+        Ok(DriverGroup {
             name,
             local,
             drives,
@@ -76,37 +76,22 @@ impl Group {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Drive {
-    Set(DriveTarget),
-    Add(DriveTarget),
-    Random {
-        group: Option<String>,
-        parameter: Option<String>,
-        chance: Option<f64>,
-        range: (Option<f64>, Option<f64>),
-    },
-    Copy {
-        from: String,
-        to: String,
-        from_range: (Option<f64>, Option<f64>),
-        to_range: (Option<f64>, Option<f64>),
-    },
-}
+struct ForDrive;
+impl Compile<(ForDrive, &KdlNode)> for DeclCompiler {
+    type Output = Drive;
 
-impl Drive {
-    pub fn parse(node: &KdlNode) -> Result<Self> {
+    fn compile(&mut self, (_, node): (ForDrive, &KdlNode)) -> Result<Drive> {
         let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
 
         let drive = match name {
             NODE_NAME_SET => {
-                let drive_target = Drive::parse_drive_target(&entries, node)?;
+                let drive_target = parse_drive_target(&entries, node)?;
                 Drive::Set(drive_target)
             }
             NODE_NAME_ADD => {
                 // Just reuses DriveTarget.
                 // Only Integer/FloatParameter affects, verifies that following step.
-                let drive_target = Drive::parse_drive_target(&entries, node)?;
+                let drive_target = parse_drive_target(&entries, node)?;
                 Drive::Add(drive_target)
             }
             NODE_NAME_RANDOM => {
@@ -140,65 +125,45 @@ impl Drive {
         };
         Ok(drive)
     }
-
-    fn parse_drive_target(entries: &NodeEntries, parent: &KdlNode) -> Result<DriveTarget> {
-        let target_group = entries.try_get_property("group")?;
-        let target_parameter = entries.try_get_property("parameter")?;
-        let drive_target = match (target_group, target_parameter) {
-            (Some(name), None) => {
-                let option = entries.try_get_property("option")?;
-                DriveTarget::Group { name, option }
-            }
-            (None, Some(name)) => {
-                let value: &KdlValue = entries.get_property("value")?;
-                let int_value = value.as_i64();
-                let float_value = value.as_f64();
-                let bool_value = value.as_bool();
-                if let Some(value) = int_value {
-                    DriveTarget::IntParameter {
-                        name,
-                        value: value as u8,
-                    }
-                } else if let Some(value) = float_value {
-                    DriveTarget::FloatParameter { name, value }
-                } else if let Some(value) = bool_value {
-                    DriveTarget::BoolParameter { name, value }
-                } else {
-                    let entry_span = parent.get("value").expect("must have entry").span();
-                    return Err(DeclError::new(
-                        entry_span,
-                        DeclErrorKind::IncorrectType("int or bool"),
-                    ));
-                }
-            }
-            _ => {
-                return Err(DeclError::new(
-                    parent.name().span(),
-                    DeclErrorKind::InvalidNodeDetected,
-                ));
-            }
-        };
-
-        Ok(drive_target)
-    }
 }
 
-#[derive(Debug, Clone)]
-pub enum DriveTarget {
-    Group {
-        name: String,
-        option: Option<String>,
-    },
-    IntParameter {
-        name: String,
-        value: u8,
-    },
-    FloatParameter {
-        name: String,
-        value: f64,
-    },
-    BoolParameter {
-        name: String,
-        value: bool,
-    },
+fn parse_drive_target(entries: &NodeEntries, parent: &KdlNode) -> Result<DriveTarget> {
+    let target_group = entries.try_get_property("group")?;
+    let target_parameter = entries.try_get_property("parameter")?;
+    let drive_target = match (target_group, target_parameter) {
+        (Some(name), None) => {
+            let option = entries.try_get_property("option")?;
+            DriveTarget::Group { name, option }
+        }
+        (None, Some(name)) => {
+            let value: &KdlValue = entries.get_property("value")?;
+            let int_value = value.as_i64();
+            let float_value = value.as_f64();
+            let bool_value = value.as_bool();
+            if let Some(value) = int_value {
+                DriveTarget::IntParameter {
+                    name,
+                    value: value as u8,
+                }
+            } else if let Some(value) = float_value {
+                DriveTarget::FloatParameter { name, value }
+            } else if let Some(value) = bool_value {
+                DriveTarget::BoolParameter { name, value }
+            } else {
+                let entry_span = parent.get("value").expect("must have entry").span();
+                return Err(DeclError::new(
+                    entry_span,
+                    DeclErrorKind::IncorrectType("int or bool"),
+                ));
+            }
+        }
+        _ => {
+            return Err(DeclError::new(
+                parent.name().span(),
+                DeclErrorKind::InvalidNodeDetected,
+            ));
+        }
+    };
+
+    Ok(drive_target)
 }
