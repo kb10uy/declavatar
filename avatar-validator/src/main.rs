@@ -19,16 +19,18 @@ fn main() -> MietteResult<()> {
     file.read_to_string(&mut source).into_diagnostic()?;
 
     let document = parse_document(&source)?;
-    match compile_avatar(document.avatar)? {
-        Ok(avatar) => {
-            println!("{avatar:?}");
-        }
+    let avatar = match compile_avatar(document.avatar)? {
+        Ok(avatar) => avatar,
         Err(errors) => {
             for error in errors {
                 println!("{error}");
             }
+            return Ok(());
         }
-    }
+    };
+
+    let json = serde_json::to_string(&avatar).into_diagnostic()?;
+    println!("{json}");
 
     Ok(())
 }
