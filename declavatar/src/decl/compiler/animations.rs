@@ -104,7 +104,7 @@ impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
                     default_block = Some(self.compile((ForShapeGroupBlock, child, 0))?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(self.compile((ForShapeGroupBlock, child, 0))?);
+                    options.push(self.compile((ForShapeGroupBlock, child, option_order))?);
                     option_order += 1;
                 }
                 _ => {
@@ -279,7 +279,7 @@ impl Compile<(ForObjectGroup, &KdlNode)> for DeclCompiler {
                     default_block = Some(self.compile((ForObjectGroupBlock, child, 0))?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(self.compile((ForObjectGroupBlock, child, 0))?);
+                    options.push(self.compile((ForObjectGroupBlock, child, option_order))?);
                     option_order += 1;
                 }
                 _ => {

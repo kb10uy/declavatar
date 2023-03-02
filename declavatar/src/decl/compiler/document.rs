@@ -2,8 +2,12 @@ use crate::{
     compiler::Compile,
     decl::{
         compiler::{
-            animations::ForAnimations, deconstruct_node, drivers::ForDrivers, menu::ForMenu,
-            parameters::ForParameters, DeclCompiler,
+            animations::{ForAnimations, NODE_NAME_ANIMATIONS},
+            deconstruct_node,
+            drivers::{ForDrivers, NODE_NAME_DRIVERS},
+            menu::{ForMenu, NODE_NAME_MENU},
+            parameters::{ForParameters, NODE_NAME_PARAMETERS},
+            DeclCompiler,
         },
         data::{Avatar, Document},
         DeclError, DeclErrorKind, Result,
@@ -17,7 +21,6 @@ use semver::Version;
 pub const NODE_NAME_VERSION: &str = "version";
 pub const NODE_NAME_AVATAR: &str = "avatar";
 
-struct ForShapeGroup;
 impl Compile<KdlDocument> for DeclCompiler {
     type Output = Document;
 

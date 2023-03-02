@@ -7,15 +7,12 @@ use crate::{
         error::{AvatarError, Result},
     },
     compiler::{Compile, Compiler, ErrorStackCompiler, Validate},
-    decl::{
-        animations::{
-            AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
-            ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch,
-            ShapeGroup as DeclShapeGroup, ShapeSwitch as DeclShapeSwitch,
-        },
-        document::Avatar as DeclAvatar,
-        drivers::{Drive as DeclDrive, DriveTarget as DeclDriveTarget, Drivers as DeclDrivers},
-        parameters::{ParameterType as DeclParameterType, Parameters as DeclParameters},
+    decl::data::{
+        AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
+        Avatar as DeclAvatar, Drive as DeclDrive, DriveTarget as DeclDriveTarget,
+        Drivers as DeclDrivers, ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch,
+        ParameterType as DeclParameterType, Parameters as DeclParameters,
+        ShapeGroup as DeclShapeGroup, ShapeSwitch as DeclShapeSwitch,
     },
 };
 

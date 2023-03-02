@@ -164,7 +164,7 @@ pub enum DriveTarget {
 
 #[derive(Debug, Clone)]
 pub struct Menu {
-    elements: Vec<MenuElement>,
+    pub elements: Vec<MenuElement>,
 }
 
 #[derive(Debug, Clone)]
@@ -176,15 +176,15 @@ pub enum MenuElement {
 
 #[derive(Debug, Clone)]
 pub struct SubMenu {
-    name: String,
-    elements: Vec<MenuElement>,
+    pub name: String,
+    pub elements: Vec<MenuElement>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BooleanControl {
-    name: String,
-    toggle: bool,
-    target: BooleanControlTarget,
+    pub name: String,
+    pub toggle: bool,
+    pub target: BooleanControlTarget,
 }
 
 #[derive(Debug, Clone)]
@@ -205,8 +205,8 @@ pub enum BooleanControlTarget {
 
 #[derive(Debug, Clone)]
 pub struct Puppet {
-    name: String,
-    axes: PuppetAxes,
+    pub name: String,
+    pub axes: PuppetAxes,
 }
 
 #[derive(Debug, Clone)]
