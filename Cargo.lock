@@ -62,6 +62,7 @@ dependencies = [
  "clap",
  "declavatar",
  "miette",
+ "static_vcruntime",
 ]
 
 [[package]]
@@ -142,6 +143,7 @@ dependencies = [
  "miette",
  "semver",
  "serde",
+ "static_vcruntime",
  "thiserror",
 ]
 
@@ -463,6 +465,12 @@ name = "smawk"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f67ad224767faa3c7d8b6d91985b78e70a1324408abcb1cfcc2be4c06bc06043"
+
+[[package]]
+name = "static_vcruntime"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "954e3e877803def9dc46075bf4060147c55cd70db97873077232eae0269dc89b"
 
 [[package]]
 name = "strsim"

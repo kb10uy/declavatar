@@ -7,4 +7,7 @@ edition = "2021"
 anyhow = "1.0.69"
 clap = { version = "4.1.6", features = ["derive"] }
 declavatar = { path = "../declavatar" }
-miette = { version = "5.5.0", features = ["fancy"]}
+miette = { version = "5.5.0", features = ["fancy"] }
+
+[build-dependencies]
+static_vcruntime = { version = "2.0.0" }
