@@ -146,47 +146,58 @@ impl
                 name: group_name,
                 option,
             } => {
-                let Some(option_name) = option else {
-                    self.error(format!("option must be specified"));
-                    return Ok(None);
-                };
-                let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
-                    self.error(format!("animation group '{group_name}' not found"));
-                    return Ok(None);
-                };
-                if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
-                    self.error(format!(
-                        "animation group '{group_name}' should refer int parameter"
-                    ));
-                    return Ok(None);
-                };
-                let option_index = match &group.content {
-                    AnimationGroupContent::ShapeGroup { options, .. } => {
-                        let Some((option_order, _)) = options.get(&option_name) else {
-                            self.error(format!("option '{option_name}' not found in '{group_name}'"));
-                            return Ok(None);
-                        };
-                        *option_order
-                    }
-                    AnimationGroupContent::ObjectGroup { options, .. } => {
-                        let Some((option_order, _)) = options.get(&option_name) else {
-                            self.error(format!("option '{option_name}' not found in '{group_name}'"));
-                            return Ok(None);
-                        };
-                        *option_order
-                    }
-                    _ => {
+                if let Some(option_name) = option {
+                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
+                        self.error(format!("animation group '{group_name}' not found"));
+                        return Ok(None);
+                    };
+                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
                         self.error(format!(
-                            "parameter driver with group is valid only for groups but not switches"
+                            "animation group '{group_name}' should refer int parameter"
                         ));
                         return Ok(None);
-                    }
-                };
+                    };
+                    let option_index = match &group.content {
+                        AnimationGroupContent::ShapeGroup { options, .. } => {
+                            let Some((option_order, _)) = options.get(&option_name) else {
+                                self.error(format!("option '{option_name}' not found in '{group_name}'"));
+                                return Ok(None);
+                            };
+                            *option_order
+                        }
+                        AnimationGroupContent::ObjectGroup { options, .. } => {
+                            let Some((option_order, _)) = options.get(&option_name) else {
+                                self.error(format!("option '{option_name}' not found in '{group_name}'"));
+                                return Ok(None);
+                            };
+                            *option_order
+                        }
+                        _ => {
+                            self.error(format!(
+                                "parameter driver with group is valid only for groups but not switches"
+                            ));
+                            return Ok(None);
+                        }
+                    };
 
-                (
-                    group.parameter.clone(),
-                    ParameterType::Int(option_index as u8),
-                )
+                    (
+                        group.parameter.clone(),
+                        ParameterType::Int(option_index as u8),
+                    )
+                } else {
+                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
+                        self.error(format!("animation group '{group_name}' not found"));
+                        return Ok(None);
+                    };
+                    if !self.ensure((parameters, &group.parameter, &ParameterType::BOOL_TYPE))? {
+                        self.error(format!(
+                            "animation group '{group_name}' should refer bool parameter"
+                        ));
+                        return Ok(None);
+                    };
+
+                    (group.parameter.clone(), ParameterType::Bool(true))
+                }
             }
             DeclBooleanControlTarget::IntParameter { name, value } => {
                 if !self.ensure((parameters, &name, &ParameterType::INT_TYPE))? {

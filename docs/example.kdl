@@ -8,8 +8,11 @@ avatar "avatarname" {
         bool "Cap"
         float "param1"
         float "param2"
+        float "param3"
+        float "param4"
         bool "fuga"
         int "hoge"
+        bool "Emission"
     }
 
     animations {
@@ -40,6 +43,12 @@ avatar "avatarname" {
             parameter "Breast"
             shape "胸大" enabled=1.0 disabled=0.0
             shape "胸小" enabled=0.0 disabled=1.0
+        }
+
+        shape-switch "発光" {
+            mesh "Clothes"
+            parameter "Emission"
+            shape "発光部" enabled=1.0 disabled=0.0
         }
 
         object-group "服装" {
@@ -82,17 +91,13 @@ avatar "avatarname" {
     menu {
         submenu "服装" {
             button "発光" group="発光"
-
-            // toggle "label" parameter="paramname" value=1
             toggle "裸足" group="服装" option="裸足"
 
-            radial "Radial Puppet" parameter="hoge"
-
+            radial "Radial Puppet" parameter="param2"
             two-axis "Two-Axis Puppet" {
                 horizontal "left" "right" parameter="param1"
                 vertical "up" "down" parameter="param2"
             }
-
             four-axis "Four-Axis Puppet" {
                 left "left" parameter="param1"
                 right "right" parameter="param2"
