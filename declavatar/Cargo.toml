@@ -9,9 +9,6 @@ cdylib = []
 [lib]
 crate-type = ["rlib", "cdylib"]
 
-[profile.release]
-lto = true
-
 [dependencies]
 kdl = "4.6.0"
 miette = "5.5.0"
