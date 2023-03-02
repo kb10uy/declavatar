@@ -1,11 +1,12 @@
 use crate::{
     compiler::Compile,
     decl::{
-        compiler::{deconstruct_node, DeclCompiler, DeclError, DeclErrorKind, Result},
+        compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, Animations, ObjectGroup, ObjectGroupBlock, ObjectSwitch,
             ObjectSwitchPair, ShapeGroup, ShapeGroupBlock, ShapeSwitch, ShapeSwitchPair,
         },
+        error::{DeclError, DeclErrorKind, Result},
     },
 };
 
