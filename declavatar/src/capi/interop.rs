@@ -1,5 +1,5 @@
 use crate::{
-    avatar::{compiler::compile_avatar, data::Avatar},
+    avatar::{compile_avatar, data::Avatar},
     decl::parse_document,
 };
 
