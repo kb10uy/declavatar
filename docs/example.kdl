@@ -3,16 +3,15 @@ version "1.0.0"
 avatar "avatarname" {
     parameters {
         int "Expression"
-        int "Clothes"
         bool "Breast"
+        int "Clothes"
         bool "Cap"
+
         float "param1"
         float "param2"
         float "param3"
         float "param4"
-        bool "fuga"
-        int "hoge"
-        bool "Emission"
+        bool "param5"
     }
 
     animations {
@@ -45,12 +44,6 @@ avatar "avatarname" {
             shape "胸小" enabled=0.0 disabled=1.0
         }
 
-        shape-switch "発光" {
-            mesh "Clothes"
-            parameter "Emission"
-            shape "発光部" enabled=1.0 disabled=0.0
-        }
-
         object-group "服装" {
             parameter "Clothes"
 
@@ -75,35 +68,35 @@ avatar "avatarname" {
     drivers {
         group "夏" local=true {
             set group="表情" option="にっこり"
-            set parameter="param1" value=1.0
-            set parameter="fuga" value=false
-            add parameter="hoge" value=10
-            random group="表情"
-            random parameter="hoge" min=0.0 max=10.0
-            random parameter="fuga" chance=0.3
-            copy from="hoge" to="fuga" from_min=0.1 from_max=0.3 to_min=0.0 to_max=1.0
-
-            set group="表情" option="にっこり"
             set group="服装" option="裸足"
+        }
+
+        group "Example" {
+            add parameter="param1" value=1.0
+            random parameter="param5" chance=0.5
+            copy from="param2" to="param3"
         }
     }
 
     menu {
         submenu "服装" {
-            button "発光" group="発光"
             toggle "裸足" group="服装" option="裸足"
+        }
+        submenu "表情" {
+            toggle "にっこり" group="表情" option="にっこり"
+            toggle "びっくり" group="表情" option="びっくり"
+        }
 
-            radial "Radial Puppet" parameter="param2"
-            two-axis "Two-Axis Puppet" {
-                horizontal "left" "right" parameter="param1"
-                vertical "up" "down" parameter="param2"
-            }
-            four-axis "Four-Axis Puppet" {
-                left "left" parameter="param1"
-                right "right" parameter="param2"
-                up "up" parameter="param3"
-                down "down" parameter="param4"
-            }
+        radial "Radial Puppet" parameter="param1"
+        two-axis "Two-Axis Puppet" {
+            horizontal "right" "left" parameter="param1"
+            vertical "up" "down" parameter="param2"
+        }
+        four-axis "Four-Axis Puppet" {
+            left "left" parameter="param1"
+            right "right" parameter="param2"
+            up "up" parameter="param3"
+            down "down" parameter="param4"
         }
     }
 }
