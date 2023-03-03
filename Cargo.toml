@@ -3,4 +3,5 @@ resolver = "2"
 members = ["declavatar", "avatar-validator"]
 
 [profile.release]
-lto = true
+lto = "fat"
+strip = "debuginfo"
