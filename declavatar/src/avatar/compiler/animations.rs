@@ -2,8 +2,8 @@ use crate::{
     avatar::{
         compiler::AvatarCompiler,
         data::{
-            AnimationGroup, AnimationGroupContent, ObjectTarget, Parameter, ParameterType,
-            ShapeTarget,
+            AnimationGroup, AnimationGroupContent, ObjectGroupOption, ObjectTarget, Parameter,
+            ParameterType, ShapeGroupOption, ShapeTarget,
         },
         error::Result,
     },
@@ -86,34 +86,47 @@ impl Compile<(DeclShapeGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
             return Ok(None);
         };
 
-        let mut options = HashMap::new();
+        let mut options = vec![];
         let mut default_shapes: Vec<_> = sg
             .default_block
             .map(|b| b.shapes)
             .unwrap_or_default()
             .into_iter()
-            .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(0.0)))
+            .map(|ds| ShapeTarget {
+                name: ds.0,
+                value: ds.1.unwrap_or(0.0),
+            })
             .collect();
         let mut default_shape_names: HashSet<_> =
-            default_shapes.iter().map(|s| s.0.clone()).collect();
+            default_shapes.iter().map(|s| s.name.clone()).collect();
 
         for decl_option in sg.options {
             let name = decl_option.name.expect("option block must have name");
-            let option: Vec<_> = decl_option
+            let shapes: Vec<_> = decl_option
                 .shapes
                 .into_iter()
-                .map(|ds| ShapeTarget(ds.0, ds.1.unwrap_or(1.0)))
+                .map(|ds| ShapeTarget {
+                    name: ds.0,
+                    value: ds.1.unwrap_or(1.0),
+                })
                 .collect();
 
-            for target in &option {
-                if default_shape_names.contains(&target.0) {
+            for target in &shapes {
+                if default_shape_names.contains(&target.name) {
                     continue;
                 }
-                default_shapes.push(ShapeTarget(target.0.clone(), 0.0));
-                default_shape_names.insert(target.0.clone());
+                default_shapes.push(ShapeTarget {
+                    name: target.name.clone(),
+                    value: 0.0,
+                });
+                default_shape_names.insert(target.name.clone());
             }
 
-            options.insert(name, (decl_option.declared_order, option));
+            options.push(ShapeGroupOption {
+                name,
+                order: decl_option.declared_order,
+                shapes,
+            });
         }
 
         Ok(Some(AnimationGroup {
@@ -144,14 +157,14 @@ impl Compile<(DeclShapeSwitch, &HashMap<String, Parameter>)> for AvatarCompiler 
         let mut disabled = vec![];
         let mut enabled = vec![];
         for shape in ss.shapes {
-            disabled.push(ShapeTarget(
-                shape.shape.clone(),
-                shape.disabled.unwrap_or(0.0),
-            ));
-            enabled.push(ShapeTarget(
-                shape.shape.clone(),
-                shape.enabled.unwrap_or(1.0),
-            ));
+            disabled.push(ShapeTarget {
+                name: shape.shape.clone(),
+                value: shape.disabled.unwrap_or(0.0),
+            });
+            enabled.push(ShapeTarget {
+                name: shape.shape.clone(),
+                value: shape.enabled.unwrap_or(1.0),
+            });
         }
 
         Ok(Some(AnimationGroup {
@@ -179,34 +192,47 @@ impl Compile<(DeclObjectGroup, &HashMap<String, Parameter>)> for AvatarCompiler 
             return Ok(None);
         };
 
-        let mut options = HashMap::new();
+        let mut options = vec![];
         let mut default_objects: Vec<_> = og
             .default_block
             .map(|b| b.objects)
             .unwrap_or_default()
             .into_iter()
-            .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(false)))
+            .map(|ds| ObjectTarget {
+                name: ds.0,
+                enabled: ds.1.unwrap_or(false),
+            })
             .collect();
         let mut default_object_names: HashSet<_> =
-            default_objects.iter().map(|s| s.0.clone()).collect();
+            default_objects.iter().map(|s| s.name.clone()).collect();
 
         for decl_option in og.options {
             let name = decl_option.name.expect("option block must have name");
-            let option: Vec<_> = decl_option
+            let objects: Vec<_> = decl_option
                 .objects
                 .into_iter()
-                .map(|ds| ObjectTarget(ds.0, ds.1.unwrap_or(true)))
+                .map(|ds| ObjectTarget {
+                    name: ds.0,
+                    enabled: ds.1.unwrap_or(true),
+                })
                 .collect();
 
-            for target in &option {
-                if default_object_names.contains(&target.0) {
+            for target in &objects {
+                if default_object_names.contains(&target.name) {
                     continue;
                 }
-                default_objects.push(ObjectTarget(target.0.clone(), false));
-                default_object_names.insert(target.0.clone());
+                default_objects.push(ObjectTarget {
+                    name: target.name.clone(),
+                    enabled: false,
+                });
+                default_object_names.insert(target.name.clone());
             }
 
-            options.insert(name, (decl_option.declared_order, option));
+            options.push(ObjectGroupOption {
+                name,
+                order: decl_option.declared_order,
+                objects,
+            });
         }
 
         Ok(Some(AnimationGroup {
@@ -234,14 +260,14 @@ impl Compile<(DeclObjectSwitch, &HashMap<String, Parameter>)> for AvatarCompiler
         let mut disabled = vec![];
         let mut enabled = vec![];
         for object in os.objects {
-            disabled.push(ObjectTarget(
-                object.object.clone(),
-                object.disabled.unwrap_or(false),
-            ));
-            enabled.push(ObjectTarget(
-                object.object.clone(),
-                object.enabled.unwrap_or(true),
-            ));
+            disabled.push(ObjectTarget {
+                name: object.object.clone(),
+                enabled: object.disabled.unwrap_or(false),
+            });
+            enabled.push(ObjectTarget {
+                name: object.object.clone(),
+                enabled: object.enabled.unwrap_or(true),
+            });
         }
 
         Ok(Some(AnimationGroup {

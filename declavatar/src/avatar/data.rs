@@ -63,7 +63,7 @@ pub enum AnimationGroupContent {
         prevent_mouth: bool,
         prevent_eyelids: bool,
         default_targets: Vec<ShapeTarget>,
-        options: HashMap<String, (usize, Vec<ShapeTarget>)>,
+        options: Vec<ShapeGroupOption>,
     },
     ShapeSwitch {
         mesh: String,
@@ -74,7 +74,7 @@ pub enum AnimationGroupContent {
     },
     ObjectGroup {
         default_targets: Vec<ObjectTarget>,
-        options: HashMap<String, (usize, Vec<ObjectTarget>)>,
+        options: Vec<ObjectGroupOption>,
     },
     ObjectSwitch {
         disabled: Vec<ObjectTarget>,
@@ -82,11 +82,31 @@ pub enum AnimationGroupContent {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ShapeTarget(pub String, pub f64);
+#[derive(Debug, Clone, Serialize)]
+pub struct ShapeGroupOption {
+    pub name: String,
+    pub order: usize,
+    pub shapes: Vec<ShapeTarget>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ObjectGroupOption {
+    pub name: String,
+    pub order: usize,
+    pub objects: Vec<ObjectTarget>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ObjectTarget(pub String, pub bool);
+pub struct ShapeTarget {
+    pub name: String,
+    pub value: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ObjectTarget {
+    pub name: String,
+    pub enabled: bool,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DriverGroup {

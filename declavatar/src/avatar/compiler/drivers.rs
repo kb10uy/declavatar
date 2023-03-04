@@ -86,18 +86,18 @@ impl Compile<(DeclDrive, &HashMap<String, Parameter>, &Vec<AnimationGroup>)> for
                     };
                     let option_index = match &group.content {
                         AnimationGroupContent::ShapeGroup { options, .. } => {
-                            let Some((option_order, _)) = options.get(&option_name) else {
+                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
                                 self.error(format!("option '{option_name}' not found in '{group_name}'"));
                                 return Ok(None);
                             };
-                            *option_order
+                            option.order
                         }
                         AnimationGroupContent::ObjectGroup { options, .. } => {
-                            let Some((option_order, _)) = options.get(&option_name) else {
+                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
                                 self.error(format!("option '{option_name}' not found in '{group_name}'"));
                                 return Ok(None);
                             };
-                            *option_order
+                            option.order
                         }
                         _ => {
                             self.error(format!(
@@ -167,10 +167,10 @@ impl Compile<(DeclDrive, &HashMap<String, Parameter>, &Vec<AnimationGroup>)> for
                     };
                     let max_index = match &group.content {
                         AnimationGroupContent::ShapeGroup { options, .. } => {
-                            options.iter().map(|o| o.1 .0).max().unwrap_or(1)
+                            options.iter().map(|o| o.order).max().unwrap_or(1)
                         }
                         AnimationGroupContent::ObjectGroup { options, .. } => {
-                            options.iter().map(|o| o.1 .0).max().unwrap_or(1)
+                            options.iter().map(|o| o.order).max().unwrap_or(1)
                         }
                         _ => {
                             self.error(format!(
