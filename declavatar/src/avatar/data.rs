@@ -96,6 +96,7 @@ pub struct DriverGroup {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum Driver {
     SetInt(String, u8),
     SetFloat(String, f64),
