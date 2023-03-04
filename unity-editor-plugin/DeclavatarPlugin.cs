@@ -15,9 +15,9 @@ namespace KusakaFactory.Declavatar
         [DllImport("declavatar.dll")]
         public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
         [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
         [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
         [DllImport("declavatar.dll")]
         public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
         [DllImport("declavatar.dll")]
@@ -32,9 +32,9 @@ namespace KusakaFactory.Declavatar
         [DllImport("libdeclavatar.dylib")]
         public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
         [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
         [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
         [DllImport("libdeclavatar.dylib")]
         public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
         [DllImport("libdeclavatar.dylib")]
@@ -49,9 +49,9 @@ namespace KusakaFactory.Declavatar
         [DllImport("libdeclavatar.so")]
         public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
         [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
         [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, IntPtr source);
+        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json);
         [DllImport("libdeclavatar.so")]
         public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
         [DllImport("libdeclavatar.so")]
@@ -101,12 +101,13 @@ namespace KusakaFactory.Declavatar
         }
     }
 
-    internal sealed class Declavatar : IDisposable
+    internal sealed class DeclavatarPlugin : IDisposable
     {
         private DeclavatarHandle _handle = null;
         private bool _disposed = false;
+        private StatusCode _lastCompileResult = StatusCode.NotCompiled;
 
-        public Declavatar()
+        public DeclavatarPlugin()
         {
             _handle = DeclavatarHandle.Create();
             if (_handle.IsInvalid) throw new NullReferenceException("failed to create declavatar handle");
@@ -115,6 +116,31 @@ namespace KusakaFactory.Declavatar
         public void Reset()
         {
             Native.DeclavatarReset(_handle);
+            _lastCompileResult = StatusCode.NotCompiled;
+        }
+
+        public bool Compile(string inputKdl)
+        {
+            var utf8bytes = Encoding.UTF8.GetBytes(inputKdl);
+            _lastCompileResult = Native.DeclavatarCompile(_handle, utf8bytes);
+            return _lastCompileResult == StatusCode.Success;
+        }
+
+        public string GetAvatarJson()
+        {
+            if (_lastCompileResult != StatusCode.Success) return null;
+
+            IntPtr json = IntPtr.Zero;
+            uint jsonLength = 0;
+            if (Native.DeclavatarGetAvatarJson(_handle, ref json, ref jsonLength) != StatusCode.Success)
+            {
+                return null;
+            }
+
+            var buffer = new byte[jsonLength];
+            Marshal.Copy(json, buffer, 0, (int)jsonLength);
+            var jsonString = Encoding.UTF8.GetString(buffer);
+            return jsonString;
         }
 
         public List<(ErrorKind, string)> FetchErrors()

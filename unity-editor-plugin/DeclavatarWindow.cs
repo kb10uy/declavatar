@@ -6,18 +6,39 @@ namespace KusakaFactory.Declavatar
 {
     public class DeclavatarWindow : EditorWindow
     {
-        private Declavatar _declavatar = null;
+        private DeclavatarPlugin _declavatar = null;
         private List<(ErrorKind, string)> _errors = new List<(ErrorKind, string)>();
 
         private TextAsset _sourceTextAsset = null;
         private GameObject _targetAvatar = null;
 
-        private string _avatarName = "Avatar Name";
+        private string _avatarJson = "";
+        private Declavatar.Avatar _avatarDefinition = null;
         private Animation[] _parameterAnimations = new Animation[3];
         private GameObject[] _parameterObjects = new GameObject[3];
 
         private Vector2 _windowErrorsScroll = Vector2.zero;
-        private bool _windowErrorsShown = false;
+
+        private void Compile()
+        {
+            if (_declavatar == null) return;
+            if (_sourceTextAsset == null) return;
+
+            _declavatar.Reset();
+            if (_declavatar.Compile(_sourceTextAsset.text))
+            {
+                _avatarJson = _declavatar.GetAvatarJson();
+                _avatarDefinition = Declavatar.Deserialize(_avatarJson);
+                _errors = _declavatar.FetchErrors();
+                Repaint();
+            }
+            else
+            {
+                _avatarJson = "";
+                _errors = _declavatar.FetchErrors();
+                Repaint();
+            }
+        }
 
         [MenuItem("Window/Declavatar")]
         public static void ShowWindow()
@@ -36,44 +57,86 @@ namespace KusakaFactory.Declavatar
 
             DrawHeader();
             DrawSources();
+            DrawStatistics();
             DrawGenerators();
             DrawErrorsList();
-            DrawNativeDebug();
+            // DrawNativeDebug();
         }
 
         private void DrawHeader()
         {
             EditorGUILayout.BeginVertical();
-            GUILayout.Label("Declavatar - Declarative Avatar Asset Composing", EditorStyles.largeLabel);
-            GUILayout.Label("by kb10uy");
+            GUILayout.Label("Declavatar", Constants.TitleLabel);
+            GUILayout.Label("Declarative Avatar Assets Composing Tool, by kb10uy", EditorStyles.centeredGreyMiniLabel);
             EditorGUILayout.Separator();
             EditorGUILayout.EndVertical();
         }
 
         private void DrawSources()
         {
-            EditorGUILayout.BeginVertical();
+            GUILayout.Label("Compile", Constants.BigBoldLabel);
+            EditorGUILayout.BeginVertical(Constants.MarginBox);
             _sourceTextAsset = (TextAsset)EditorGUILayout.ObjectField(
                 "Avatar Declaration",
                 _sourceTextAsset,
                 typeof(TextAsset),
                 false
             );
+            EditorGUILayout.Separator();
+
+            if (GUILayout.Button("Compile Declaration", GUILayout.Height(40)))
+            {
+                Compile();
+            }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Separator();
+        }
+
+        private void DrawStatistics()
+        {
+            GUILayout.Label("Statistics", Constants.BigBoldLabel);
+            EditorGUILayout.BeginVertical(Constants.MarginBox);
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Avatar Name:", EditorStyles.boldLabel);
+            GUILayout.Label($"{_avatarDefinition?.Name ?? ""}");
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Defined Parameters:", EditorStyles.boldLabel);
+            GUILayout.Label($"{_avatarDefinition?.Parameters.Count ?? 0}");
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Defined Animation Groups:", EditorStyles.boldLabel);
+            GUILayout.Label($"{_avatarDefinition?.AnimationGroups.Count ?? 0}");
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Defined Driver Groups:", EditorStyles.boldLabel);
+            GUILayout.Label($"{_avatarDefinition?.DriverGroups.Count ?? 0}");
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.Separator();
+        }
+
+        private void DrawGenerators()
+        {
+            GUILayout.Label("Generation", Constants.BigBoldLabel);
+            EditorGUILayout.BeginVertical(Constants.MarginBox);
             _targetAvatar = (GameObject)EditorGUILayout.ObjectField(
                 "Target Avatar",
                 _targetAvatar,
                 typeof(GameObject),
                 true
             );
-            GUILayout.Button("Compile Declaration", GUILayout.Height(40));
             EditorGUILayout.Separator();
-            EditorGUILayout.EndVertical();
-        }
 
-        private void DrawGenerators()
-        {
-            EditorGUILayout.BeginVertical();
-            GUILayout.Label("External Animations", EditorStyles.boldLabel);
             for (int i = 0; i < _parameterObjects.Length; i++)
             {
                 _parameterAnimations[i] = (Animation)EditorGUILayout.ObjectField(
@@ -83,8 +146,8 @@ namespace KusakaFactory.Declavatar
                     false
                 );
             }
+            EditorGUILayout.Separator();
 
-            GUILayout.Label("External GameObjects", EditorStyles.boldLabel);
             for (int i = 0; i < _parameterObjects.Length; i++)
             {
                 _parameterObjects[i] = (GameObject)EditorGUILayout.ObjectField(
@@ -94,22 +157,18 @@ namespace KusakaFactory.Declavatar
                     true
                 );
             }
+            EditorGUILayout.Separator();
 
             GUILayout.Button("Generate Assets", GUILayout.Height(40));
-            EditorGUILayout.Separator();
             GUILayout.EndVertical();
+            EditorGUILayout.Separator();
         }
 
 
         private void DrawErrorsList()
         {
-            _windowErrorsShown = EditorGUILayout.Foldout(
-                _windowErrorsShown,
-                "Declaration Errors"
-            );
-            if (!_windowErrorsShown) return;
-
-            _windowErrorsScroll = GUILayout.BeginScrollView(_windowErrorsScroll, GUILayout.MaxHeight(200));
+            GUILayout.Label("Errors", Constants.BigBoldLabel);
+            _windowErrorsScroll = GUILayout.BeginScrollView(_windowErrorsScroll, Constants.MarginBox, GUILayout.MaxHeight(200));
             if (_errors.Count > 0)
             {
                 var previousBackground = GUI.backgroundColor;
@@ -166,7 +225,7 @@ namespace KusakaFactory.Declavatar
         private void GetDeclavatar()
         {
             if (_declavatar != null) return;
-            _declavatar = new Declavatar();
+            _declavatar = new DeclavatarPlugin();
         }
 
         private static class Constants
@@ -175,6 +234,27 @@ namespace KusakaFactory.Declavatar
             public static readonly Color ErrorForeground = new Color(1.0f, 0.8f, 0.8f, 1.0f);
             public static readonly Color InfoBackground = new Color(0.2f, 1.0f, 0.2f, 0.4f);
             public static readonly Color InfoForeground = new Color(0.8f, 1.0f, 0.8f, 1.0f);
+            public static GUIStyle MarginBox { get; private set; }
+            public static GUIStyle BigBoldLabel { get; private set; }
+            public static GUIStyle TitleLabel { get; private set; }
+
+            static Constants()
+            {
+                MarginBox = new GUIStyle()
+                {
+                    margin = new RectOffset(4, 4, 4, 4),
+                };
+                BigBoldLabel = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    fontSize = 14,
+                };
+                TitleLabel = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    fontSize = 24,
+                    alignment = TextAnchor.MiddleCenter,
+                    margin = new RectOffset(8, 8, 4, 4),
+                };
+            }
         }
     }
 }
