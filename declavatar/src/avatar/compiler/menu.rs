@@ -159,18 +159,18 @@ impl
                     };
                     let option_index = match &group.content {
                         AnimationGroupContent::ShapeGroup { options, .. } => {
-                            let Some((option_order, _)) = options.get(&option_name) else {
+                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
                                 self.error(format!("option '{option_name}' not found in '{group_name}'"));
                                 return Ok(None);
                             };
-                            *option_order
+                            option.order
                         }
                         AnimationGroupContent::ObjectGroup { options, .. } => {
-                            let Some((option_order, _)) = options.get(&option_name) else {
+                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
                                 self.error(format!("option '{option_name}' not found in '{group_name}'"));
                                 return Ok(None);
                             };
-                            *option_order
+                            option.order
                         }
                         _ => {
                             self.error(format!(
