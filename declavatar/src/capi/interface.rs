@@ -86,13 +86,16 @@ pub extern "system" fn DeclavatarCompile(da: *mut Declavatar, source: *const c_c
 pub extern "system" fn DeclavatarGetAvatarJson(
     da: *mut Declavatar,
     avatar_json: *mut *const c_char,
+    avatar_json_len: *mut u32,
 ) -> StatusCode {
     as_ref!(da, &mut Declavatar);
     as_ref!(avatar_json, &mut *const c_char);
+    as_ref!(avatar_json_len, &mut u32);
 
     match da.avatar_json() {
         Ok(json) => {
             *avatar_json = json.as_ptr() as *const i8;
+            *avatar_json_len = json.len() as u32;
             StatusCode::Success
         }
         Err(e) => e,
