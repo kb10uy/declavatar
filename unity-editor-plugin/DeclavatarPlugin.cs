@@ -22,7 +22,7 @@ namespace KusakaFactory.Declavatar
         [DllImport(LIBRARY_NAME)]
         public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
+        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, ref byte source, uint sourceLength);
         [DllImport(LIBRARY_NAME)]
         public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
         [DllImport(LIBRARY_NAME)]
@@ -93,7 +93,7 @@ namespace KusakaFactory.Declavatar
         public bool Compile(string inputKdl)
         {
             var utf8bytes = Encoding.UTF8.GetBytes(inputKdl);
-            _lastCompileResult = Native.DeclavatarCompile(_handle, utf8bytes);
+            _lastCompileResult = Native.DeclavatarCompile(_handle, ref utf8bytes[0], (uint)utf8bytes.Length);
             return _lastCompileResult == StatusCode.Success;
         }
 

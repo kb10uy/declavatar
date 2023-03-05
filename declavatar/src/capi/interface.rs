@@ -1,13 +1,14 @@
 use crate::capi::interop::{Declavatar, StatusCode};
 
-use std::ffi::{c_char, CStr};
+use std::{ffi::c_char, slice::from_raw_parts, str::from_utf8};
 
 macro_rules! as_ref {
-    ($ptr:ident, &str) => {
+    ($ptr:ident, &str, $len:ident) => {
         let $ptr = if $ptr.is_null() {
             return StatusCode::InvalidPointer;
         } else {
-            match unsafe { CStr::from_ptr($ptr).to_str() } {
+            let slice = unsafe { from_raw_parts($ptr as *const u8, $len as usize) };
+            match from_utf8(slice) {
                 Ok(s) => s,
                 Err(_) => return StatusCode::Utf8Error,
             }
@@ -72,9 +73,13 @@ pub extern "system" fn DeclavatarReset(da: *mut Declavatar) -> StatusCode {
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarCompile(da: *mut Declavatar, source: *const c_char) -> StatusCode {
+pub extern "system" fn DeclavatarCompile(
+    da: *mut Declavatar,
+    source: *const c_char,
+    source_len: u32,
+) -> StatusCode {
     as_ref!(da, &mut Declavatar);
-    as_ref!(source, &str);
+    as_ref!(source, &str, source_len);
 
     match da.compile(source) {
         Ok(()) => StatusCode::Success,
