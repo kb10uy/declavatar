@@ -8,59 +8,30 @@ namespace KusakaFactory.Declavatar
     internal static class Native
     {
 #if UNITY_EDITOR_WIN
-        [DllImport("declavatar.dll")]
-        public static extern IntPtr DeclavatarInit();
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarFree(IntPtr da);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarGetError(DeclavatarHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
-        [DllImport("declavatar.dll")]
-        public static extern StatusCode DeclavatarPushExampleErrors(DeclavatarHandle da);
+        private const string LIBRARY_NAME = "declavatar.dll";
 #elif UNITY_EDITOR_OSX
-        [DllImport("libdeclavatar.dylib")]
-        public static extern IntPtr DeclavatarInit();
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarFree(IntPtr da);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarGetError(DeclavatarHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
-        [DllImport("libdeclavatar.dylib")]
-        public static extern StatusCode DeclavatarPushExampleErrors(DeclavatarHandle da);
+        private const string LIBRARY_NAME = "libdeclavatar.dylib";
 #elif UNITY_EDITOR_LINUX
-        [DllImport("libdeclavatar.so")]
-        public static extern IntPtr DeclavatarInit();
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarFree(IntPtr da);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarGetError(DeclavatarHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
-        [DllImport("libdeclavatar.so")]
-        public static extern StatusCode DeclavatarPushExampleErrors(DeclavatarHandle da);
+        private const string LIBRARY_NAME = "libdeclavatar.so";
 #endif
-    }
 
+        [DllImport(LIBRARY_NAME)]
+        public static extern IntPtr DeclavatarInit();
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarFree(IntPtr da);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, byte[] source);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarGetError(DeclavatarHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
+        [DllImport(LIBRARY_NAME)]
+        public static extern StatusCode DeclavatarPushExampleErrors(DeclavatarHandle da);
+    }
 
     internal enum StatusCode : uint
     {
