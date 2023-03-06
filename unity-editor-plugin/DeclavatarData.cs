@@ -178,7 +178,7 @@ namespace KusakaFactory.Declavatar
         {
             public string Name { get; set; }
             public uint Id { get; set; }
-            public List<ExMenuItem> Items { get; set; }
+            public List<object> Items { get; set; }
         }
 
         public sealed class Button
@@ -340,7 +340,7 @@ namespace KusakaFactory.Declavatar
                 var obj = JObject.Load(reader) as JToken;
 
                 var contentObject = obj["content"] as JObject;
-                switch (contentObject["type"].Value<string>())
+                switch (obj["type"].Value<string>())
                 {
                     case "SubMenu": return contentObject.ToObject<ExMenuItem.ExMenuGroup>();
                     case "Button": return contentObject.ToObject<ExMenuItem.Button>();
