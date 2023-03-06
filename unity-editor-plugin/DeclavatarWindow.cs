@@ -13,7 +13,7 @@ namespace KusakaFactory.Declavatar
         private GameObject _targetAvatar = null;
 
         private string _avatarJson = "";
-        private Declavatar.Avatar _avatarDefinition = null;
+        private Avatar _avatarDefinition = null;
         private Animation[] _parameterAnimations = new Animation[3];
         private GameObject[] _parameterObjects = new GameObject[3];
 
@@ -38,6 +38,13 @@ namespace KusakaFactory.Declavatar
                 _errors = _declavatar.FetchErrors();
                 Repaint();
             }
+        }
+
+        private void GenerateAssets()
+        {
+            if (_avatarDefinition == null) return;
+
+            Declavatar.GenerateParametersAsset(_avatarDefinition, "Assets", "test.asset");
         }
 
         [MenuItem("Window/Declavatar")]
@@ -159,7 +166,10 @@ namespace KusakaFactory.Declavatar
             }
             EditorGUILayout.Separator();
 
-            GUILayout.Button("Generate Assets", GUILayout.Height(40));
+            if (GUILayout.Button("Generate Assets", GUILayout.Height(40)))
+            {
+                GenerateAssets();
+            }
             GUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
