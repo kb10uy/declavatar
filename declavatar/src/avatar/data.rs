@@ -131,13 +131,7 @@ pub enum Driver {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct MenuGroup {
-    pub name: String,
-    pub id: usize,
-    pub items: Vec<MenuItem>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum MenuItem {
     SubMenu(MenuGroup),
     Button(MenuBoolean),
@@ -145,6 +139,13 @@ pub enum MenuItem {
     Radial(MenuRadial),
     TwoAxis(MenuTwoAxis),
     FourAxis(MenuFourAxis),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MenuGroup {
+    pub name: String,
+    pub id: usize,
+    pub items: Vec<MenuItem>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

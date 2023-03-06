@@ -128,6 +128,12 @@ namespace KusakaFactory.Declavatar
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Top Menu Items:", EditorStyles.boldLabel);
+            GUILayout.Label($"{_avatarDefinition?.TopMenuGroup.Items.Count ?? 0}");
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.EndVertical();
             EditorGUILayout.Separator();
         }

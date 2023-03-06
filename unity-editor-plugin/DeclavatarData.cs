@@ -12,7 +12,7 @@ namespace KusakaFactory.Declavatar
         public Dictionary<string, Parameter> Parameters { get; set; }
         public List<AnimationGroup> AnimationGroups { get; set; }
         public List<DriverGroup> DriverGroups { get; set; }
-        // public MenuGroup TopMenuGroup { get; set; }
+        public ExMenuItem.ExMenuGroup TopMenuGroup { get; set; }
     }
 
     public sealed class Parameter
@@ -171,6 +171,67 @@ namespace KusakaFactory.Declavatar
         }
     }
 
+    [JsonConverter(typeof(Converters.ExMenuItemConverter))]
+    public sealed class ExMenuItem
+    {
+        public sealed class ExMenuGroup
+        {
+            public string Name { get; set; }
+            public uint Id { get; set; }
+            public List<ExMenuItem> Items { get; set; }
+        }
+
+        public sealed class Button
+        {
+            public string Name { get; set; }
+            public string Parameter { get; set; }
+            public ParameterType Value { get; set; }
+        }
+
+        public sealed class Toggle
+        {
+            public string Name { get; set; }
+            public string Parameter { get; set; }
+            public ParameterType Value { get; set; }
+        }
+
+        public sealed class Radial
+        {
+            public string Name { get; set; }
+            public string Parameter { get; set; }
+        }
+
+        public sealed class TwoAxis
+        {
+            public string Name { get; set; }
+            public BiAxis HorizontalAxis { get; set; }
+            public BiAxis VerticalAxis { get; set; }
+        }
+
+        public sealed class FourAxis
+        {
+            public string Name { get; set; }
+            public UniAxis LeftAxis { get; set; }
+            public UniAxis RightAxis { get; set; }
+            public UniAxis UpAxis { get; set; }
+            public UniAxis DownAxis { get; set; }
+        }
+
+        public sealed class BiAxis
+        {
+            public string Parameter { get; set; }
+            public string LabelNegative { get; set; }
+            public string LabelPositive { get; set; }
+        }
+
+        public sealed class UniAxis
+        {
+            public string Parameter { get; set; }
+            public string Label { get; set; }
+        }
+    }
+
+
     public static class Converters
     {
         public sealed class AnimationGroupConverter : JsonConverter
@@ -253,6 +314,41 @@ namespace KusakaFactory.Declavatar
                     case "Copy": return new Driver.Copy { From = content[0].Value<string>(), To = content[1].Value<string>() };
                     case "RangedCopy": return new Driver.RangedCopy { From = content[0].Value<string>(), To = content[1].Value<string>(), FromRange = content[2].Values<float>().ToArray(), ToRange = content[3].Values<float>().ToArray() };
                     default: throw new JsonException("invalid driver type");
+                }
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class ExMenuItemConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(ExMenuItem);
+            }
+
+            public override object ReadJson(
+                JsonReader reader,
+                Type objectType,
+                object existingValue,
+                JsonSerializer serializer
+            )
+            {
+                var obj = JObject.Load(reader) as JToken;
+
+                var contentObject = obj["content"] as JObject;
+                switch (contentObject["type"].Value<string>())
+                {
+                    case "SubMenu": return contentObject.ToObject<ExMenuItem.ExMenuGroup>();
+                    case "Button": return contentObject.ToObject<ExMenuItem.Button>();
+                    case "Toggle": return contentObject.ToObject<ExMenuItem.Toggle>();
+                    case "Radial": return contentObject.ToObject<ExMenuItem.Radial>();
+                    case "TwoAxis": return contentObject.ToObject<ExMenuItem.TwoAxis>();
+                    case "FourAxis": return contentObject.ToObject<ExMenuItem.FourAxis>();
+                    default: throw new JsonException("invalid group type");
                 }
             }
 
