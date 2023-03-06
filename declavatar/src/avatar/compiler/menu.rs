@@ -34,12 +34,15 @@ impl
         ),
     ) -> Result<MenuGroup> {
         let mut top_items = vec![];
+        let mut next_group_id = 1;
 
         let menu_elements = menu_blocks.into_iter().map(|ab| ab.elements).flatten();
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    Some(MenuItem::SubMenu(self.compile((sm.elements, sm.name, parameters, animation_groups))?))
+                    let (submenu, next_id) = self.compile((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    next_group_id = next_id;
+                    Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
                     let inner = self.compile((bc.target, bc.name,parameters, animation_groups))?;
@@ -65,6 +68,7 @@ impl
 
         Ok(MenuGroup {
             name: "".into(),
+            id: 0,
             items: top_items,
         })
     }
@@ -73,28 +77,33 @@ impl
 impl
     Compile<(
         Vec<DeclMenuElement>,
+        usize,
         String,
         &HashMap<String, Parameter>,
         &Vec<AnimationGroup>,
     )> for AvatarCompiler
 {
-    type Output = MenuGroup;
+    type Output = (MenuGroup, usize);
 
     fn compile(
         &mut self,
-        (menu_elements, name, parameters, animation_groups): (
+        (menu_elements, current_group_id, name, parameters, animation_groups): (
             Vec<DeclMenuElement>,
+            usize,
             String,
             &HashMap<String, Parameter>,
             &Vec<AnimationGroup>,
         ),
-    ) -> Result<MenuGroup> {
+    ) -> Result<(MenuGroup, usize)> {
         let mut items = vec![];
+        let mut next_group_id = current_group_id + 1;
 
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    Some(MenuItem::SubMenu(self.compile((sm.elements, sm.name, parameters, animation_groups))?))
+                    let (submenu, next_id) = self.compile((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    next_group_id = next_id;
+                    Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
                     let inner = self.compile((bc.target, bc.name,parameters, animation_groups))?;
@@ -118,7 +127,14 @@ impl
             items.drain(8..);
         }
 
-        Ok(MenuGroup { name, items })
+        Ok((
+            MenuGroup {
+                name,
+                id: current_group_id,
+                items,
+            },
+            next_group_id,
+        ))
     }
 }
 

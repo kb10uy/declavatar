@@ -133,6 +133,7 @@ pub enum Driver {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MenuGroup {
     pub name: String,
+    pub id: usize,
     pub items: Vec<MenuItem>,
 }
 
