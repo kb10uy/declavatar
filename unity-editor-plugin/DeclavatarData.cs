@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
+using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace KusakaFactory.Declavatar
 {
@@ -34,7 +36,7 @@ namespace KusakaFactory.Declavatar
         public bool? Save { get; set; }
     }
 
-    [JsonConverter(typeof(Converters.AnimationGroupConverter))]
+    [JsonConverter(typeof(Converters.AnimationGroupContentConverter))]
     public sealed class AnimationGroup
     {
         public string Name { get; set; }
@@ -171,44 +173,44 @@ namespace KusakaFactory.Declavatar
         }
     }
 
-    [JsonConverter(typeof(Converters.ExMenuItemConverter))]
-    public sealed class ExMenuItem
+    public abstract class ExMenuItem
     {
-        public sealed class ExMenuGroup
+        public sealed class ExMenuGroup : ExMenuItem
         {
             public string Name { get; set; }
             public uint Id { get; set; }
-            public List<object> Items { get; set; }
+            [JsonConverter(typeof(Converters.ExMenuItemsConverter))]
+            public List<ExMenuItem> Items { get; set; }
         }
 
-        public sealed class Button
+        public sealed class Button : ExMenuItem
         {
             public string Name { get; set; }
             public string Parameter { get; set; }
             public ParameterType Value { get; set; }
         }
 
-        public sealed class Toggle
+        public sealed class Toggle : ExMenuItem
         {
             public string Name { get; set; }
             public string Parameter { get; set; }
             public ParameterType Value { get; set; }
         }
 
-        public sealed class Radial
+        public sealed class Radial : ExMenuItem
         {
             public string Name { get; set; }
             public string Parameter { get; set; }
         }
 
-        public sealed class TwoAxis
+        public sealed class TwoAxis : ExMenuItem
         {
             public string Name { get; set; }
             public BiAxis HorizontalAxis { get; set; }
             public BiAxis VerticalAxis { get; set; }
         }
 
-        public sealed class FourAxis
+        public sealed class FourAxis : ExMenuItem
         {
             public string Name { get; set; }
             public UniAxis LeftAxis { get; set; }
@@ -231,10 +233,9 @@ namespace KusakaFactory.Declavatar
         }
     }
 
-
     public static class Converters
     {
-        public sealed class AnimationGroupConverter : JsonConverter
+        public sealed class AnimationGroupContentConverter : JsonConverter
         {
             public override bool CanConvert(Type objectType)
             {
@@ -255,16 +256,16 @@ namespace KusakaFactory.Declavatar
                 switch (contentObject["type"].Value<string>())
                 {
                     case "ShapeGroup":
-                        content = contentObject.ToObject<AnimationGroup.ShapeGroup>();
+                        content = contentObject.ToObject<AnimationGroup.ShapeGroup>(serializer);
                         break;
                     case "ShapeSwitch":
-                        content = contentObject.ToObject<AnimationGroup.ShapeSwitch>();
+                        content = contentObject.ToObject<AnimationGroup.ShapeSwitch>(serializer);
                         break;
                     case "ObjectGroup":
-                        content = contentObject.ToObject<AnimationGroup.ObjectGroup>();
+                        content = contentObject.ToObject<AnimationGroup.ObjectGroup>(serializer);
                         break;
                     case "ObjectSwitch":
-                        content = contentObject.ToObject<AnimationGroup.ObjectSwitch>();
+                        content = contentObject.ToObject<AnimationGroup.ObjectSwitch>(serializer);
                         break;
                     default:
                         throw new JsonException("invalid group type");
@@ -323,11 +324,11 @@ namespace KusakaFactory.Declavatar
             }
         }
 
-        public sealed class ExMenuItemConverter : JsonConverter
+        public sealed class ExMenuItemsConverter : JsonConverter
         {
             public override bool CanConvert(Type objectType)
             {
-                return objectType == typeof(ExMenuItem);
+                return objectType == typeof(List<ExMenuItem>);
             }
 
             public override object ReadJson(
@@ -337,24 +338,51 @@ namespace KusakaFactory.Declavatar
                 JsonSerializer serializer
             )
             {
-                var obj = JObject.Load(reader) as JToken;
-
-                var contentObject = obj["content"] as JObject;
-                switch (obj["type"].Value<string>())
+                var items = JArray.Load(reader);
+                return items.Select<JToken, ExMenuItem>((item) =>
                 {
-                    case "SubMenu": return contentObject.ToObject<ExMenuItem.ExMenuGroup>();
-                    case "Button": return contentObject.ToObject<ExMenuItem.Button>();
-                    case "Toggle": return contentObject.ToObject<ExMenuItem.Toggle>();
-                    case "Radial": return contentObject.ToObject<ExMenuItem.Radial>();
-                    case "TwoAxis": return contentObject.ToObject<ExMenuItem.TwoAxis>();
-                    case "FourAxis": return contentObject.ToObject<ExMenuItem.FourAxis>();
-                    default: throw new JsonException("invalid group type");
-                }
+                    var contentObject = item["content"] as JObject;
+                    switch (item["type"].Value<string>())
+                    {
+                        case "SubMenu": return contentObject.ToObject<ExMenuItem.ExMenuGroup>(serializer);
+                        case "Button": return contentObject.ToObject<ExMenuItem.Button>(serializer);
+                        case "Toggle": return contentObject.ToObject<ExMenuItem.Toggle>(serializer);
+                        case "Radial": return contentObject.ToObject<ExMenuItem.Radial>(serializer);
+                        case "TwoAxis": return contentObject.ToObject<ExMenuItem.TwoAxis>(serializer);
+                        case "FourAxis": return contentObject.ToObject<ExMenuItem.FourAxis>(serializer);
+                        default: throw new JsonException("invalid group type");
+                    }
+                }).ToList();
             }
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
                 throw new NotImplementedException();
+            }
+        }
+    }
+
+    public static class VRChatExtension
+    {
+        public static VRCExpressionParameters.ValueType ConvertToVRCParameterType(this ParameterType value)
+        {
+            switch (value.Type)
+            {
+                case "Int": return VRCExpressionParameters.ValueType.Int;
+                case "Float": return VRCExpressionParameters.ValueType.Float;
+                case "Bool": return VRCExpressionParameters.ValueType.Bool;
+                default: throw new ArgumentException("invalid parameter type");
+            }
+        }
+
+        public static float ConvertToVRCParameterValue(this ParameterType value)
+        {
+            switch (value.Type)
+            {
+                case "Int": return (float)(long)value.Default;
+                case "Float": return (float)(double)value.Default;
+                case "Bool": return (bool)value.Default ? 1.0f : 0.0f;
+                default: throw new ArgumentException("invalid parameter type");
             }
         }
     }
