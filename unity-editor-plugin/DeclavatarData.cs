@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UnityEngine;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace KusakaFactory.Declavatar
@@ -11,7 +10,7 @@ namespace KusakaFactory.Declavatar
     public sealed class Avatar
     {
         public string Name { get; set; }
-        public Dictionary<string, Parameter> Parameters { get; set; }
+        public List<Parameter> Parameters { get; set; }
         public List<AnimationGroup> AnimationGroups { get; set; }
         public List<DriverGroup> DriverGroups { get; set; }
         public ExMenuItem.ExMenuGroup TopMenuGroup { get; set; }

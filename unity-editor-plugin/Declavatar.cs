@@ -28,7 +28,7 @@ namespace KusakaFactory.Declavatar
             // TODO: Check bits usage
             var parameterDefinitions = avatar.Parameters;
             var parameters = new List<VRCExpressionParameters.Parameter>();
-            foreach (var definition in parameterDefinitions.Values)
+            foreach (var definition in parameterDefinitions)
             {
                 if (definition.SyncType.Type == "Local") continue;
 
