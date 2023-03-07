@@ -15,7 +15,7 @@ use std::collections::HashMap;
 impl
     Compile<(
         Vec<DeclDrivers>,
-        &HashMap<String, Parameter>,
+        &Vec<Parameter>,
         &Vec<AnimationGroup>,
     )> for AvatarCompiler
 {
@@ -25,7 +25,7 @@ impl
         &mut self,
         (drivers_blocks, parameters, animation_groups): (
             Vec<DeclDrivers>,
-            &HashMap<String, Parameter>,
+            &Vec<Parameter>,
             &Vec<AnimationGroup>,
         ),
     ) -> Result<Vec<DriverGroup>> {
@@ -53,14 +53,14 @@ impl
     }
 }
 
-impl Compile<(DeclDrive, &HashMap<String, Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
+impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
     type Output = Option<Driver>;
 
     fn compile(
         &mut self,
         (decl_drive, parameters, animation_groups): (
             DeclDrive,
-            &HashMap<String, Parameter>,
+            &Vec<Parameter>,
             &Vec<AnimationGroup>,
         ),
     ) -> Result<Option<Driver>> {

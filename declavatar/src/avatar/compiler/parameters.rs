@@ -8,18 +8,11 @@ use crate::{
     decl::data::{ParameterType as DeclParameterType, Parameters as DeclParameters},
 };
 
-use std::collections::HashMap;
-
 impl Compile<Vec<DeclParameters>> for AvatarCompiler {
-    type Output = HashMap<String, Parameter>;
+    type Output = Vec<Parameter>;
 
-    fn compile(
-        &mut self,
-        parameters_blocks: Vec<DeclParameters>,
-    ) -> Result<HashMap<String, Parameter>> {
-        use std::collections::hash_map::Entry;
-
-        let mut parameters = HashMap::new();
+    fn compile(&mut self, parameters_blocks: Vec<DeclParameters>) -> Result<Vec<Parameter>> {
+        let mut parameters: Vec<Parameter> = vec![];
 
         let decl_parameters = parameters_blocks
             .into_iter()
@@ -45,25 +38,21 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
                 }
             };
 
-            match parameters.entry(decl_parameter.name.clone()) {
-                Entry::Occupied(p) => {
-                    let defined: &Parameter = p.get();
-                    if defined.value_type != value_type || defined.sync_type != sync_type {
-                        self.error(format!(
-                            "parameter '{}' have incompatible declarations",
-                            decl_parameter.name
-                        ));
-                        continue;
-                    }
-                }
-                Entry::Vacant(v) => {
-                    v.insert(Parameter {
-                        name,
-                        value_type,
-                        sync_type,
-                    });
+            if let Some(defined) = parameters.iter().find(|p| p.name == decl_parameter.name) {
+                if defined.value_type != value_type || defined.sync_type != sync_type {
+                    self.error(format!(
+                        "parameter '{}' have incompatible declarations",
+                        decl_parameter.name
+                    ));
+                    continue;
                 }
             }
+
+            parameters.push(Parameter {
+                name,
+                value_type,
+                sync_type,
+            });
         }
 
         Ok(parameters)

@@ -17,12 +17,12 @@ use crate::{
 
 use std::collections::{HashMap, HashSet};
 
-impl Compile<(Vec<DeclAnimations>, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Vec<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (animations_blocks, parameters): (Vec<DeclAnimations>, &HashMap<String, Parameter>),
+        (animations_blocks, parameters): (Vec<DeclAnimations>, &Vec<Parameter>),
     ) -> Result<Vec<AnimationGroup>> {
         let mut animation_groups = vec![];
 
@@ -75,12 +75,12 @@ impl Compile<(Vec<DeclAnimations>, &HashMap<String, Parameter>)> for AvatarCompi
     }
 }
 
-impl Compile<(DeclShapeGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (sg, parameters): (DeclShapeGroup, &HashMap<String, Parameter>),
+        (sg, parameters): (DeclShapeGroup, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
         if !self.ensure((parameters, &sg.parameter, &ParameterType::INT_TYPE))? {
             return Ok(None);
@@ -143,12 +143,12 @@ impl Compile<(DeclShapeGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
     }
 }
 
-impl Compile<(DeclShapeSwitch, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(DeclShapeSwitch, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (ss, parameters): (DeclShapeSwitch, &HashMap<String, Parameter>),
+        (ss, parameters): (DeclShapeSwitch, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
         if !self.ensure((parameters, &ss.parameter, &ParameterType::BOOL_TYPE))? {
             return Ok(None);
@@ -181,12 +181,12 @@ impl Compile<(DeclShapeSwitch, &HashMap<String, Parameter>)> for AvatarCompiler 
     }
 }
 
-impl Compile<(DeclObjectGroup, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(DeclObjectGroup, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (og, parameters): (DeclObjectGroup, &HashMap<String, Parameter>),
+        (og, parameters): (DeclObjectGroup, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
         if !self.ensure((parameters, &og.parameter, &ParameterType::INT_TYPE))? {
             return Ok(None);
@@ -246,12 +246,12 @@ impl Compile<(DeclObjectGroup, &HashMap<String, Parameter>)> for AvatarCompiler 
     }
 }
 
-impl Compile<(DeclObjectSwitch, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(DeclObjectSwitch, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (os, parameters): (DeclObjectSwitch, &HashMap<String, Parameter>),
+        (os, parameters): (DeclObjectSwitch, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
         if !self.ensure((parameters, &os.parameter, &ParameterType::BOOL_TYPE))? {
             return Ok(None);

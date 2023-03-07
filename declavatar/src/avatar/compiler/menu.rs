@@ -14,22 +14,14 @@ use crate::{
     },
 };
 
-use std::collections::HashMap;
-
-impl
-    Compile<(
-        Vec<DeclMenu>,
-        &HashMap<String, Parameter>,
-        &Vec<AnimationGroup>,
-    )> for AvatarCompiler
-{
+impl Compile<(Vec<DeclMenu>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
     type Output = MenuGroup;
 
     fn compile(
         &mut self,
         (menu_blocks, parameters, animation_groups): (
             Vec<DeclMenu>,
-            &HashMap<String, Parameter>,
+            &Vec<Parameter>,
             &Vec<AnimationGroup>,
         ),
     ) -> Result<MenuGroup> {
@@ -79,7 +71,7 @@ impl
         Vec<DeclMenuElement>,
         usize,
         String,
-        &HashMap<String, Parameter>,
+        &Vec<Parameter>,
         &Vec<AnimationGroup>,
     )> for AvatarCompiler
 {
@@ -91,7 +83,7 @@ impl
             Vec<DeclMenuElement>,
             usize,
             String,
-            &HashMap<String, Parameter>,
+            &Vec<Parameter>,
             &Vec<AnimationGroup>,
         ),
     ) -> Result<(MenuGroup, usize)> {
@@ -142,7 +134,7 @@ impl
     Compile<(
         DeclBooleanControlTarget,
         String,
-        &HashMap<String, Parameter>,
+        &Vec<Parameter>,
         &Vec<AnimationGroup>,
     )> for AvatarCompiler
 {
@@ -153,7 +145,7 @@ impl
         (decl_boolean, name, parameters, animation_groups): (
             DeclBooleanControlTarget,
             String,
-            &HashMap<String, Parameter>,
+            &Vec<Parameter>,
             &Vec<AnimationGroup>,
         ),
     ) -> Result<Option<MenuBoolean>> {
@@ -237,12 +229,12 @@ impl
     }
 }
 
-impl Compile<(DeclPuppet, &HashMap<String, Parameter>)> for AvatarCompiler {
+impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<MenuItem>;
 
     fn compile(
         &mut self,
-        (decl_puppet, parameters): (DeclPuppet, &HashMap<String, Parameter>),
+        (decl_puppet, parameters): (DeclPuppet, &Vec<Parameter>),
     ) -> Result<Option<MenuItem>> {
         match decl_puppet.axes {
             DeclPuppetAxes::Radial(param) => {

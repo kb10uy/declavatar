@@ -43,12 +43,12 @@ impl Compile<DeclAvatar> for AvatarCompiler {
     }
 }
 
-impl Validate<(&HashMap<String, Parameter>, &str, &ParameterType)> for AvatarCompiler {
+impl Validate<(&Vec<Parameter>, &str, &ParameterType)> for AvatarCompiler {
     fn validate(
         &mut self,
-        (parameters, name, ty): (&HashMap<String, Parameter>, &str, &ParameterType),
+        (parameters, name, ty): (&Vec<Parameter>, &str, &ParameterType),
     ) -> Result<bool> {
-        let parameter = match parameters.get(name) {
+        let parameter = match parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
             None => {
                 self.error(format!("parameter '{}' not found", name));

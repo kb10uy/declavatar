@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Avatar {
     pub name: String,
-    pub parameters: HashMap<String, Parameter>,
+    pub parameters: Vec<Parameter>,
     pub animation_groups: Vec<AnimationGroup>,
     pub driver_groups: Vec<DriverGroup>,
     pub top_menu_group: MenuGroup,
