@@ -10,15 +10,7 @@ use crate::{
     decl::data::{Drive as DeclDrive, DriveTarget as DeclDriveTarget, Drivers as DeclDrivers},
 };
 
-use std::collections::HashMap;
-
-impl
-    Compile<(
-        Vec<DeclDrivers>,
-        &Vec<Parameter>,
-        &Vec<AnimationGroup>,
-    )> for AvatarCompiler
-{
+impl Compile<(Vec<DeclDrivers>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
     type Output = Vec<DriverGroup>;
 
     fn compile(

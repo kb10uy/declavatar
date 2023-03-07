@@ -12,8 +12,6 @@ use crate::{
     decl::data::Avatar as DeclAvatar,
 };
 
-use std::collections::HashMap;
-
 pub type AvatarCompiler = ErrorStackCompiler<AvatarError>;
 
 impl Compile<DeclAvatar> for AvatarCompiler {

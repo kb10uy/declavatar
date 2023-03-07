@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Vec<AnimationGroup>;
