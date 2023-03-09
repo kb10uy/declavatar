@@ -10,6 +10,11 @@ jobs:
 
     steps:
       - uses: "actions/checkout@v3"
+      - shell: "bash"
+        run: |
+          mkdir '.cargo'
+          echo '[registries.crates-io]' >> .cargo/config.toml
+          echo 'protocol = "sparse"' >> .cargo/config.toml
 
       - uses: "actions-rs/toolchain@v1"
         with:
