@@ -1,53 +1,26 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 
 namespace KusakaFactory.Declavatar
 {
     public class DeclavatarWindow : EditorWindow
     {
-        private DeclavatarPlugin _declavatar = null;
+        private DeclavatarPlugin _declavatarPlugin = null;
         private List<(ErrorKind, string)> _errors = new List<(ErrorKind, string)>();
 
         private TextAsset _sourceTextAsset = null;
-        private GameObject _targetAvatar = null;
+        private VRCAvatarDescriptor _avatarDescriptor = null;
         private string _outputPath = "Assets";
 
         private string _avatarJson = "";
-        private Avatar _avatarDefinition = null;
+        private Avatar _avatar = null;
         private Animation[] _parameterAnimations = new Animation[3];
         private GameObject[] _parameterObjects = new GameObject[3];
 
         private Vector2 _windowErrorsScroll = Vector2.zero;
-
-        private void Compile()
-        {
-            if (_declavatar == null) return;
-            if (_sourceTextAsset == null) return;
-
-            _declavatar.Reset();
-            if (_declavatar.Compile(_sourceTextAsset.text))
-            {
-                _avatarJson = _declavatar.GetAvatarJson();
-                _avatarDefinition = Declavatar.Deserialize(_avatarJson);
-                _errors = _declavatar.FetchErrors();
-                Repaint();
-            }
-            else
-            {
-                _avatarJson = "";
-                _errors = _declavatar.FetchErrors();
-                Repaint();
-            }
-        }
-
-        private void GenerateAssets()
-        {
-            if (_avatarDefinition == null) return;
-
-            Declavatar.GenerateParametersAsset(_avatarDefinition, _outputPath, "test-parameters");
-            Declavatar.GenerateMenuAsset(_avatarDefinition, _outputPath, "test-menu");
-        }
 
         [MenuItem("Window/Declavatar")]
         public static void ShowWindow()
@@ -57,12 +30,12 @@ namespace KusakaFactory.Declavatar
 
         public void OnDestroyed()
         {
-            _declavatar.Dispose();
+            _declavatarPlugin.Dispose();
         }
 
         public void OnGUI()
         {
-            GetDeclavatar();
+            GetDeclavatarPlugin();
 
             DrawHeader();
             DrawSources();
@@ -93,10 +66,7 @@ namespace KusakaFactory.Declavatar
             );
             EditorGUILayout.Separator();
 
-            if (GUILayout.Button("Compile Declaration", GUILayout.Height(40)))
-            {
-                Compile();
-            }
+            if (GUILayout.Button("Compile Declaration", GUILayout.Height(40))) Compile();
             EditorGUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
@@ -108,31 +78,31 @@ namespace KusakaFactory.Declavatar
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Avatar Name:", EditorStyles.boldLabel);
-            GUILayout.Label($"{_avatarDefinition?.Name ?? ""}");
+            GUILayout.Label($"{_avatar?.Name ?? ""}");
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Defined Parameters:", EditorStyles.boldLabel);
-            GUILayout.Label($"{_avatarDefinition?.Parameters.Count ?? 0}");
+            GUILayout.Label($"{_avatar?.Parameters.Count ?? 0}");
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Defined Animation Groups:", EditorStyles.boldLabel);
-            GUILayout.Label($"{_avatarDefinition?.AnimationGroups.Count ?? 0}");
+            GUILayout.Label($"{_avatar?.AnimationGroups.Count ?? 0}");
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Defined Driver Groups:", EditorStyles.boldLabel);
-            GUILayout.Label($"{_avatarDefinition?.DriverGroups.Count ?? 0}");
+            GUILayout.Label($"{_avatar?.DriverGroups.Count ?? 0}");
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Top Menu Items:", EditorStyles.boldLabel);
-            GUILayout.Label($"{_avatarDefinition?.TopMenuGroup.Items.Count ?? 0}");
+            GUILayout.Label($"{_avatar?.TopMenuGroup.Items.Count ?? 0}");
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 
@@ -144,10 +114,10 @@ namespace KusakaFactory.Declavatar
         {
             GUILayout.Label("Generation", Constants.BigBoldLabel);
             EditorGUILayout.BeginVertical(Constants.MarginBox);
-            _targetAvatar = (GameObject)EditorGUILayout.ObjectField(
+            _avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField(
                 "Target Avatar",
-                _targetAvatar,
-                typeof(GameObject),
+                _avatarDescriptor,
+                typeof(VRCAvatarDescriptor),
                 true
             );
             EditorGUILayout.Separator();
@@ -175,12 +145,10 @@ namespace KusakaFactory.Declavatar
             EditorGUILayout.Separator();
 
             _outputPath = EditorGUILayout.TextField("Output Path", _outputPath);
+            if (GUILayout.Button("Set to declaration file directory")) SetAutoOutputPath();
             EditorGUILayout.Separator();
 
-            if (GUILayout.Button("Generate Assets", GUILayout.Height(40)))
-            {
-                GenerateAssets();
-            }
+            if (GUILayout.Button("Generate Assets", GUILayout.Height(40))) GenerateAssets();
             GUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
@@ -237,16 +205,51 @@ namespace KusakaFactory.Declavatar
 
             if (GUILayout.Button("Check Errors"))
             {
-                _declavatar.PushExampleErrors();
-                _errors = _declavatar.FetchErrors();
+                _declavatarPlugin.PushExampleErrors();
+                _errors = _declavatarPlugin.FetchErrors();
             }
             GUILayout.EndVertical();
         }
 
-        private void GetDeclavatar()
+        private void GetDeclavatarPlugin()
         {
-            if (_declavatar != null) return;
-            _declavatar = new DeclavatarPlugin();
+            if (_declavatarPlugin != null) return;
+            _declavatarPlugin = new DeclavatarPlugin();
+        }
+
+        private void Compile()
+        {
+            if (_declavatarPlugin == null || _sourceTextAsset == null) return;
+
+            _declavatarPlugin.Reset();
+            if (_declavatarPlugin.Compile(_sourceTextAsset.text))
+            {
+                _avatarJson = _declavatarPlugin.GetAvatarJson();
+                _avatar = Declavatar.Deserialize(_avatarJson);
+                _errors = _declavatarPlugin.FetchErrors();
+                Repaint();
+            }
+            else
+            {
+                _avatarJson = "";
+                _errors = _declavatarPlugin.FetchErrors();
+                Repaint();
+            }
+        }
+
+        private void SetAutoOutputPath()
+        {
+            if (_sourceTextAsset == null) return;
+            _outputPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_sourceTextAsset));
+            Repaint();
+        }
+
+        private void GenerateAssets()
+        {
+            if (_avatar == null || _avatarDescriptor == null) return;
+
+            var declavatar = new Declavatar(_avatar, _avatarDescriptor, _outputPath);
+            declavatar.GenerateAllAssets();
         }
 
         private static class Constants
