@@ -179,6 +179,7 @@ namespace KusakaFactory.Declavatar
                         break;
                 }
             }
+            GeneratePreventionLayers(fxAnimator);
         }
 
         private void GenerateShapeGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ShapeGroup shapeGroup)
@@ -186,24 +187,123 @@ namespace KusakaFactory.Declavatar
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.IntParameter(parameter);
             var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(shapeGroup.Mesh).GetComponent<SkinnedMeshRenderer>();
+
+            var idleClip = _aac.NewClip($"sg-{name}-0");
+            foreach (var shape in shapeGroup.DefaultTargets) idleClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+            var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
+
+            foreach (var option in shapeGroup.Options)
+            {
+                var clip = _aac.NewClip($"sg-{name}-{option.Order}");
+                foreach (var shape in option.Shapes) clip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8);
+                idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
+                state.Exits().When(layerParameter.IsNotEqualTo((int)option.Order));
+            }
         }
 
         private void GenerateShapeSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ShapeSwitch shapeSwitch)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.BoolParameter(parameter);
+            var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(shapeSwitch.Mesh).GetComponent<SkinnedMeshRenderer>();
+
+            var disabledClip = _aac.NewClip($"ss-{name}-disabled");
+            var enabledClip = _aac.NewClip($"ss-{name}-enabled");
+            foreach (var shape in shapeSwitch.Disabled) disabledClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+            foreach (var shape in shapeSwitch.Enabled) enabledClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+            var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
+            var enabledState = layer.NewState("Enabled").WithAnimation(enabledClip);
+            disabledState.TransitionsTo(enabledState).When(layerParameter.IsTrue());
+            enabledState.TransitionsTo(disabledState).When(layerParameter.IsFalse());
         }
 
         private void GenerateObjectGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ObjectGroup objectGroup)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.IntParameter(parameter);
+
+            var idleClip = _aac.NewClip($"og-{name}-0");
+            foreach (var target in objectGroup.DefaultTargets)
+            {
+                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
+                idleClip.Toggling(targetObject, target.Enabled);
+            }
+            var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
+
+            foreach (var option in objectGroup.Options)
+            {
+                var clip = _aac.NewClip($"og-{name}-{option.Order}");
+                foreach (var target in option.Objects)
+                {
+                    var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
+                    clip.Toggling(targetObject, target.Enabled);
+                }
+                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8);
+                idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
+                state.Exits().When(layerParameter.IsNotEqualTo((int)option.Order));
+            }
         }
 
         private void GenerateObjectSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ObjectSwitch objectSwitch)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.BoolParameter(parameter);
+
+            var disabledClip = _aac.NewClip($"os-{name}-disabled");
+            var enabledClip = _aac.NewClip($"os-{name}-enabled");
+            foreach (var target in objectSwitch.Disabled)
+            {
+                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
+                disabledClip.Toggling(targetObject, target.Enabled);
+            }
+            foreach (var target in objectSwitch.Enabled)
+            {
+                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
+                enabledClip.Toggling(targetObject, target.Enabled);
+            }
+            var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
+            var enabledState = layer.NewState("Enabled").WithAnimation(enabledClip);
+            disabledState.TransitionsTo(enabledState).When(layerParameter.IsTrue());
+            enabledState.TransitionsTo(disabledState).When(layerParameter.IsFalse());
+        }
+
+        private void GeneratePreventionLayers(AnimatorController controller)
+        {
+            var preventions = _avatar.AnimationGroups.Select((ag) =>
+            {
+                switch (ag.Content)
+                {
+                    case AnimationGroup.ShapeGroup shapeGroup: return (shapeGroup.PreventMouth, shapeGroup.PreventEyelids, ag.Parameter, IsInt: true);
+                    case AnimationGroup.ShapeSwitch shapeSwitch: return (shapeSwitch.PreventMouth, shapeSwitch.PreventEyelids, ag.Parameter, IsInt: false);
+                    default: return (false, false, null, false);
+                }
+            });
+            var mouthPreventions = preventions.Where((p) => p.PreventMouth).Select((p) => (p.Parameter, p.IsInt)).ToList();
+            var eyelidsPreventions = preventions.Where((p) => p.PreventEyelids).Select((p) => (p.Parameter, p.IsInt)).ToList();
+
+            var mouthPreventionLayer = _aac.CreateSupportingArbitraryControllerLayer(controller, "MouthPrevention");
+            var mouthTrackingClip = _aac.NewClip($"fx-mouth-tracking");
+            var mouthAnimationClip = _aac.NewClip($"fx-mouth-animation");
+            var mouthTrackingState = mouthPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Mouth);
+            var mouthAnimationState = mouthPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Mouth);
+            var mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).WhenConditions();
+            var mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).WhenConditions();
+            foreach (var (name, isInt) in mouthPreventions)
+            {
+                if (isInt)
+                {
+                    var parameter = mouthPreventionLayer.IntParameter(name);
+                    mouthTrackingConditon.And(parameter.IsEqualTo(0));
+                    mouthAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                }
+                else
+                {
+                    var parameter = mouthPreventionLayer.BoolParameter(name);
+                    mouthTrackingConditon.And(parameter.IsFalse());
+                    mouthAnimationCondition.Or().When(parameter.IsTrue());
+                }
+            }
         }
 
         public static Avatar Deserialize(string json)
