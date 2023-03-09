@@ -1,0 +1,22 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-x86_64-apple-darwin:
+    name: "Build library on x86_64 Mac"
+    runs-on: "macos-latest"
+
+    steps:
+      - uses: "actions/checkout@v3"
+
+      - uses: "actions-rs/toolchain@v1"
+        with:
+          toolchain: "stable"
+      - uses: "actions-rs/cargo@v1"
+          command: "build"
+          args: "--all-features --release"
+
+      - uses: "actions/upload-artifact@v3"
+        with:
+          name: "built library"
+          path: "./target/release/libdeclavatar.dylib"
