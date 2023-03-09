@@ -1,9 +1,11 @@
+name: "Build library on x86_64 Mac"
+
 on:
   workflow_dispatch:
 
 jobs:
   build-x86_64-apple-darwin:
-    name: "Build library on x86_64 Mac"
+    name: "Build"
     runs-on: "macos-latest"
 
     steps:
