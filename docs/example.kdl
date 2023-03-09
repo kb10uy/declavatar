@@ -24,6 +24,10 @@ avatar "avatarname" {
                 shape "ツリ目" value=0.5
             }
 
+            option "ほげ" shape="目_白目"
+            option "ふが" shape="目_瞳小" value=0.5
+            option "ぴよ"
+
             option "にっこり" {
                 shape "目_笑顔"
                 shape "口_笑顔"
@@ -52,6 +56,10 @@ avatar "avatarname" {
                 object "Shoes" value=true
                 object "Jacket" value=true
             }
+
+            option "foo" object="Foo"
+            option "bar" object="Bar" value=false
+            option "baz"
 
             option "裸足" {
                 object "Stockings" value=false

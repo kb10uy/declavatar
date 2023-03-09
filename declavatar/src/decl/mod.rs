@@ -19,7 +19,7 @@ pub fn parse_document(source: &str) -> MietteResult<Document> {
     let kdl: KdlDocument = source.parse()?;
 
     let mut compiler = DeclCompiler::new();
-    let document = compiler.compile(kdl)?;
+    let document = compiler.compile(kdl).map_err(|e| e.with_source(source))?;
 
     Ok(document)
 }

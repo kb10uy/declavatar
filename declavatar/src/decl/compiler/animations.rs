@@ -149,22 +149,38 @@ impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
         &mut self,
         (_, node, order): (ForShapeGroupBlock, &KdlNode, usize),
     ) -> Result<ShapeGroupBlock> {
-        let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
-
-        let block_name = match name {
-            NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
-            NODE_NAME_DEFAULT => None,
-            _ => unreachable!("block type already refined here"),
-        };
+        let (name, entries, children) = deconstruct_node(node, None, None)?;
 
         let mut shapes = vec![];
-        for child in children {
-            let (_, child_entries, _) =
-                deconstruct_node(child, Some(NODE_NAME_SHAPE), Some(false))?;
+        let block_name;
+        if children.is_empty() {
+            if name != NODE_NAME_OPTION {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+            let option_name: String = entries.get_argument(0, "name")?;
+            let shape_name: Option<String> = entries.try_get_property("shape")?;
+            let shape_value = entries.try_get_property("value")?;
 
-            let shape_name = child_entries.get_argument(0, "shape_name")?;
-            let shape_value = child_entries.try_get_property("value")?;
-            shapes.push((shape_name, shape_value));
+            block_name = Some(option_name.clone());
+            shapes.push((shape_name.unwrap_or(option_name), shape_value));
+        } else {
+            block_name = match name {
+                NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
+                NODE_NAME_DEFAULT => None,
+                _ => unreachable!("block type already refined here"),
+            };
+
+            for child in children {
+                let (_, child_entries, _) =
+                    deconstruct_node(child, Some(NODE_NAME_SHAPE), Some(false))?;
+
+                let shape_name = child_entries.get_argument(0, "shape_name")?;
+                let shape_value = child_entries.try_get_property("value")?;
+                shapes.push((shape_name, shape_value));
+            }
         }
 
         Ok(ShapeGroupBlock {
@@ -315,22 +331,38 @@ impl Compile<(ForObjectGroupBlock, &KdlNode, usize)> for DeclCompiler {
         &mut self,
         (_, node, order): (ForObjectGroupBlock, &KdlNode, usize),
     ) -> Result<ObjectGroupBlock> {
-        let (name, entries, children) = deconstruct_node(node, None, Some(true))?;
-
-        let block_name = match name {
-            NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
-            NODE_NAME_DEFAULT => None,
-            _ => unreachable!("block type already refined here"),
-        };
+        let (name, entries, children) = deconstruct_node(node, None, None)?;
 
         let mut objects = vec![];
-        for child in children {
-            let (_, child_entries, _) =
-                deconstruct_node(child, Some(NODE_NAME_OBJECT), Some(false))?;
+        let block_name;
+        if children.is_empty() {
+            if name != NODE_NAME_OPTION {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+            let option_name: String = entries.get_argument(0, "name")?;
+            let object_name: Option<String> = entries.try_get_property("shape")?;
+            let object_value = entries.try_get_property("value")?;
 
-            let object_name = child_entries.get_argument(0, "object_name")?;
-            let object_value = child_entries.try_get_property("value")?;
-            objects.push((object_name, object_value));
+            block_name = Some(option_name.clone());
+            objects.push((object_name.unwrap_or(option_name), object_value));
+        } else {
+            block_name = match name {
+                NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
+                NODE_NAME_DEFAULT => None,
+                _ => unreachable!("block type already refined here"),
+            };
+
+            for child in children {
+                let (_, child_entries, _) =
+                    deconstruct_node(child, Some(NODE_NAME_OBJECT), Some(false))?;
+
+                let object_name = child_entries.get_argument(0, "object_name")?;
+                let object_value = child_entries.try_get_property("value")?;
+                objects.push((object_name, object_value));
+            }
         }
 
         Ok(ObjectGroupBlock {
