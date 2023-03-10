@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
@@ -25,6 +26,48 @@ namespace KusakaFactory.Declavatar
             _avatar = avatar;
             _basePath = basePath;
             _descriptor = descriptor;
+        }
+
+        public void GenerateTemplateTextAsset()
+        {
+            var avatarName = _descriptor.gameObject.name;
+            var blendShapeMeshes = _descriptor.transform
+                .GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                .Where((smr) => smr.sharedMesh.blendShapeCount > 0)
+                .Select((c) => (
+                    Name: c.name,
+                    Path: AnimationUtility.CalculateTransformPath(c.transform, _descriptor.transform),
+                    Component: c
+                ));
+
+            var kdl = new StringBuilder();
+            kdl.Append($"version \"1.0.0\"\n");
+            kdl.Append($"\n");
+            kdl.Append($"avatar \"{avatarName}\" {{\n");
+            kdl.Append($"    parameters {{\n");
+            foreach (var mesh in blendShapeMeshes) kdl.Append($"        int \"{mesh.Name}\"\n");
+            kdl.Append($"    }}\n");
+            kdl.Append($"\n");
+            kdl.Append($"    animations {{\n");
+            foreach (var mesh in blendShapeMeshes)
+            {
+                kdl.Append($"        shape-group \"{mesh.Name}\" {{\n");
+                kdl.Append($"            mesh \"{mesh.Path}\"\n");
+                kdl.Append($"            parameter \"{mesh.Name}\"\n");
+                kdl.Append($"\n");
+                for (var bi = 0; bi < mesh.Component.sharedMesh.blendShapeCount; bi++)
+                {
+                    kdl.Append($"            option \"{mesh.Component.sharedMesh.GetBlendShapeName(bi)}\"\n");
+                }
+                kdl.Append($"        }}\n");
+            }
+            kdl.Append($"    }}\n");
+            kdl.Append($"}}\n");
+
+            var kdlBytes = Encoding.UTF8.GetBytes(kdl.ToString());
+            var projectPath = Path.GetDirectoryName(Application.dataPath);
+            File.WriteAllBytes(Path.Combine(projectPath, _basePath, $"{avatarName}-template.kdl"), kdlBytes);
+            AssetDatabase.Refresh();
         }
 
         public void GenerateAllAssets()

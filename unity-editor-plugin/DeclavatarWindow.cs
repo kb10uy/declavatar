@@ -17,8 +17,8 @@ namespace KusakaFactory.Declavatar
 
         private string _avatarJson = "";
         private Avatar _avatar = null;
-        private Animation[] _parameterAnimations = new Animation[3];
-        private GameObject[] _parameterObjects = new GameObject[3];
+        // private Animation[] _parameterAnimations = new Animation[3];
+        // private GameObject[] _parameterObjects = new GameObject[3];
 
         private Vector2 _windowErrorsScroll = Vector2.zero;
 
@@ -122,7 +122,8 @@ namespace KusakaFactory.Declavatar
             );
             EditorGUILayout.Separator();
 
-            for (int i = 0; i < _parameterObjects.Length; i++)
+            /*
+            for (int i = 0; i < _parameterAnimations.Length; i++)
             {
                 _parameterAnimations[i] = (Animation)EditorGUILayout.ObjectField(
                     $"Animation {i + 1}",
@@ -143,11 +144,13 @@ namespace KusakaFactory.Declavatar
                 );
             }
             EditorGUILayout.Separator();
+            */
 
             _outputPath = EditorGUILayout.TextField("Output Path", _outputPath);
             if (GUILayout.Button("Set to declaration file directory")) SetAutoOutputPath();
             EditorGUILayout.Separator();
 
+            if (GUILayout.Button("Generate Template Declaration")) GenerateTemplate();
             if (GUILayout.Button("Generate Assets", GUILayout.Height(40))) GenerateAssets();
             GUILayout.EndVertical();
             EditorGUILayout.Separator();
@@ -242,6 +245,14 @@ namespace KusakaFactory.Declavatar
             if (_sourceTextAsset == null) return;
             _outputPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_sourceTextAsset));
             Repaint();
+        }
+
+        private void GenerateTemplate()
+        {
+            if (_avatarDescriptor == null) return;
+
+            var declavatar = new Declavatar(_avatar, _avatarDescriptor, _outputPath);
+            declavatar.GenerateTemplateTextAsset();
         }
 
         private void GenerateAssets()
