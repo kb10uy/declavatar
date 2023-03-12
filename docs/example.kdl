@@ -72,25 +72,23 @@ avatar "avatarname" {
             object "Cap" enabled=true disabled=false
         }
 
-        /*
         puppet "ロングもみあげ" {
             parameter "param1"
             mesh "Hair"
 
-            key 0.0 {
+            keyframe 0.0 {
                 shape "もみあげ" value=0.0
                 shape "もみあげ2" value=0.0
             }
-            key 0.5 {
+            keyframe 0.5 {
                 shape "もみあげ" value=1.0
                 shape "もみあげ2" value=0.0
             }
-            key 1.0 {
+            keyframe 1.0 {
                 shape "もみあげ" value=1.0
                 shape "もみあげ2" value=1.0
             }
         }
-        */
     }
 
     drivers {

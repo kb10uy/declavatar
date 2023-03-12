@@ -4,7 +4,8 @@ use crate::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, Animations, ObjectGroup, ObjectGroupBlock, ObjectSwitch,
-            ObjectSwitchPair, ShapeGroup, ShapeGroupBlock, ShapeSwitch, ShapeSwitchPair,
+            ObjectSwitchPair, Puppet, PuppetKeyframe, ShapeGroup, ShapeGroupBlock, ShapeSwitch,
+            ShapeSwitchPair,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
@@ -17,6 +18,7 @@ pub const NODE_NAME_SHAPE_GROUP: &str = "shape-group";
 pub const NODE_NAME_SHAPE_SWITCH: &str = "shape-switch";
 pub const NODE_NAME_OBJECT_GROUP: &str = "object-group";
 pub const NODE_NAME_OBJECT_SWITCH: &str = "object-switch";
+pub const NODE_NAME_PUPPET: &str = "puppet";
 pub const NODE_NAME_MESH: &str = "mesh";
 pub const NODE_NAME_PARAMETER: &str = "parameter";
 pub const NODE_NAME_PREVENT: &str = "prevent";
@@ -24,6 +26,7 @@ pub const NODE_NAME_DEFAULT: &str = "default";
 pub const NODE_NAME_OPTION: &str = "option";
 pub const NODE_NAME_SHAPE: &str = "shape";
 pub const NODE_NAME_OBJECT: &str = "object";
+pub const NODE_NAME_KEYFRAME: &str = "keyframe";
 
 pub(super) struct ForAnimations;
 impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
@@ -48,6 +51,7 @@ impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
                 NODE_NAME_OBJECT_SWITCH => {
                     AnimationElement::ObjectSwitch(self.compile((ForObjectSwitch, child))?)
                 }
+                NODE_NAME_PUPPET => AnimationElement::Puppet(self.compile((ForPuppet, child))?),
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
@@ -424,5 +428,84 @@ impl Compile<(ForObjectSwitch, &KdlNode)> for DeclCompiler {
             parameter,
             objects,
         })
+    }
+}
+
+struct ForPuppet;
+impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
+    type Output = Puppet;
+
+    fn compile(&mut self, (_, node): (ForPuppet, &KdlNode)) -> Result<Puppet> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_PUPPET), Some(true))?;
+
+        let name = entries.get_argument(0, "name")?;
+
+        let mut parameter = None;
+        let mut mesh = None;
+        let mut keyframes = vec![];
+
+        for child in children {
+            let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
+
+            match child_name {
+                NODE_NAME_MESH => {
+                    mesh = Some(child_entries.get_argument(0, "mesh")?);
+                }
+                NODE_NAME_PARAMETER => {
+                    parameter = Some(child_entries.get_argument(0, "parameter")?);
+                }
+                NODE_NAME_KEYFRAME => {
+                    keyframes.push(self.compile((ForPuppetKeyframe, child))?);
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
+            }
+        }
+
+        let mesh = mesh.ok_or_else(|| {
+            DeclError::new(
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
+            )
+        })?;
+        let parameter = parameter.ok_or_else(|| {
+            DeclError::new(
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+            )
+        })?;
+
+        Ok(Puppet {
+            name,
+            mesh,
+            parameter,
+            keyframes,
+        })
+    }
+}
+
+struct ForPuppetKeyframe;
+impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
+    type Output = PuppetKeyframe;
+
+    fn compile(&mut self, (_, node): (ForPuppetKeyframe, &KdlNode)) -> Result<PuppetKeyframe> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_KEYFRAME), Some(true))?;
+        let position = entries.get_argument(0, "keyframe_position")?;
+
+        let mut shapes = vec![];
+        for child in children {
+            let (_, child_entries, _) =
+                deconstruct_node(child, Some(NODE_NAME_SHAPE), Some(false))?;
+
+            let shape_name = child_entries.get_argument(0, "shape_name")?;
+            let shape_value = child_entries.try_get_property("value")?;
+            shapes.push((shape_name, shape_value));
+        }
+
+        Ok(PuppetKeyframe { position, shapes })
     }
 }

@@ -46,6 +46,7 @@ pub enum AnimationElement {
     ShapeSwitch(ShapeSwitch),
     ObjectGroup(ObjectGroup),
     ObjectSwitch(ObjectSwitch),
+    Puppet(Puppet),
 }
 
 #[derive(Debug, Clone)]
@@ -110,6 +111,20 @@ pub struct ObjectSwitchPair {
     pub object: String,
     pub disabled: Option<bool>,
     pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Puppet {
+    pub name: String,
+    pub mesh: String,
+    pub parameter: String,
+    pub keyframes: Vec<PuppetKeyframe>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PuppetKeyframe {
+    pub position: f64,
+    pub shapes: Vec<(String, Option<f64>)>,
 }
 
 #[derive(Debug, Clone)]

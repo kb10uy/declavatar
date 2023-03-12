@@ -78,6 +78,10 @@ pub enum AnimationGroupContent {
         disabled: Vec<ObjectTarget>,
         enabled: Vec<ObjectTarget>,
     },
+    Puppet {
+        mesh: String,
+        keyframes: Vec<PuppetKeyframe>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -104,6 +108,12 @@ pub struct ShapeTarget {
 pub struct ObjectTarget {
     pub name: String,
     pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PuppetKeyframe {
+    pub position: f64,
+    pub shapes: Vec<ShapeTarget>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

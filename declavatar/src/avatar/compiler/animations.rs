@@ -3,14 +3,14 @@ use crate::{
         compiler::AvatarCompiler,
         data::{
             AnimationGroup, AnimationGroupContent, ObjectGroupOption, ObjectTarget, Parameter,
-            ParameterType, ShapeGroupOption, ShapeTarget,
+            ParameterType, PuppetKeyframe, ShapeGroupOption, ShapeTarget,
         },
         error::Result,
     },
     compiler::{Compile, Compiler},
     decl::data::{
         AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
-        ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch,
+        ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch, Puppet as DeclPuppet,
         ShapeGroup as DeclShapeGroup, ShapeSwitch as DeclShapeSwitch,
     },
 };
@@ -45,6 +45,9 @@ impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
                 }
                 DeclAnimationElement::ObjectSwitch(object_switch) => {
                     self.compile((object_switch, parameters))?
+                }
+                DeclAnimationElement::Puppet(puppet) => {
+                    self.compile((puppet, parameters))?
                 }
             }) else {
                 continue;
@@ -274,6 +277,46 @@ impl Compile<(DeclObjectSwitch, &Vec<Parameter>)> for AvatarCompiler {
             name: os.name,
             parameter: os.parameter,
             content: AnimationGroupContent::ObjectSwitch { disabled, enabled },
+        }))
+    }
+}
+
+impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
+
+    fn compile(
+        &mut self,
+        (puppet, parameters): (DeclPuppet, &Vec<Parameter>),
+    ) -> Result<Option<AnimationGroup>> {
+        if !self.ensure((parameters, &puppet.parameter, &ParameterType::FLOAT_TYPE))? {
+            return Ok(None);
+        };
+
+        let mut keyframes = vec![];
+
+        for decl_keyframe in puppet.keyframes {
+            let shapes: Vec<_> = decl_keyframe
+                .shapes
+                .into_iter()
+                .map(|ds| ShapeTarget {
+                    name: ds.0,
+                    value: ds.1.unwrap_or(1.0),
+                })
+                .collect();
+
+            keyframes.push(PuppetKeyframe {
+                position: decl_keyframe.position,
+                shapes,
+            });
+        }
+
+        Ok(Some(AnimationGroup {
+            name: puppet.name,
+            parameter: puppet.parameter,
+            content: AnimationGroupContent::Puppet {
+                mesh: puppet.mesh,
+                keyframes,
+            },
         }))
     }
 }
