@@ -96,8 +96,8 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
             .unwrap_or_default()
             .into_iter()
             .map(|ds| ShapeTarget {
-                name: ds.0,
-                value: ds.1.unwrap_or(0.0),
+                name: ds.shape,
+                value: ds.value.unwrap_or(0.0),
             })
             .collect();
         let mut default_shape_names: HashSet<_> =
@@ -109,8 +109,8 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
                 .shapes
                 .into_iter()
                 .map(|ds| ShapeTarget {
-                    name: ds.0,
-                    value: ds.1.unwrap_or(1.0),
+                    name: ds.shape,
+                    value: ds.value.unwrap_or(1.0),
                 })
                 .collect();
 
@@ -202,8 +202,8 @@ impl Compile<(DeclObjectGroup, &Vec<Parameter>)> for AvatarCompiler {
             .unwrap_or_default()
             .into_iter()
             .map(|ds| ObjectTarget {
-                name: ds.0,
-                enabled: ds.1.unwrap_or(false),
+                name: ds.object,
+                enabled: ds.value.unwrap_or(false),
             })
             .collect();
         let mut default_object_names: HashSet<_> =
@@ -215,8 +215,8 @@ impl Compile<(DeclObjectGroup, &Vec<Parameter>)> for AvatarCompiler {
                 .objects
                 .into_iter()
                 .map(|ds| ObjectTarget {
-                    name: ds.0,
-                    enabled: ds.1.unwrap_or(true),
+                    name: ds.object,
+                    enabled: ds.value.unwrap_or(true),
                 })
                 .collect();
 
@@ -299,8 +299,8 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 .shapes
                 .into_iter()
                 .map(|ds| ShapeTarget {
-                    name: ds.0,
-                    value: ds.1.unwrap_or(1.0),
+                    name: ds.shape,
+                    value: ds.value.unwrap_or(1.0),
                 })
                 .collect();
 

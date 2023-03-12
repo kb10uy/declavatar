@@ -4,8 +4,8 @@ use crate::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, Animations, ObjectGroup, ObjectGroupBlock, ObjectSwitch,
-            ObjectSwitchPair, Puppet, PuppetKeyframe, ShapeGroup, ShapeGroupBlock, ShapeSwitch,
-            ShapeSwitchPair,
+            ObjectSwitchPair, ObjectTarget, Puppet, PuppetKeyframe, ShapeGroup, ShapeGroupBlock,
+            ShapeSwitch, ShapeSwitchPair, ShapeTarget,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
@@ -169,7 +169,11 @@ impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
             let shape_value = entries.try_get_property("value")?;
 
             block_name = Some(option_name.clone());
-            shapes.push((shape_name.unwrap_or(option_name), shape_value));
+            shapes.push(ShapeTarget {
+                shape: shape_name.unwrap_or(option_name),
+                mesh: None,
+                value: shape_value,
+            });
         } else {
             block_name = match name {
                 NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
@@ -183,7 +187,11 @@ impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
 
                 let shape_name = child_entries.get_argument(0, "shape_name")?;
                 let shape_value = child_entries.try_get_property("value")?;
-                shapes.push((shape_name, shape_value));
+                shapes.push(ShapeTarget {
+                    mesh: None,
+                    shape: shape_name,
+                    value: shape_value,
+                });
             }
         }
 
@@ -351,7 +359,10 @@ impl Compile<(ForObjectGroupBlock, &KdlNode, usize)> for DeclCompiler {
             let object_value = entries.try_get_property("value")?;
 
             block_name = Some(option_name.clone());
-            objects.push((object_name.unwrap_or(option_name), object_value));
+            objects.push(ObjectTarget {
+                object: object_name.unwrap_or(option_name),
+                value: object_value,
+            });
         } else {
             block_name = match name {
                 NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
@@ -365,7 +376,10 @@ impl Compile<(ForObjectGroupBlock, &KdlNode, usize)> for DeclCompiler {
 
                 let object_name = child_entries.get_argument(0, "object_name")?;
                 let object_value = child_entries.try_get_property("value")?;
-                objects.push((object_name, object_value));
+                objects.push(ObjectTarget {
+                    object: object_name,
+                    value: object_value,
+                });
             }
         }
 
@@ -503,7 +517,11 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
 
             let shape_name = child_entries.get_argument(0, "shape_name")?;
             let shape_value = child_entries.try_get_property("value")?;
-            shapes.push((shape_name, shape_value));
+            shapes.push(ShapeTarget {
+                mesh: None,
+                shape: shape_name,
+                value: shape_value,
+            });
         }
 
         Ok(PuppetKeyframe { position, shapes })

@@ -64,7 +64,7 @@ pub struct ShapeGroup {
 pub struct ShapeGroupBlock {
     pub name: Option<String>,
     pub declared_order: usize,
-    pub shapes: Vec<(String, Option<f64>)>,
+    pub shapes: Vec<ShapeTarget>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ pub struct ObjectGroup {
 pub struct ObjectGroupBlock {
     pub name: Option<String>,
     pub declared_order: usize,
-    pub objects: Vec<(String, Option<bool>)>,
+    pub objects: Vec<ObjectTarget>,
 }
 
 #[derive(Debug, Clone)]
@@ -124,7 +124,20 @@ pub struct Puppet {
 #[derive(Debug, Clone)]
 pub struct PuppetKeyframe {
     pub position: f64,
-    pub shapes: Vec<(String, Option<f64>)>,
+    pub shapes: Vec<ShapeTarget>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ShapeTarget {
+    pub shape: String,
+    pub mesh: Option<String>,
+    pub value: Option<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ObjectTarget {
+    pub object: String,
+    pub value: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
