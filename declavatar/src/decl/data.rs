@@ -52,7 +52,7 @@ pub enum AnimationElement {
 #[derive(Debug, Clone)]
 pub struct ShapeGroup {
     pub name: String,
-    pub mesh: String,
+    pub mesh: Option<String>,
     pub parameter: String,
     pub prevent_mouth: Option<bool>,
     pub prevent_eyelids: Option<bool>,
@@ -70,7 +70,7 @@ pub struct ShapeGroupBlock {
 #[derive(Debug, Clone)]
 pub struct ShapeSwitch {
     pub name: String,
-    pub mesh: String,
+    pub mesh: Option<String>,
     pub parameter: String,
     pub prevent_mouth: Option<bool>,
     pub prevent_eyelids: Option<bool>,
@@ -79,6 +79,7 @@ pub struct ShapeSwitch {
 
 #[derive(Debug, Clone)]
 pub struct ShapeSwitchPair {
+    pub mesh: Option<String>,
     pub shape: String,
     pub enabled: Option<f64>,
     pub disabled: Option<f64>,
@@ -116,7 +117,7 @@ pub struct ObjectSwitchPair {
 #[derive(Debug, Clone)]
 pub struct Puppet {
     pub name: String,
-    pub mesh: String,
+    pub mesh: Option<String>,
     pub parameter: String,
     pub keyframes: Vec<PuppetKeyframe>,
 }

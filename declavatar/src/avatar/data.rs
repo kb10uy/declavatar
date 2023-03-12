@@ -57,14 +57,12 @@ pub struct AnimationGroup {
 #[serde(tag = "type")]
 pub enum AnimationGroupContent {
     ShapeGroup {
-        mesh: String,
         prevent_mouth: bool,
         prevent_eyelids: bool,
         default_targets: Vec<ShapeTarget>,
         options: Vec<ShapeGroupOption>,
     },
     ShapeSwitch {
-        mesh: String,
         prevent_mouth: bool,
         prevent_eyelids: bool,
         disabled: Vec<ShapeTarget>,
@@ -79,7 +77,6 @@ pub enum AnimationGroupContent {
         enabled: Vec<ObjectTarget>,
     },
     Puppet {
-        mesh: String,
         keyframes: Vec<PuppetKeyframe>,
     },
 }
@@ -100,6 +97,7 @@ pub struct ObjectGroupOption {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ShapeTarget {
+    pub mesh: String,
     pub name: String,
     pub value: f64,
 }

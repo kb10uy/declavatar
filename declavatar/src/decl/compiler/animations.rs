@@ -89,7 +89,7 @@ impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
 
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(child_entries.get_argument(0, "mesh")?);
+                    mesh = child_entries.try_get_argument(0)?;
                 }
                 NODE_NAME_PARAMETER => {
                     parameter = Some(child_entries.get_argument(0, "parameter")?);
@@ -120,12 +120,6 @@ impl Compile<(ForShapeGroup, &KdlNode)> for DeclCompiler {
             }
         }
 
-        let mesh = mesh.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
-            )
-        })?;
         let parameter = parameter.ok_or_else(|| {
             DeclError::new(
                 node.name().span(),
@@ -165,13 +159,14 @@ impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
                 ));
             }
             let option_name: String = entries.get_argument(0, "name")?;
+            let mesh_override = entries.try_get_property("mesh")?;
             let shape_name: Option<String> = entries.try_get_property("shape")?;
             let shape_value = entries.try_get_property("value")?;
 
             block_name = Some(option_name.clone());
             shapes.push(ShapeTarget {
                 shape: shape_name.unwrap_or(option_name),
-                mesh: None,
+                mesh: mesh_override,
                 value: shape_value,
             });
         } else {
@@ -187,8 +182,9 @@ impl Compile<(ForShapeGroupBlock, &KdlNode, usize)> for DeclCompiler {
 
                 let shape_name = child_entries.get_argument(0, "shape_name")?;
                 let shape_value = child_entries.try_get_property("value")?;
+                let mesh_override = entries.try_get_property("mesh")?;
                 shapes.push(ShapeTarget {
-                    mesh: None,
+                    mesh: mesh_override,
                     shape: shape_name,
                     value: shape_value,
                 });
@@ -224,7 +220,7 @@ impl Compile<(ForShapeSwitch, &KdlNode)> for DeclCompiler {
 
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(child_entries.get_argument(0, "mesh")?);
+                    mesh = child_entries.try_get_argument(0)?;
                 }
                 NODE_NAME_PARAMETER => {
                     parameter = Some(child_entries.get_argument(0, "parameter")?);
@@ -235,9 +231,11 @@ impl Compile<(ForShapeSwitch, &KdlNode)> for DeclCompiler {
                 }
                 NODE_NAME_SHAPE => {
                     let shape = child_entries.get_argument(0, "name")?;
+                    let mesh_override = entries.try_get_property("mesh")?;
                     let enabled = child_entries.try_get_property("enabled")?;
                     let disabled = child_entries.try_get_property("disabled")?;
                     shapes.push(ShapeSwitchPair {
+                        mesh: mesh_override,
                         shape,
                         disabled,
                         enabled,
@@ -252,12 +250,6 @@ impl Compile<(ForShapeSwitch, &KdlNode)> for DeclCompiler {
             }
         }
 
-        let mesh = mesh.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
-            )
-        })?;
         let parameter = parameter.ok_or_else(|| {
             DeclError::new(
                 node.name().span(),
@@ -463,7 +455,7 @@ impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
 
             match child_name {
                 NODE_NAME_MESH => {
-                    mesh = Some(child_entries.get_argument(0, "mesh")?);
+                    mesh = child_entries.try_get_argument(0)?;
                 }
                 NODE_NAME_PARAMETER => {
                     parameter = Some(child_entries.get_argument(0, "parameter")?);
@@ -480,12 +472,6 @@ impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
             }
         }
 
-        let mesh = mesh.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_MESH),
-            )
-        })?;
         let parameter = parameter.ok_or_else(|| {
             DeclError::new(
                 node.name().span(),
@@ -517,8 +503,9 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
 
             let shape_name = child_entries.get_argument(0, "shape_name")?;
             let shape_value = child_entries.try_get_property("value")?;
+            let mesh_override = child_entries.try_get_property("mesh")?;
             shapes.push(ShapeTarget {
-                mesh: None,
+                mesh: mesh_override,
                 shape: shape_name,
                 value: shape_value,
             });
