@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace KusakaFactory.Declavatar
@@ -88,7 +89,7 @@ namespace KusakaFactory.Declavatar
 
         public sealed class ShapeTarget
         {
-            public string Shape { get; set; }
+            public string Name { get; set; }
             public float Value { get; set; }
         }
 
@@ -96,6 +97,18 @@ namespace KusakaFactory.Declavatar
         {
             public string Object { get; set; }
             public bool Enabled { get; set; }
+        }
+
+        public sealed class Puppet
+        {
+            public string Mesh { get; set; }
+            public List<PuppetKeyframe> Keyframes { get; set; }
+        }
+
+        public sealed class PuppetKeyframe
+        {
+            public float Position { get; set; }
+            public List<ShapeTarget> Shapes { get; set; }
         }
     }
 
@@ -265,6 +278,9 @@ namespace KusakaFactory.Declavatar
                         break;
                     case "ObjectSwitch":
                         content = contentObject.ToObject<AnimationGroup.ObjectSwitch>(serializer);
+                        break;
+                    case "Puppet":
+                        content = contentObject.ToObject<AnimationGroup.Puppet>(serializer);
                         break;
                     default:
                         throw new JsonException("invalid group type");

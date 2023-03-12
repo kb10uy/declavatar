@@ -220,6 +220,9 @@ namespace KusakaFactory.Declavatar
                     case AnimationGroup.ObjectSwitch objectSwitch:
                         GenerateObjectSwitchLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, objectSwitch);
                         break;
+                    case AnimationGroup.Puppet puppet:
+                        GeneratePuppetLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, puppet);
+                        break;
                 }
             }
             GeneratePreventionLayers(fxAnimator);
@@ -232,14 +235,14 @@ namespace KusakaFactory.Declavatar
             var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(shapeGroup.Mesh).GetComponent<SkinnedMeshRenderer>();
 
             var idleClip = _aac.NewClip($"sg-{name}-0");
-            foreach (var shape in shapeGroup.DefaultTargets) idleClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+            foreach (var shape in shapeGroup.DefaultTargets) idleClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
             var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
 
             foreach (var option in shapeGroup.Options)
             {
                 var clip = _aac.NewClip($"sg-{name}-{option.Order}");
-                foreach (var shape in option.Shapes) clip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
-                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8);
+                foreach (var shape in option.Shapes) clip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
+                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8).WithAnimation(clip);
                 idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
                 state.Exits().When(layerParameter.IsNotEqualTo((int)option.Order));
             }
@@ -253,8 +256,8 @@ namespace KusakaFactory.Declavatar
 
             var disabledClip = _aac.NewClip($"ss-{name}-disabled");
             var enabledClip = _aac.NewClip($"ss-{name}-enabled");
-            foreach (var shape in shapeSwitch.Disabled) disabledClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
-            foreach (var shape in shapeSwitch.Enabled) enabledClip.BlendShape(renderer, shape.Shape, shape.Value * 100.0f);
+            foreach (var shape in shapeSwitch.Disabled) disabledClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
+            foreach (var shape in shapeSwitch.Enabled) enabledClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
             var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
             var enabledState = layer.NewState("Enabled").WithAnimation(enabledClip);
             disabledState.TransitionsTo(enabledState).When(layerParameter.IsTrue());
@@ -282,7 +285,7 @@ namespace KusakaFactory.Declavatar
                     var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
                     clip.Toggling(targetObject, target.Enabled);
                 }
-                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8);
+                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8).WithAnimation(clip);
                 idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
                 state.Exits().When(layerParameter.IsNotEqualTo((int)option.Order));
             }
@@ -311,6 +314,36 @@ namespace KusakaFactory.Declavatar
             enabledState.TransitionsTo(disabledState).When(layerParameter.IsFalse());
         }
 
+        private void GeneratePuppetLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Puppet puppet)
+        {
+            var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
+            var layerParameter = layer.FloatParameter(parameter);
+            var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(puppet.Mesh).GetComponent<SkinnedMeshRenderer>();
+
+            var groupedByShape = puppet.Keyframes.SelectMany(
+                (kf) => kf.Shapes.Select((s) => (
+                    Shape: $"blendShape.{s.Name}",
+                    Time: (int)(kf.Position * 100.0f),
+                    Value: s.Value * 100.0f
+                ))
+            ).GroupBy((p) => p.Shape);
+
+            var clip = _aac.NewClip($"p-{name}").NonLooping();
+            clip.Animating((e) =>
+            {
+                foreach (var shapeGroup in groupedByShape)
+                {
+                    e.Animates(renderer, shapeGroup.Key).WithFrameCountUnit((kfs) =>
+                    {
+                        foreach (var point in shapeGroup) kfs.Linear(point.Time, point.Value);
+                    });
+                }
+            });
+
+            var state = layer.NewState(name).WithAnimation(clip);
+            state.MotionTime(layerParameter);
+        }
+
         private void GeneratePreventionLayers(AnimatorController controller)
         {
             var preventions = _avatar.AnimationGroups.Select((ag) =>
@@ -322,17 +355,28 @@ namespace KusakaFactory.Declavatar
                     default: return (false, false, null, false);
                 }
             });
-            var mouthPreventions = preventions.Where((p) => p.PreventMouth).Select((p) => (p.Parameter, p.IsInt)).ToList();
-            var eyelidsPreventions = preventions.Where((p) => p.PreventEyelids).Select((p) => (p.Parameter, p.IsInt)).ToList();
 
+            var mouthPreventions = preventions.Where((p) => p.PreventMouth).Select((p) => (p.Parameter, p.IsInt)).ToList();
             var mouthPreventionLayer = _aac.CreateSupportingArbitraryControllerLayer(controller, "MouthPrevention");
-            var mouthTrackingClip = _aac.NewClip($"fx-mouth-tracking");
-            var mouthAnimationClip = _aac.NewClip($"fx-mouth-animation");
             var mouthTrackingState = mouthPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Mouth);
             var mouthAnimationState = mouthPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Mouth);
-            var mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).WhenConditions();
-            var mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).WhenConditions();
-            foreach (var (name, isInt) in mouthPreventions)
+
+            var (firstName, firstIsInt) = mouthPreventions[0];
+            AacFlTransitionContinuation mouthTrackingConditon;
+            AacFlTransitionContinuation mouthAnimationCondition;
+            if (firstIsInt)
+            {
+                var firstParameter = mouthPreventionLayer.IntParameter(firstName);
+                mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsEqualTo(0));
+                mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsNotEqualTo(0));
+            }
+            else
+            {
+                var firstParameter = mouthPreventionLayer.BoolParameter(firstName);
+                mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsFalse());
+                mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsTrue());
+            }
+            foreach (var (name, isInt) in mouthPreventions.Skip(1))
             {
                 if (isInt)
                 {
@@ -345,6 +389,42 @@ namespace KusakaFactory.Declavatar
                     var parameter = mouthPreventionLayer.BoolParameter(name);
                     mouthTrackingConditon.And(parameter.IsFalse());
                     mouthAnimationCondition.Or().When(parameter.IsTrue());
+                }
+            }
+
+            var eyelidsPreventions = preventions.Where((p) => p.PreventEyelids).Select((p) => (p.Parameter, p.IsInt)).ToList();
+            var eyelidsPreventionLayer = _aac.CreateSupportingArbitraryControllerLayer(controller, "EyelidsPrevention");
+            var eyelidsTrackingState = eyelidsPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Eyes);
+            var eyelidsAnimationState = eyelidsPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Eyes);
+
+            (firstName, firstIsInt) = eyelidsPreventions[0];
+            AacFlTransitionContinuation eyelidsTrackingConditon;
+            AacFlTransitionContinuation eyelidsAnimationCondition;
+            if (firstIsInt)
+            {
+                var firstParameter = eyelidsPreventionLayer.IntParameter(firstName);
+                eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsEqualTo(0));
+                eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsNotEqualTo(0));
+            }
+            else
+            {
+                var firstParameter = eyelidsPreventionLayer.BoolParameter(firstName);
+                eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsFalse());
+                eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsTrue());
+            }
+            foreach (var (name, isInt) in eyelidsPreventions.Skip(1))
+            {
+                if (isInt)
+                {
+                    var parameter = eyelidsPreventionLayer.IntParameter(name);
+                    eyelidsTrackingConditon.And(parameter.IsEqualTo(0));
+                    eyelidsAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                }
+                else
+                {
+                    var parameter = eyelidsPreventionLayer.BoolParameter(name);
+                    eyelidsTrackingConditon.And(parameter.IsFalse());
+                    eyelidsAnimationCondition.Or().When(parameter.IsTrue());
                 }
             }
         }
