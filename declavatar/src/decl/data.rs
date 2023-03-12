@@ -171,7 +171,7 @@ pub struct Menu {
 pub enum MenuElement {
     SubMenu(SubMenu),
     Boolean(BooleanControl),
-    Puppet(Puppet),
+    Puppet(PuppetControl),
 }
 
 #[derive(Debug, Clone)]
@@ -204,7 +204,7 @@ pub enum BooleanControlTarget {
 }
 
 #[derive(Debug, Clone)]
-pub struct Puppet {
+pub struct PuppetControl {
     pub name: String,
     pub axes: PuppetAxes,
 }

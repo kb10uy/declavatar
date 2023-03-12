@@ -10,7 +10,7 @@ use crate::{
     compiler::{Compile, Compiler},
     decl::data::{
         BooleanControlTarget as DeclBooleanControlTarget, Menu as DeclMenu,
-        MenuElement as DeclMenuElement, Puppet as DeclPuppet, PuppetAxes as DeclPuppetAxes,
+        MenuElement as DeclMenuElement, PuppetAxes as DeclPuppetAxes, PuppetControl as DeclPuppet,
     },
 };
 

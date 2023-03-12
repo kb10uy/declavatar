@@ -3,7 +3,8 @@ use crate::{
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
-            BooleanControl, BooleanControlTarget, Menu, MenuElement, Puppet, PuppetAxes, SubMenu,
+            BooleanControl, BooleanControlTarget, Menu, MenuElement, PuppetAxes, PuppetControl,
+            SubMenu,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
@@ -161,9 +162,9 @@ impl Compile<(ForBooleanControl, &KdlNode)> for DeclCompiler {
 
 struct ForPuppet;
 impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
-    type Output = Puppet;
+    type Output = PuppetControl;
 
-    fn compile(&mut self, (_, node): (ForPuppet, &KdlNode)) -> Result<Puppet> {
+    fn compile(&mut self, (_, node): (ForPuppet, &KdlNode)) -> Result<PuppetControl> {
         let (name, entries, children) = deconstruct_node(node, None, None)?;
 
         let puppet_name = entries.get_argument(0, "name")?;
@@ -216,7 +217,7 @@ impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
             _ => unreachable!("axis type already refined"),
         };
 
-        Ok(Puppet {
+        Ok(PuppetControl {
             name: puppet_name,
             axes,
         })
