@@ -59,7 +59,7 @@ pub enum AnimationGroupContent {
     ShapeGroup {
         prevent_mouth: bool,
         prevent_eyelids: bool,
-        default_targets: Vec<ShapeTarget>,
+        default_shapes: Vec<ShapeTarget>,
         options: Vec<ShapeGroupOption>,
     },
     ShapeSwitch {
@@ -69,7 +69,7 @@ pub enum AnimationGroupContent {
         enabled: Vec<ShapeTarget>,
     },
     ObjectGroup {
-        default_targets: Vec<ObjectTarget>,
+        default_objects: Vec<ObjectTarget>,
         options: Vec<ObjectGroupOption>,
     },
     ObjectSwitch {

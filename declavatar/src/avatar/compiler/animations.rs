@@ -92,11 +92,11 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
 
         let mut options = vec![];
         let default_mesh = sg.mesh.as_deref();
-        let mut default_targets: Vec<_> = match sg.default_block {
+        let mut default_shapes: Vec<_> = match sg.default_block {
             Some(db) => self.compile((db, default_mesh, 0.0))?.shapes,
             None => vec![],
         };
-        let mut default_shapes: HashSet<_> = default_targets
+        let mut default_shape_indices: HashSet<_> = default_shapes
             .iter()
             .map(|s| (s.mesh.clone(), s.name.clone()))
             .collect();
@@ -106,15 +106,15 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
 
             for target in &option.shapes {
                 let shape_index = (target.mesh.clone(), target.name.clone());
-                if default_shapes.contains(&shape_index) {
+                if default_shape_indices.contains(&shape_index) {
                     continue;
                 }
-                default_targets.push(ShapeTarget {
+                default_shapes.push(ShapeTarget {
                     mesh: target.mesh.clone(),
                     name: target.name.clone(),
                     value: 0.0,
                 });
-                default_shapes.insert(shape_index);
+                default_shape_indices.insert(shape_index);
             }
 
             options.push(option);
@@ -126,7 +126,7 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
             content: AnimationGroupContent::ShapeGroup {
                 prevent_mouth: sg.prevent_mouth.unwrap_or(false),
                 prevent_eyelids: sg.prevent_eyelids.unwrap_or(false),
-                default_targets,
+                default_shapes,
                 options,
             },
         }))
@@ -271,7 +271,7 @@ impl Compile<(DeclObjectGroup, &Vec<Parameter>)> for AvatarCompiler {
             name: og.name,
             parameter: og.parameter,
             content: AnimationGroupContent::ObjectGroup {
-                default_targets: default_objects,
+                default_objects,
                 options,
             },
         }))
