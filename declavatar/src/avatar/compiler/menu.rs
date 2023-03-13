@@ -166,14 +166,7 @@ impl
                         return Ok(None);
                     };
                     let option_index = match &group.content {
-                        AnimationGroupContent::ShapeGroup { options, .. } => {
-                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
-                                self.error(format!("option '{option_name}' not found in '{group_name}'"));
-                                return Ok(None);
-                            };
-                            option.order
-                        }
-                        AnimationGroupContent::ObjectGroup { options, .. } => {
+                        AnimationGroupContent::Group { options, .. } => {
                             let Some(option) = options.iter().find(|o| o.name == option_name) else {
                                 self.error(format!("option '{option_name}' not found in '{group_name}'"));
                                 return Ok(None);

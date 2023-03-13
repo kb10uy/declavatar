@@ -56,43 +56,38 @@ pub struct AnimationGroup {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum AnimationGroupContent {
-    ShapeGroup {
-        prevent_mouth: bool,
-        prevent_eyelids: bool,
-        default_shapes: Vec<ShapeTarget>,
-        options: Vec<ShapeGroupOption>,
+    Group {
+        preventions: Preventions,
+        default_targets: Vec<Target>,
+        options: Vec<GroupOption>,
     },
-    ShapeSwitch {
-        prevent_mouth: bool,
-        prevent_eyelids: bool,
-        disabled: Vec<ShapeTarget>,
-        enabled: Vec<ShapeTarget>,
-    },
-    ObjectGroup {
-        default_objects: Vec<ObjectTarget>,
-        options: Vec<ObjectGroupOption>,
-    },
-    ObjectSwitch {
-        disabled: Vec<ObjectTarget>,
-        enabled: Vec<ObjectTarget>,
+    Switch {
+        preventions: Preventions,
+        disabled: Vec<Target>,
+        enabled: Vec<Target>,
     },
     Puppet {
         keyframes: Vec<PuppetKeyframe>,
     },
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ShapeGroupOption {
-    pub name: String,
-    pub order: usize,
-    pub shapes: Vec<ShapeTarget>,
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Preventions {
+    pub mouth: bool,
+    pub eyelids: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ObjectGroupOption {
+pub struct GroupOption {
     pub name: String,
     pub order: usize,
-    pub objects: Vec<ObjectTarget>,
+    pub targets: Vec<Target>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum Target {
+    Shape(ShapeTarget),
+    Object(ObjectTarget),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -111,7 +106,7 @@ pub struct ObjectTarget {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PuppetKeyframe {
     pub position: f64,
-    pub shapes: Vec<ShapeTarget>,
+    pub targets: Vec<Target>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -194,4 +189,27 @@ pub struct BiAxis {
 pub struct UniAxis {
     pub parameter: String,
     pub label: String,
+}
+
+impl Target {
+    pub fn index(&self) -> String {
+        match self {
+            Target::Shape(ShapeTarget { mesh, name, .. }) => format!("s-{mesh}-{name}"),
+            Target::Object(ObjectTarget { name, .. }) => format!("o-{name}"),
+        }
+    }
+
+    pub fn clone_as_disabled(&self) -> Target {
+        match self {
+            Target::Shape(ShapeTarget { mesh, name, .. }) => Target::Shape(ShapeTarget {
+                mesh: mesh.clone(),
+                name: name.clone(),
+                value: 0.0,
+            }),
+            Target::Object(ObjectTarget { name, .. }) => Target::Object(ObjectTarget {
+                name: name.clone(),
+                enabled: false,
+            }),
+        }
+    }
 }

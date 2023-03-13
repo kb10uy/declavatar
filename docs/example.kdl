@@ -15,7 +15,7 @@ avatar "avatarname" {
     }
 
     animations {
-        shape-group "表情" {
+        group "表情" {
             mesh "Face"
             parameter "Expression"
             prevent mouth=true eyelids=true
@@ -41,14 +41,14 @@ avatar "avatarname" {
             }
         }
 
-        shape-switch "胸" {
+        switch "胸" {
             mesh "Face"
             parameter "Breast"
             shape "胸大" enabled=1.0 disabled=0.0
             shape "胸小" enabled=0.0 disabled=1.0
         }
 
-        object-group "服装" {
+        group "服装" {
             parameter "Clothes"
 
             default {
@@ -67,7 +67,7 @@ avatar "avatarname" {
             }
         }
 
-        object-switch "帽子" {
+        switch "帽子" {
             parameter "Cap"
             object "Cap" enabled=true disabled=false
         }

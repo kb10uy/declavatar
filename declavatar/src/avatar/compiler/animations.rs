@@ -2,17 +2,17 @@ use crate::{
     avatar::{
         compiler::AvatarCompiler,
         data::{
-            AnimationGroup, AnimationGroupContent, ObjectGroupOption, ObjectTarget, Parameter,
-            ParameterType, PuppetKeyframe, ShapeGroupOption, ShapeTarget,
+            AnimationGroup, AnimationGroupContent, GroupOption, ObjectTarget, Parameter,
+            ParameterType, Preventions, PuppetKeyframe, ShapeTarget, Target,
         },
         error::Result,
     },
     compiler::{Compile, Compiler},
     decl::data::{
-        AnimationElement as DeclAnimationElement, Animations as DeclAnimations,
-        ObjectGroup as DeclObjectGroup, ObjectSwitch as DeclObjectSwitch, Puppet as DeclPuppet,
-        ShapeGroup as DeclShapeGroup, ShapeGroupBlock as DeclShapeGroupBlock,
-        ShapeSwitch as DeclShapeSwitch,
+        AnimationElement as DeclAnimationElement, AnimationGroup as DeclAnimationGroup,
+        AnimationSwitch as DeclAnimationSwitch, Animations as DeclAnimations,
+        DriveTarget as DeclDriveTarget, GroupBlock as DeclGroupBlock, Puppet as DeclPuppet,
+        Target as DeclTarget,
     },
 };
 
@@ -35,17 +35,11 @@ impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
             .flatten();
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
-                DeclAnimationElement::ShapeGroup(shape_group) => {
-                    self.compile((shape_group, parameters))?
+                DeclAnimationElement::Group(group) => {
+                    self.compile((group, parameters))?
                 }
-                DeclAnimationElement::ShapeSwitch(shape_switch) => {
-                    self.compile((shape_switch, parameters))?
-                }
-                DeclAnimationElement::ObjectGroup(object_group) => {
-                    self.compile((object_group, parameters))?
-                }
-                DeclAnimationElement::ObjectSwitch(object_switch) => {
-                    self.compile((object_switch, parameters))?
+                DeclAnimationElement::Switch(switch) => {
+                    self.compile((switch, parameters))?
                 }
                 DeclAnimationElement::Puppet(puppet) => {
                     self.compile((puppet, parameters))?
@@ -79,41 +73,40 @@ impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
     }
 }
 
-impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
+impl Compile<(DeclAnimationGroup, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (sg, parameters): (DeclShapeGroup, &Vec<Parameter>),
+        (group, parameters): (DeclAnimationGroup, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &sg.parameter, &ParameterType::INT_TYPE))? {
+        if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
             return Ok(None);
         };
 
+        let default_mesh = group.default_mesh.as_deref();
         let mut options = vec![];
-        let default_mesh = sg.mesh.as_deref();
-        let mut default_shapes: Vec<_> = match sg.default_block {
-            Some(db) => self.compile((db, default_mesh, 0.0))?.shapes,
+        let mut default_targets: Vec<_> = match group.default_block {
+            Some(db) => self
+                .compile((db, default_mesh, false))?
+                .map(|b| b.targets)
+                .unwrap_or_default(),
             None => vec![],
         };
-        let mut default_shape_indices: HashSet<_> = default_shapes
-            .iter()
-            .map(|s| (s.mesh.clone(), s.name.clone()))
-            .collect();
+        let mut default_shape_indices: HashSet<_> =
+            default_targets.iter().map(|t| t.index()).collect();
 
-        for decl_option in sg.options {
-            let option = self.compile((decl_option, default_mesh, 1.0))?;
+        for decl_option in group.options {
+            let Some(option) = self.compile((decl_option, default_mesh, true))? else {
+                continue;
+            };
 
-            for target in &option.shapes {
-                let shape_index = (target.mesh.clone(), target.name.clone());
+            for target in &option.targets {
+                let shape_index = target.index();
                 if default_shape_indices.contains(&shape_index) {
                     continue;
                 }
-                default_shapes.push(ShapeTarget {
-                    mesh: target.mesh.clone(),
-                    name: target.name.clone(),
-                    value: 0.0,
-                });
+                default_targets.push(target.clone_as_disabled());
                 default_shape_indices.insert(shape_index);
             }
 
@@ -121,191 +114,278 @@ impl Compile<(DeclShapeGroup, &Vec<Parameter>)> for AvatarCompiler {
         }
 
         Ok(Some(AnimationGroup {
-            name: sg.name,
-            parameter: sg.parameter,
-            content: AnimationGroupContent::ShapeGroup {
-                prevent_mouth: sg.prevent_mouth.unwrap_or(false),
-                prevent_eyelids: sg.prevent_eyelids.unwrap_or(false),
-                default_shapes,
+            name: group.name,
+            parameter: group.parameter,
+            content: AnimationGroupContent::Group {
+                preventions: Preventions {
+                    mouth: group.preventions.mouth.unwrap_or(false),
+                    eyelids: group.preventions.eyelids.unwrap_or(false),
+                },
+                default_targets,
                 options,
             },
         }))
     }
 }
 
-impl Compile<(DeclShapeGroupBlock, Option<&str>, f64)> for AvatarCompiler {
-    type Output = ShapeGroupOption;
+impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
+    type Output = Option<GroupOption>;
 
     fn compile(
         &mut self,
-        (sgb, default_mesh, default_value): (DeclShapeGroupBlock, Option<&str>, f64),
-    ) -> Result<ShapeGroupOption> {
-        let name = sgb.name.unwrap_or_default();
-        let mut shapes = vec![];
+        (group_block, default_mesh, default_to_max): (DeclGroupBlock, Option<&str>, bool),
+    ) -> Result<Option<GroupOption>> {
+        let name = group_block.name.unwrap_or_default();
+        let default_shape_value = if default_to_max { 1.0 } else { 0.0 };
 
-        for target in sgb.shapes {
-            let Some(mesh_name) = target.mesh.as_deref().or(default_mesh) else {
-                self.error(format!(
-                    "shape '{}' in group '{}' has no specified mesh",
-                    target.shape, name,
-                ));
-                continue;
+        let targets = if group_block.indeterminate {
+            let block_targets = group_block.targets;
+            let target = block_targets.into_iter().next();
+            let Some(DeclTarget::Indeterminate {
+                label,
+                object,
+                mesh,
+                shape,
+                value,
+            }) = target else {
+                unreachable!("must be indeterminate");
             };
-            shapes.push(ShapeTarget {
-                mesh: mesh_name.to_string(),
-                name: target.shape,
-                value: target.value.unwrap_or(default_value),
-            });
-        }
 
-        Ok(ShapeGroupOption {
+            match (mesh, shape, object, value) {
+                // shape 1
+                (
+                    Some(mesh),
+                    Some(shape),
+                    None,
+                    Some(DeclDriveTarget::FloatParameter { value, .. }),
+                ) => {
+                    vec![Target::Shape(ShapeTarget {
+                        mesh,
+                        name: shape,
+                        value,
+                    })]
+                }
+                (Some(mesh), Some(shape), None, None) => {
+                    vec![Target::Shape(ShapeTarget {
+                        mesh,
+                        name: shape,
+                        value: default_shape_value,
+                    })]
+                }
+                // shape 2
+                (Some(mesh), None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
+                    vec![Target::Shape(ShapeTarget {
+                        mesh,
+                        name: label,
+                        value,
+                    })]
+                }
+                (Some(mesh), None, None, None) => {
+                    vec![Target::Shape(ShapeTarget {
+                        mesh,
+                        name: label,
+                        value: default_shape_value,
+                    })]
+                }
+                // shape 3
+                (None, Some(shape), None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
+                    let Some(mesh_name) = default_mesh else {
+                        self.error(format!(
+                            "shape '{}' in group '{}' has no specified mesh",
+                            shape, name,
+                        ));
+                        return Ok(None);
+                    };
+                    vec![Target::Shape(ShapeTarget {
+                        mesh: mesh_name.to_string(),
+                        name: shape,
+                        value,
+                    })]
+                }
+                (None, Some(shape), None, None) => {
+                    let Some(mesh_name) = default_mesh else {
+                        self.error(format!(
+                            "shape '{}' in group '{}' has no specified mesh",
+                            shape, name,
+                        ));
+                        return Ok(None);
+                    };
+                    vec![Target::Shape(ShapeTarget {
+                        mesh: mesh_name.to_string(),
+                        name: shape,
+                        value: default_shape_value,
+                    })]
+                }
+                // object
+                (None, None, Some(object), Some(DeclDriveTarget::BoolParameter { value, .. })) => {
+                    vec![Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: value,
+                    })]
+                }
+                (None, None, Some(object), None) => {
+                    vec![Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: default_to_max,
+                    })]
+                }
+                // dependent
+                (None, None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
+                    let Some(mesh_name) = default_mesh else {
+                        self.error(format!(
+                            "shape '{}' in group '{}' has no specified mesh",
+                            label, name,
+                        ));
+                        return Ok(None);
+                    };
+                    vec![Target::Shape(ShapeTarget {
+                        mesh: mesh_name.to_string(),
+                        name: label,
+                        value,
+                    })]
+                }
+                (None, None, None, Some(DeclDriveTarget::BoolParameter { value, .. })) => {
+                    vec![Target::Object(ObjectTarget {
+                        name: label,
+                        enabled: value,
+                    })]
+                }
+                (None, None, None, None) => {
+                    if let Some(mesh_name) = default_mesh {
+                        vec![Target::Shape(ShapeTarget {
+                            mesh: mesh_name.to_string(),
+                            name: label,
+                            value: default_shape_value,
+                        })]
+                    } else {
+                        vec![Target::Object(ObjectTarget {
+                            name: label,
+                            enabled: default_to_max,
+                        })]
+                    }
+                }
+                // indeterminate
+                _ => {
+                    self.error(format!(
+                        "indeterminate option definition in {}: {}",
+                        name, label,
+                    ));
+                    return Ok(None);
+                }
+            }
+        } else {
+            let mut targets = vec![];
+            for decl_target in group_block.targets {
+                let target = match decl_target {
+                    DeclTarget::Shape { shape, mesh, value } => {
+                        let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                            self.error(format!(
+                                "shape '{}' in group '{}' has no specified mesh",
+                                shape, name,
+                            ));
+                            continue;
+                        };
+                        Target::Shape(ShapeTarget {
+                            mesh: mesh_name.to_string(),
+                            name: shape,
+                            value: value.unwrap_or(default_shape_value),
+                        })
+                    }
+                    DeclTarget::Object { object, value } => Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: value.unwrap_or(default_to_max),
+                    }),
+                    _ => unreachable!("must be determinate"),
+                };
+                targets.push(target);
+            }
+            targets
+        };
+
+        Ok(Some(GroupOption {
             name,
-            order: sgb.declared_order,
-            shapes,
-        })
+            order: group_block.declared_order,
+            targets,
+        }))
     }
 }
 
-impl Compile<(DeclShapeSwitch, &Vec<Parameter>)> for AvatarCompiler {
+impl Compile<(DeclAnimationSwitch, &Vec<Parameter>)> for AvatarCompiler {
     type Output = Option<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (ss, parameters): (DeclShapeSwitch, &Vec<Parameter>),
+        (switch, parameters): (DeclAnimationSwitch, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &ss.parameter, &ParameterType::BOOL_TYPE))? {
+        if !self.ensure((parameters, &switch.parameter, &ParameterType::BOOL_TYPE))? {
             return Ok(None);
         };
 
         let mut disabled = vec![];
         let mut enabled = vec![];
-        let default_mesh = ss.mesh.as_deref();
-        for shape in ss.shapes {
-            let Some(mesh_name) = shape.mesh.as_deref().or(default_mesh) else {
-                self.error(format!(
-                    "shape '{}' in group '{}' has no specified mesh",
-                    shape.shape, ss.name,
-                ));
-                continue;
-            };
-            disabled.push(ShapeTarget {
-                mesh: mesh_name.to_string(),
-                name: shape.shape.clone(),
-                value: shape.disabled.unwrap_or(0.0),
-            });
-            enabled.push(ShapeTarget {
-                mesh: mesh_name.to_string(),
-                name: shape.shape.clone(),
-                value: shape.enabled.unwrap_or(1.0),
-            });
+        let default_mesh = switch.default_mesh.as_deref();
+        for target in switch.enabled {
+            match target {
+                DeclTarget::Shape { shape, mesh, value } => {
+                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                        self.error(format!(
+                            "shape '{}' in group '{}' has no specified mesh",
+                            shape, switch.name,
+                        ));
+                        continue;
+                    };
+                    enabled.push(Target::Shape(ShapeTarget {
+                        mesh: mesh_name.to_string(),
+                        name: shape,
+                        value: value.unwrap_or(1.0),
+                    }));
+                }
+                DeclTarget::Object { object, value } => {
+                    enabled.push(Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: value.unwrap_or(true),
+                    }));
+                }
+                _ => unreachable!("must be determinate"),
+            }
+        }
+        for target in switch.disabled {
+            match target {
+                DeclTarget::Shape { shape, mesh, value } => {
+                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                        self.error(format!(
+                            "shape '{}' in group '{}' has no specified mesh",
+                            shape, switch.name,
+                        ));
+                        continue;
+                    };
+                    disabled.push(Target::Shape(ShapeTarget {
+                        mesh: mesh_name.to_string(),
+                        name: shape,
+                        value: value.unwrap_or(0.0),
+                    }));
+                }
+                DeclTarget::Object { object, value } => {
+                    disabled.push(Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: value.unwrap_or(false),
+                    }));
+                }
+                _ => unreachable!("must be determinate"),
+            }
         }
 
         Ok(Some(AnimationGroup {
-            name: ss.name,
-            parameter: ss.parameter,
-            content: AnimationGroupContent::ShapeSwitch {
-                prevent_mouth: ss.prevent_mouth.unwrap_or(false),
-                prevent_eyelids: ss.prevent_eyelids.unwrap_or(false),
+            name: switch.name,
+            parameter: switch.parameter,
+            content: AnimationGroupContent::Switch {
+                preventions: Preventions {
+                    mouth: switch.preventions.mouth.unwrap_or(false),
+                    eyelids: switch.preventions.eyelids.unwrap_or(false),
+                },
                 disabled,
                 enabled,
             },
-        }))
-    }
-}
-
-impl Compile<(DeclObjectGroup, &Vec<Parameter>)> for AvatarCompiler {
-    type Output = Option<AnimationGroup>;
-
-    fn compile(
-        &mut self,
-        (og, parameters): (DeclObjectGroup, &Vec<Parameter>),
-    ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &og.parameter, &ParameterType::INT_TYPE))? {
-            return Ok(None);
-        };
-
-        let mut options = vec![];
-        let mut default_objects: Vec<_> = og
-            .default_block
-            .map(|b| b.objects)
-            .unwrap_or_default()
-            .into_iter()
-            .map(|ds| ObjectTarget {
-                name: ds.object,
-                enabled: ds.value.unwrap_or(false),
-            })
-            .collect();
-        let mut default_object_names: HashSet<_> =
-            default_objects.iter().map(|s| s.name.clone()).collect();
-
-        for decl_option in og.options {
-            let name = decl_option.name.expect("option block must have name");
-            let objects: Vec<_> = decl_option
-                .objects
-                .into_iter()
-                .map(|ds| ObjectTarget {
-                    name: ds.object,
-                    enabled: ds.value.unwrap_or(true),
-                })
-                .collect();
-
-            for target in &objects {
-                if default_object_names.contains(&target.name) {
-                    continue;
-                }
-                default_objects.push(ObjectTarget {
-                    name: target.name.clone(),
-                    enabled: false,
-                });
-                default_object_names.insert(target.name.clone());
-            }
-
-            options.push(ObjectGroupOption {
-                name,
-                order: decl_option.declared_order,
-                objects,
-            });
-        }
-
-        Ok(Some(AnimationGroup {
-            name: og.name,
-            parameter: og.parameter,
-            content: AnimationGroupContent::ObjectGroup {
-                default_objects,
-                options,
-            },
-        }))
-    }
-}
-
-impl Compile<(DeclObjectSwitch, &Vec<Parameter>)> for AvatarCompiler {
-    type Output = Option<AnimationGroup>;
-
-    fn compile(
-        &mut self,
-        (os, parameters): (DeclObjectSwitch, &Vec<Parameter>),
-    ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &os.parameter, &ParameterType::BOOL_TYPE))? {
-            return Ok(None);
-        };
-
-        let mut disabled = vec![];
-        let mut enabled = vec![];
-        for object in os.objects {
-            disabled.push(ObjectTarget {
-                name: object.object.clone(),
-                enabled: object.disabled.unwrap_or(false),
-            });
-            enabled.push(ObjectTarget {
-                name: object.object.clone(),
-                enabled: object.enabled.unwrap_or(true),
-            });
-        }
-
-        Ok(Some(AnimationGroup {
-            name: os.name,
-            parameter: os.parameter,
-            content: AnimationGroupContent::ObjectSwitch { disabled, enabled },
         }))
     }
 }
@@ -325,25 +405,35 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
 
         let mut keyframes = vec![];
         for decl_keyframe in puppet.keyframes {
-            let mut shapes = vec![];
-            for shape in decl_keyframe.shapes {
-                let Some(mesh_name) = shape.mesh.as_deref().or(default_mesh) else {
-                    self.error(format!(
-                        "shape '{}' in group '{}' has no specified mesh",
-                        shape.shape, puppet.name,
-                    ));
-                    continue;
+            let mut targets = vec![];
+            for decl_target in decl_keyframe.targets {
+                let target = match decl_target {
+                    DeclTarget::Shape { shape, mesh, value } => {
+                        let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                            self.error(format!(
+                                "shape '{}' in puppet '{}' has no specified mesh",
+                                shape, puppet.name,
+                            ));
+                            continue;
+                        };
+                        Target::Shape(ShapeTarget {
+                            mesh: mesh_name.to_string(),
+                            name: shape,
+                            value: value.unwrap_or(1.0),
+                        })
+                    }
+                    DeclTarget::Object { object, value } => Target::Object(ObjectTarget {
+                        name: object,
+                        enabled: value.unwrap_or(true),
+                    }),
+                    _ => unreachable!("must be determinate"),
                 };
-                shapes.push(ShapeTarget {
-                    mesh: mesh_name.to_string(),
-                    name: shape.shape,
-                    value: shape.value.unwrap_or(1.0),
-                });
+                targets.push(target);
             }
 
             keyframes.push(PuppetKeyframe {
                 position: decl_keyframe.position,
-                shapes,
+                targets,
             });
         }
 

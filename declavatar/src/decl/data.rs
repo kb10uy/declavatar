@@ -42,76 +42,37 @@ pub struct Animations {
 
 #[derive(Debug, Clone)]
 pub enum AnimationElement {
-    ShapeGroup(ShapeGroup),
-    ShapeSwitch(ShapeSwitch),
-    ObjectGroup(ObjectGroup),
-    ObjectSwitch(ObjectSwitch),
+    Group(AnimationGroup),
+    Switch(AnimationSwitch),
     Puppet(Puppet),
 }
 
 #[derive(Debug, Clone)]
-pub struct ShapeGroup {
+pub struct AnimationGroup {
     pub name: String,
-    pub mesh: Option<String>,
     pub parameter: String,
-    pub prevent_mouth: Option<bool>,
-    pub prevent_eyelids: Option<bool>,
-    pub default_block: Option<ShapeGroupBlock>,
-    pub options: Vec<ShapeGroupBlock>,
+    pub default_mesh: Option<String>,
+    pub preventions: Preventions,
+    pub default_block: Option<GroupBlock>,
+    pub options: Vec<GroupBlock>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ShapeGroupBlock {
+pub struct GroupBlock {
     pub name: Option<String>,
     pub declared_order: usize,
-    pub shapes: Vec<ShapeTarget>,
+    pub indeterminate: bool,
+    pub targets: Vec<Target>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ShapeSwitch {
-    pub name: String,
-    pub mesh: Option<String>,
-    pub parameter: String,
-    pub prevent_mouth: Option<bool>,
-    pub prevent_eyelids: Option<bool>,
-    pub shapes: Vec<ShapeSwitchPair>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ShapeSwitchPair {
-    pub mesh: Option<String>,
-    pub shape: String,
-    pub enabled: Option<f64>,
-    pub disabled: Option<f64>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectGroup {
+pub struct AnimationSwitch {
     pub name: String,
     pub parameter: String,
-    pub default_block: Option<ObjectGroupBlock>,
-    pub options: Vec<ObjectGroupBlock>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectGroupBlock {
-    pub name: Option<String>,
-    pub declared_order: usize,
-    pub objects: Vec<ObjectTarget>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectSwitch {
-    pub name: String,
-    pub parameter: String,
-    pub objects: Vec<ObjectSwitchPair>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectSwitchPair {
-    pub object: String,
-    pub disabled: Option<bool>,
-    pub enabled: Option<bool>,
+    pub default_mesh: Option<String>,
+    pub preventions: Preventions,
+    pub disabled: Vec<Target>,
+    pub enabled: Vec<Target>,
 }
 
 #[derive(Debug, Clone)]
@@ -122,23 +83,36 @@ pub struct Puppet {
     pub keyframes: Vec<PuppetKeyframe>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Preventions {
+    pub mouth: Option<bool>,
+    pub eyelids: Option<bool>,
+}
+
 #[derive(Debug, Clone)]
 pub struct PuppetKeyframe {
     pub position: f64,
-    pub shapes: Vec<ShapeTarget>,
+    pub targets: Vec<Target>,
 }
 
 #[derive(Debug, Clone)]
-pub struct ShapeTarget {
-    pub shape: String,
-    pub mesh: Option<String>,
-    pub value: Option<f64>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ObjectTarget {
-    pub object: String,
-    pub value: Option<bool>,
+pub enum Target {
+    Shape {
+        shape: String,
+        mesh: Option<String>,
+        value: Option<f64>,
+    },
+    Object {
+        object: String,
+        value: Option<bool>,
+    },
+    Indeterminate {
+        label: String,
+        object: Option<String>,
+        mesh: Option<String>,
+        shape: Option<String>,
+        value: Option<DriveTarget>,
+    },
 }
 
 #[derive(Debug, Clone)]
