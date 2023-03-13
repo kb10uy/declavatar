@@ -20,7 +20,6 @@ pub struct DeclError {
 }
 
 /// Describes errors in parsing declaration.
-#[allow(dead_code)]
 #[derive(Debug, ThisError, Diagnostic)]
 pub enum DeclErrorKind {
     /// Incorrect node name detected (internal only).

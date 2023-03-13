@@ -13,7 +13,6 @@ pub struct AvatarError {
 }
 */
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, ThisError, Diagnostic)]
 pub enum AvatarError {
     #[error("internal compiler error: {0}")]

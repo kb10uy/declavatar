@@ -59,7 +59,6 @@ pub struct NodeEntries<'a> {
     properties: HashMap<&'a str, &'a KdlEntry>,
 }
 
-#[allow(dead_code)]
 impl<'a> NodeEntries<'a> {
     fn split_entries(node: &'a KdlNode) -> NodeEntries<'a> {
         let mut arguments = Vec::new();
