@@ -208,82 +208,59 @@ namespace KusakaFactory.Declavatar
             {
                 switch (animationGroup.Content)
                 {
-                    case AnimationGroup.ShapeGroup shapeGroup:
-                        GenerateShapeGroupLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, shapeGroup);
+                    case AnimationGroup.Group g:
+                        GenerateShapeGroupLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, g);
                         break;
-                    case AnimationGroup.ShapeSwitch shapeSwitch:
-                        GenerateShapeSwitchLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, shapeSwitch);
+                    case AnimationGroup.Switch s:
+                        GenerateShapeSwitchLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, s);
                         break;
-                    case AnimationGroup.ObjectGroup objectGroup:
-                        GenerateObjectGroupLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, objectGroup);
-                        break;
-                    case AnimationGroup.ObjectSwitch objectSwitch:
-                        GenerateObjectSwitchLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, objectSwitch);
-                        break;
-                    case AnimationGroup.Puppet puppet:
-                        GeneratePuppetLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, puppet);
+                    case AnimationGroup.Puppet p:
+                        GeneratePuppetLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, p);
                         break;
                 }
             }
             GeneratePreventionLayers(fxAnimator);
         }
 
-        private void GenerateShapeGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ShapeGroup shapeGroup)
+        private void GenerateShapeGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Group g)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.IntParameter(parameter);
-            var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(shapeGroup.Mesh).GetComponent<SkinnedMeshRenderer>();
+            var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
             var idleClip = _aac.NewClip($"sg-{name}-0");
-            foreach (var shape in shapeGroup.DefaultTargets) idleClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
+            foreach (var target in g.DefaultTargets)
+            {
+                switch (target)
+                {
+                    case Target.Shape shape:
+                        var smr = searcher.FindSkinnedMeshRenderer(shape.Mesh);
+                        idleClip.BlendShape(smr, shape.Name, shape.Value * 100.0f);
+                        break;
+                    case Target.Object obj:
+                        var go = searcher.FindGameObject(obj.Name);
+                        idleClip.Toggling(go, obj.Enabled);
+                        break;
+                }
+            }
             var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
 
-            foreach (var option in shapeGroup.Options)
+            foreach (var option in g.Options)
             {
                 var clip = _aac.NewClip($"sg-{name}-{option.Order}");
-                foreach (var shape in option.Shapes) clip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
-                var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8).WithAnimation(clip);
-                idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
-                state.Exits().When(layerParameter.IsNotEqualTo((int)option.Order));
-            }
-        }
-
-        private void GenerateShapeSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ShapeSwitch shapeSwitch)
-        {
-            var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
-            var layerParameter = layer.BoolParameter(parameter);
-            var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(shapeSwitch.Mesh).GetComponent<SkinnedMeshRenderer>();
-
-            var disabledClip = _aac.NewClip($"ss-{name}-disabled");
-            var enabledClip = _aac.NewClip($"ss-{name}-enabled");
-            foreach (var shape in shapeSwitch.Disabled) disabledClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
-            foreach (var shape in shapeSwitch.Enabled) enabledClip.BlendShape(renderer, shape.Name, shape.Value * 100.0f);
-            var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
-            var enabledState = layer.NewState("Enabled").WithAnimation(enabledClip);
-            disabledState.TransitionsTo(enabledState).When(layerParameter.IsTrue());
-            enabledState.TransitionsTo(disabledState).When(layerParameter.IsFalse());
-        }
-
-        private void GenerateObjectGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ObjectGroup objectGroup)
-        {
-            var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
-            var layerParameter = layer.IntParameter(parameter);
-
-            var idleClip = _aac.NewClip($"og-{name}-0");
-            foreach (var target in objectGroup.DefaultTargets)
-            {
-                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
-                idleClip.Toggling(targetObject, target.Enabled);
-            }
-            var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
-
-            foreach (var option in objectGroup.Options)
-            {
-                var clip = _aac.NewClip($"og-{name}-{option.Order}");
-                foreach (var target in option.Objects)
+                foreach (var target in option.Targets)
                 {
-                    var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
-                    clip.Toggling(targetObject, target.Enabled);
+                    switch (target)
+                    {
+                        case Target.Shape shape:
+                            var smr = searcher.FindSkinnedMeshRenderer(shape.Mesh);
+                            clip.BlendShape(smr, shape.Name, shape.Value * 100.0f);
+                            break;
+                        case Target.Object obj:
+                            var go = searcher.FindGameObject(obj.Name);
+                            clip.Toggling(go, obj.Enabled);
+                            break;
+                    }
                 }
                 var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8).WithAnimation(clip);
                 idleState.TransitionsTo(state).When(layerParameter.IsEqualTo((int)option.Order));
@@ -291,22 +268,41 @@ namespace KusakaFactory.Declavatar
             }
         }
 
-        private void GenerateObjectSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.ObjectSwitch objectSwitch)
+        private void GenerateShapeSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Switch s)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.BoolParameter(parameter);
+            var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
-            var disabledClip = _aac.NewClip($"os-{name}-disabled");
-            var enabledClip = _aac.NewClip($"os-{name}-enabled");
-            foreach (var target in objectSwitch.Disabled)
+            var disabledClip = _aac.NewClip($"ss-{name}-disabled");
+            var enabledClip = _aac.NewClip($"ss-{name}-enabled");
+            foreach (var target in s.Disabled)
             {
-                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
-                disabledClip.Toggling(targetObject, target.Enabled);
+                switch (target)
+                {
+                    case Target.Shape shape:
+                        var smr = searcher.FindSkinnedMeshRenderer(shape.Mesh);
+                        disabledClip.BlendShape(smr, shape.Name, shape.Value * 100.0f);
+                        break;
+                    case Target.Object obj:
+                        var go = searcher.FindGameObject(obj.Name);
+                        disabledClip.Toggling(go, obj.Enabled);
+                        break;
+                }
             }
-            foreach (var target in objectSwitch.Enabled)
+            foreach (var target in s.Enabled)
             {
-                var targetObject = _descriptor.transform.Find(target.Object)?.gameObject;
-                enabledClip.Toggling(targetObject, target.Enabled);
+                switch (target)
+                {
+                    case Target.Shape shape:
+                        var smr = searcher.FindSkinnedMeshRenderer(shape.Mesh);
+                        enabledClip.BlendShape(smr, shape.Name, shape.Value * 100.0f);
+                        break;
+                    case Target.Object obj:
+                        var go = searcher.FindGameObject(obj.Name);
+                        enabledClip.Toggling(go, obj.Enabled);
+                        break;
+                }
             }
             var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
             var enabledState = layer.NewState("Enabled").WithAnimation(enabledClip);
@@ -318,25 +314,35 @@ namespace KusakaFactory.Declavatar
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
             var layerParameter = layer.FloatParameter(parameter);
-            var renderer = (SkinnedMeshRenderer)_descriptor.transform.Find(puppet.Mesh).GetComponent<SkinnedMeshRenderer>();
+            var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
-            var groupedByShape = puppet.Keyframes.SelectMany(
-                (kf) => kf.Shapes.Select((s) => (
-                    Shape: $"blendShape.{s.Name}",
-                    Time: (int)(kf.Position * 100.0f),
-                    Value: s.Value * 100.0f
-                ))
-            ).GroupBy((p) => p.Shape);
+            var groups = puppet.Keyframes
+                .SelectMany((kf) => kf.Targets.Select((t) => (kf.Position, Target: t)))
+                .GroupBy((p) => p.Target.AsGroupingKey());
 
             var clip = _aac.NewClip($"p-{name}").NonLooping();
             clip.Animating((e) =>
             {
-                foreach (var shapeGroup in groupedByShape)
+                foreach (var group in groups)
                 {
-                    e.Animates(renderer, shapeGroup.Key).WithFrameCountUnit((kfs) =>
+                    if (group.Key.StartsWith("s://"))
                     {
-                        foreach (var point in shapeGroup) kfs.Linear(point.Time, point.Value);
-                    });
+                        var points = group.Select((p) => (p.Position, Target: p.Target as Target.Shape)).ToList();
+                        var smr = searcher.FindSkinnedMeshRenderer(points[0].Target.Mesh);
+                        e.Animates(smr, $"blendShape.{points[0].Target.Name}").WithFrameCountUnit((kfs) =>
+                        {
+                            foreach (var point in points) kfs.Linear(point.Position * 100.0f, point.Target.Value * 100.0f);
+                        });
+                    }
+                    else if (group.Key.StartsWith("o://"))
+                    {
+                        var points = group.Select((p) => (p.Position, Target: p.Target as Target.Object)).ToList();
+                        var go = searcher.FindGameObject(points[0].Target.Name);
+                        e.Animates(go).WithFrameCountUnit((kfs) =>
+                        {
+                            foreach (var point in points) kfs.Constant(point.Position * 100.0f, point.Target.Enabled ? 1.0f : 0.0f);
+                        });
+                    }
                 }
             });
 
@@ -350,13 +356,13 @@ namespace KusakaFactory.Declavatar
             {
                 switch (ag.Content)
                 {
-                    case AnimationGroup.ShapeGroup shapeGroup: return (shapeGroup.PreventMouth, shapeGroup.PreventEyelids, ag.Parameter, IsInt: true);
-                    case AnimationGroup.ShapeSwitch shapeSwitch: return (shapeSwitch.PreventMouth, shapeSwitch.PreventEyelids, ag.Parameter, IsInt: false);
-                    default: return (false, false, null, false);
+                    case AnimationGroup.Group g: return (g.Preventions, ag.Parameter, IsInt: true);
+                    case AnimationGroup.Switch s: return (s.Preventions, ag.Parameter, IsInt: false);
+                    default: return (new Preventions(), null, false);
                 }
             });
 
-            var mouthPreventions = preventions.Where((p) => p.PreventMouth).Select((p) => (p.Parameter, p.IsInt)).ToList();
+            var mouthPreventions = preventions.Where((p) => p.Preventions.Mouth).Select((p) => (p.Parameter, p.IsInt)).ToList();
             var mouthPreventionLayer = _aac.CreateSupportingArbitraryControllerLayer(controller, "MouthPrevention");
             var mouthTrackingState = mouthPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Mouth);
             var mouthAnimationState = mouthPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Mouth);
@@ -392,7 +398,7 @@ namespace KusakaFactory.Declavatar
                 }
             }
 
-            var eyelidsPreventions = preventions.Where((p) => p.PreventEyelids).Select((p) => (p.Parameter, p.IsInt)).ToList();
+            var eyelidsPreventions = preventions.Where((p) => p.Preventions.Eyelids).Select((p) => (p.Parameter, p.IsInt)).ToList();
             var eyelidsPreventionLayer = _aac.CreateSupportingArbitraryControllerLayer(controller, "EyelidsPrevention");
             var eyelidsTrackingState = eyelidsPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Eyes);
             var eyelidsAnimationState = eyelidsPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Eyes);
@@ -438,6 +444,51 @@ namespace KusakaFactory.Declavatar
                     NamingStrategy = new SnakeCaseNamingStrategy(),
                 }
             });
+        }
+    }
+
+    public sealed class GameObjectSearcher
+    {
+        private GameObject _root = null;
+        private Dictionary<string, SkinnedMeshRenderer> _skinnedMeshRenderers = new Dictionary<string, SkinnedMeshRenderer>();
+        private Dictionary<string, GameObject> _objects = new Dictionary<string, GameObject>();
+        private HashSet<string> _searchedPaths = new HashSet<string>();
+
+        public GameObjectSearcher(GameObject root)
+        {
+            _root = root;
+        }
+
+        public SkinnedMeshRenderer FindSkinnedMeshRenderer(string path)
+        {
+            var cachedPath = $"smr://{path}";
+            if (_searchedPaths.Contains(cachedPath))
+            {
+                return _skinnedMeshRenderers.TryGetValue(path, out var smr) ? smr : null;
+            }
+            else
+            {
+                var smr = _root.transform.Find(path)?.GetComponent<SkinnedMeshRenderer>();
+                _searchedPaths.Add(cachedPath);
+                _skinnedMeshRenderers[path] = smr;
+                return smr;
+            }
+        }
+
+        public GameObject FindGameObject(string path)
+        {
+            var cachedPath = $"go://{path}";
+            if (_searchedPaths.Contains(cachedPath))
+            {
+                return _objects.TryGetValue(path, out var smr) ? smr : null;
+            }
+            else
+            {
+                var go = _root.transform.Find(path)?.gameObject;
+                _searchedPaths.Add(cachedPath);
+                _objects[path] = go;
+                return go;
+            }
         }
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using UnityEngine;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace KusakaFactory.Declavatar
@@ -43,73 +42,61 @@ namespace KusakaFactory.Declavatar
         public string Parameter { get; set; }
         public object Content { get; set; }
 
-        public sealed class ShapeGroup
+        public sealed class Group
         {
-            public string Mesh { get; set; }
-            public bool PreventMouth { get; set; }
-            public bool PreventEyelids { get; set; }
-            public List<ShapeTarget> DefaultTargets { get; set; }
-            public List<ShapeGroupOption> Options { get; set; }
+            public Preventions Preventions { get; set; }
+            public List<Target> DefaultTargets { get; set; }
+            public List<GroupOption> Options { get; set; }
         }
 
-        public sealed class ShapeSwitch
-        {
-            public string Mesh { get; set; }
-            public bool PreventMouth { get; set; }
-            public bool PreventEyelids { get; set; }
-            public List<ShapeTarget> Disabled { get; set; }
-            public List<ShapeTarget> Enabled { get; set; }
-        }
-
-        public sealed class ObjectGroup
-        {
-            public List<ObjectTarget> DefaultTargets { get; set; }
-            public List<ObjectGroupOption> Options { get; set; }
-        }
-
-        public sealed class ObjectSwitch
-        {
-            public List<ObjectTarget> Disabled { get; set; }
-            public List<ObjectTarget> Enabled { get; set; }
-        }
-
-        public sealed class ShapeGroupOption
+        public sealed class GroupOption
         {
             public string Name { get; set; }
             public uint Order { get; set; }
-            public List<ShapeTarget> Shapes { get; set; }
+            public List<Target> Targets { get; set; }
         }
 
-        public sealed class ObjectGroupOption
+        public sealed class Switch
         {
-            public string Name { get; set; }
-            public uint Order { get; set; }
-            public List<ObjectTarget> Objects { get; set; }
-        }
-
-        public sealed class ShapeTarget
-        {
-            public string Name { get; set; }
-            public float Value { get; set; }
-        }
-
-        public sealed class ObjectTarget
-        {
-            public string Object { get; set; }
-            public bool Enabled { get; set; }
+            public Preventions Preventions { get; set; }
+            public List<Target> Disabled { get; set; }
+            public List<Target> Enabled { get; set; }
         }
 
         public sealed class Puppet
         {
-            public string Mesh { get; set; }
             public List<PuppetKeyframe> Keyframes { get; set; }
         }
+
 
         public sealed class PuppetKeyframe
         {
             public float Position { get; set; }
-            public List<ShapeTarget> Shapes { get; set; }
+            public List<Target> Targets { get; set; }
         }
+    }
+
+    [JsonConverter(typeof(Converters.TargetConverter))]
+    public abstract class Target
+    {
+        public sealed class Shape : Target
+        {
+            public string Mesh { get; set; }
+            public string Name { get; set; }
+            public float Value { get; set; }
+        }
+
+        public sealed class Object : Target
+        {
+            public string Name { get; set; }
+            public bool Enabled { get; set; }
+        }
+    }
+
+    public sealed class Preventions
+    {
+        public bool Mouth { get; set; }
+        public bool Eyelids { get; set; }
     }
 
     public sealed class DriverGroup
@@ -267,17 +254,11 @@ namespace KusakaFactory.Declavatar
                 object content = null;
                 switch (contentObject["type"].Value<string>())
                 {
-                    case "ShapeGroup":
-                        content = contentObject.ToObject<AnimationGroup.ShapeGroup>(serializer);
+                    case "Group":
+                        content = contentObject.ToObject<AnimationGroup.Group>(serializer);
                         break;
-                    case "ShapeSwitch":
-                        content = contentObject.ToObject<AnimationGroup.ShapeSwitch>(serializer);
-                        break;
-                    case "ObjectGroup":
-                        content = contentObject.ToObject<AnimationGroup.ObjectGroup>(serializer);
-                        break;
-                    case "ObjectSwitch":
-                        content = contentObject.ToObject<AnimationGroup.ObjectSwitch>(serializer);
+                    case "Switch":
+                        content = contentObject.ToObject<AnimationGroup.Switch>(serializer);
                         break;
                     case "Puppet":
                         content = contentObject.ToObject<AnimationGroup.Puppet>(serializer);
@@ -292,6 +273,37 @@ namespace KusakaFactory.Declavatar
                     Parameter = obj["parameter"].Value<string>(),
                     Content = content,
                 };
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class TargetConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(Target);
+            }
+
+            public override object ReadJson(
+                JsonReader reader,
+                Type objectType,
+                object existingValue,
+                JsonSerializer serializer
+            )
+            {
+                var obj = JObject.Load(reader);
+                var type = obj["type"].Value<string>();
+                var content = obj["content"] as JObject;
+                switch (type)
+                {
+                    case "Shape": return new Target.Shape { Mesh = content["mesh"].Value<string>(), Name = content["name"].Value<string>(), Value = content["value"].Value<float>(), };
+                    case "Object": return new Target.Object { Name = content["name"].Value<string>(), Enabled = content["enabled"].Value<bool>() };
+                    default: throw new JsonException("invalid driver type");
+                }
             }
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -379,6 +391,16 @@ namespace KusakaFactory.Declavatar
 
     public static class VRChatExtension
     {
+        public static string AsGroupingKey(this Target target)
+        {
+            switch (target)
+            {
+                case Target.Shape s: return $"s://{s.Mesh}/{s.Name}";
+                case Target.Object o: return $"o://{o.Name}";
+                default: throw new ArgumentException("invalid target type");
+            }
+        }
+
         public static VRCExpressionParameters.ValueType ConvertToVRCParameterType(this ParameterType value)
         {
             switch (value.Type)
