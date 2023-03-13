@@ -151,42 +151,36 @@ impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
                 unreachable!("must be indeterminate");
             };
 
-            match (mesh, shape, object, value) {
+            let single_target = match (mesh, shape, object, value) {
                 // shape 1
                 (
                     Some(mesh),
                     Some(shape),
                     None,
                     Some(DeclDriveTarget::FloatParameter { value, .. }),
-                ) => {
-                    vec![Target::Shape(ShapeTarget {
-                        mesh,
-                        name: shape,
-                        value,
-                    })]
-                }
-                (Some(mesh), Some(shape), None, None) => {
-                    vec![Target::Shape(ShapeTarget {
-                        mesh,
-                        name: shape,
-                        value: default_shape_value,
-                    })]
-                }
+                ) => Target::Shape(ShapeTarget {
+                    mesh,
+                    name: shape,
+                    value,
+                }),
+                (Some(mesh), Some(shape), None, None) => Target::Shape(ShapeTarget {
+                    mesh,
+                    name: shape,
+                    value: default_shape_value,
+                }),
                 // shape 2
                 (Some(mesh), None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
-                    vec![Target::Shape(ShapeTarget {
+                    Target::Shape(ShapeTarget {
                         mesh,
                         name: label,
                         value,
-                    })]
+                    })
                 }
-                (Some(mesh), None, None, None) => {
-                    vec![Target::Shape(ShapeTarget {
-                        mesh,
-                        name: label,
-                        value: default_shape_value,
-                    })]
-                }
+                (Some(mesh), None, None, None) => Target::Shape(ShapeTarget {
+                    mesh,
+                    name: label,
+                    value: default_shape_value,
+                }),
                 // shape 3
                 (None, Some(shape), None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
                     let Some(mesh_name) = default_mesh else {
@@ -196,11 +190,11 @@ impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
                         ));
                         return Ok(None);
                     };
-                    vec![Target::Shape(ShapeTarget {
+                    Target::Shape(ShapeTarget {
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value,
-                    })]
+                    })
                 }
                 (None, Some(shape), None, None) => {
                     let Some(mesh_name) = default_mesh else {
@@ -210,25 +204,23 @@ impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
                         ));
                         return Ok(None);
                     };
-                    vec![Target::Shape(ShapeTarget {
+                    Target::Shape(ShapeTarget {
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value: default_shape_value,
-                    })]
+                    })
                 }
                 // object
                 (None, None, Some(object), Some(DeclDriveTarget::BoolParameter { value, .. })) => {
-                    vec![Target::Object(ObjectTarget {
+                    Target::Object(ObjectTarget {
                         name: object,
                         enabled: value,
-                    })]
+                    })
                 }
-                (None, None, Some(object), None) => {
-                    vec![Target::Object(ObjectTarget {
-                        name: object,
-                        enabled: default_to_max,
-                    })]
-                }
+                (None, None, Some(object), None) => Target::Object(ObjectTarget {
+                    name: object,
+                    enabled: default_to_max,
+                }),
                 // dependent
                 (None, None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
                     let Some(mesh_name) = default_mesh else {
@@ -238,30 +230,30 @@ impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
                         ));
                         return Ok(None);
                     };
-                    vec![Target::Shape(ShapeTarget {
+                    Target::Shape(ShapeTarget {
                         mesh: mesh_name.to_string(),
                         name: label,
                         value,
-                    })]
+                    })
                 }
                 (None, None, None, Some(DeclDriveTarget::BoolParameter { value, .. })) => {
-                    vec![Target::Object(ObjectTarget {
+                    Target::Object(ObjectTarget {
                         name: label,
                         enabled: value,
-                    })]
+                    })
                 }
                 (None, None, None, None) => {
                     if let Some(mesh_name) = default_mesh {
-                        vec![Target::Shape(ShapeTarget {
+                        Target::Shape(ShapeTarget {
                             mesh: mesh_name.to_string(),
                             name: label,
                             value: default_shape_value,
-                        })]
+                        })
                     } else {
-                        vec![Target::Object(ObjectTarget {
+                        Target::Object(ObjectTarget {
                             name: label,
                             enabled: default_to_max,
-                        })]
+                        })
                     }
                 }
                 // indeterminate
@@ -272,7 +264,8 @@ impl Compile<(DeclGroupBlock, Option<&str>, bool)> for AvatarCompiler {
                     ));
                     return Ok(None);
                 }
-            }
+            };
+            vec![single_target]
         } else {
             let mut targets = vec![];
             for decl_target in group_block.targets {
