@@ -84,6 +84,7 @@ pub struct GroupOption {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum Target {
     Shape(ShapeTarget),
     Object(ObjectTarget),
