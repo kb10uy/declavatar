@@ -1,11 +1,35 @@
-# Avatar Declaration File
+# アバター定義ファイル
 
-## 概要
-* [KDL](https://kdl.dev) で記述する。
+Declavatar では、各種アセットの定義を [KDL](https://kdl.dev) で記述します。
 
-## ファイル構造
 ```kdl
 avatar {
 
 }
 ```
+
+## 仕様
+
+## parameters ブロック
+
+```kdl
+parameters {
+    int
+    float
+    bool
+}
+```
+
+## animations ブロック
+
+```kdl
+animations {
+
+}
+```
+
+## drivers ブロック
+
+## menu ブロック
+
+## ファイル構造
