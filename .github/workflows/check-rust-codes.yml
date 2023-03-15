@@ -1,0 +1,53 @@
+name: "Check Rust Codes"
+
+on:
+  - "push"
+  - "pull_request"
+
+jobs:
+  lint:
+    name: "Lint"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v3"
+      - shell: "bash"
+        run: |
+          mkdir '.cargo'
+          echo '[registries.crates-io]' >> .cargo/config.toml
+          echo 'protocol = "sparse"' >> .cargo/config.toml
+
+      - uses: "actions-rs/toolchain@v1"
+        with:
+          toolchain: "stable"
+          profile: "minimal"
+          components: "rustfmt, clippy"
+          override: true
+      - uses: "actions-rs/cargo@v1"
+        with:
+          command: "clippy"
+          args: "--all-features"
+      - uses: "actions-rs/cargo@v1"
+        with:
+          command: "fmt"
+          args: "--all -- --check"
+
+  test:
+    name: "Test"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v3"
+      - shell: "bash"
+        run: |
+          mkdir '.cargo'
+          echo '[registries.crates-io]' >> .cargo/config.toml
+          echo 'protocol = "sparse"' >> .cargo/config.toml
+
+      - uses: "actions-rs/toolchain@v1"
+        with:
+          toolchain: "stable"
+          profile: "minimal"
+          override: true
+      - uses: "actions-rs/cargo@v1"
+        with:
+          command: "test"
+          args: "--all-features"
