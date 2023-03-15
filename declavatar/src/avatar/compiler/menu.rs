@@ -28,7 +28,7 @@ impl Compile<(Vec<DeclMenu>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarC
         let mut top_items = vec![];
         let mut next_group_id = 1;
 
-        let menu_elements = menu_blocks.into_iter().map(|ab| ab.elements).flatten();
+        let menu_elements = menu_blocks.into_iter().flat_map(|ab| ab.elements);
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
@@ -52,9 +52,7 @@ impl Compile<(Vec<DeclMenu>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarC
         }
 
         if top_items.len() > 8 {
-            self.warn(format!(
-                "too many top-level menu items, first 8 item will remain"
-            ));
+            self.warn("too many top-level menu items, first 8 item will remain".into());
             top_items.drain(8..);
         }
 
@@ -113,9 +111,7 @@ impl
         }
 
         if items.len() > 8 {
-            self.warn(format!(
-                "too many top-level menu items, first 8 item will remain"
-            ));
+            self.warn("too many top-level menu items, first 8 item will remain".into());
             items.drain(8..);
         }
 
@@ -174,9 +170,7 @@ impl
                             option.order
                         }
                         _ => {
-                            self.error(format!(
-                                "parameter driver with group is valid only for groups but not switches"
-                            ));
+                            self.error("parameter driver with group is valid only for groups but not switches".into());
                             return Ok(None);
                         }
                     };

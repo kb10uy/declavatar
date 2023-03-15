@@ -71,7 +71,7 @@ pub enum DeclErrorKind {
 impl DeclError {
     pub fn new(span: &SourceSpan, kind: DeclErrorKind) -> DeclError {
         DeclError {
-            span: span.clone(),
+            span: *span,
             error_kind: kind,
         }
     }

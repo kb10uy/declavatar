@@ -29,10 +29,7 @@ impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
 
         let mut used_group_names: HashSet<String> = HashSet::new();
         let mut used_parameters: HashSet<String> = HashSet::new();
-        let decl_animations = animations_blocks
-            .into_iter()
-            .map(|ab| ab.elements)
-            .flatten();
+        let decl_animations = animations_blocks.into_iter().flat_map(|ab| ab.elements);
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
                 DeclAnimationElement::Group(group) => {

@@ -20,8 +20,8 @@ impl Compile<DeclAvatar> for AvatarCompiler {
     fn compile(&mut self, avatar: DeclAvatar) -> Result<Option<Avatar>> {
         let name = {
             let decl_name = avatar.name.trim();
-            if decl_name == "" {
-                self.error(format!("invalid avatar name"));
+            if decl_name.is_empty() {
+                self.error("invalid avatar name".into());
                 return Ok(None);
             }
             decl_name.to_string()

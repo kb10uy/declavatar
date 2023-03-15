@@ -14,10 +14,7 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
     fn compile(&mut self, parameters_blocks: Vec<DeclParameters>) -> Result<Vec<Parameter>> {
         let mut parameters: Vec<Parameter> = vec![];
 
-        let decl_parameters = parameters_blocks
-            .into_iter()
-            .map(|pb| pb.parameters)
-            .flatten();
+        let decl_parameters = parameters_blocks.into_iter().flat_map(|pb| pb.parameters);
         for decl_parameter in decl_parameters {
             let name = decl_parameter.name.clone();
             let value_type = match decl_parameter.ty {

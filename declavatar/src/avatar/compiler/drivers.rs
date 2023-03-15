@@ -23,7 +23,7 @@ impl Compile<(Vec<DeclDrivers>, &Vec<Parameter>, &Vec<AnimationGroup>)> for Avat
     ) -> Result<Vec<DriverGroup>> {
         let mut driver_groups = vec![];
 
-        let decl_drivers = drivers_blocks.into_iter().map(|db| db.groups).flatten();
+        let decl_drivers = drivers_blocks.into_iter().flat_map(|db| db.groups);
         for decl_driver in decl_drivers {
             let mut drivers = vec![];
 
@@ -63,7 +63,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     option,
                 } => {
                     let Some(option_name) = option else {
-                        self.error(format!("option must be specified"));
+                        self.error("option must be specified".into());
                         return Ok(None);
                     };
                     let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
@@ -85,9 +85,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                             option.order
                         }
                         _ => {
-                            self.error(format!(
-                                "parameter driver with group is valid only for groups but not switches"
-                            ));
+                            self.error("parameter driver with group is valid only for groups but not switches".into());
                             return Ok(None);
                         }
                     };
@@ -127,9 +125,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     Driver::AddFloat(name, value)
                 }
                 _ => {
-                    self.error(format!(
-                        "parameter driver of add is valid only for int and float"
-                    ));
+                    self.error("parameter driver of add is valid only for int and float".into());
                     return Ok(None);
                 }
             },
@@ -155,9 +151,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                             options.iter().map(|o| o.order).max().unwrap_or(1)
                         }
                         _ => {
-                            self.error(format!(
-                                "parameter driver with group is valid only for groups but not switches"
-                            ));
+                            self.error("parameter driver with group is valid only for groups but not switches".into());
                             return Ok(None);
                         }
                     };
@@ -172,27 +166,27 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
 
                 (Some(_), Some(_), _, _) => {
                     // random group="x" parameter="y" ...
-                    self.error(format!("ambiguous random group"));
+                    self.error("ambiguous random group".into());
                     return Ok(None);
                 }
                 (Some(_), None, _, _) => {
                     // random group="x" chance=0.5 ...
-                    self.error(format!("redundant parameters specified for random driver"));
+                    self.error("redundant parameters specified for random driver".into());
                     return Ok(None);
                 }
                 (None, Some(_), Some(_), _) => {
                     // random parameter="x" chance=0.5 min=0.0 ...
-                    self.error(format!("ambiguous random chance"));
+                    self.error("ambiguous random chance".into());
                     return Ok(None);
                 }
                 (None, Some(_), None, _) => {
                     // random parameter="x" max=0.5
-                    self.error(format!("insufficient random chance"));
+                    self.error("insufficient random chance".into());
                     return Ok(None);
                 }
                 _ => {
                     // random
-                    self.error(format!("invalid random driver"));
+                    self.error("invalid random driver".into());
                     return Ok(None);
                 }
             },
@@ -207,7 +201,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                 }
                 ((None, None), (None, None)) => Driver::Copy(from, to),
                 _ => {
-                    self.error(format!("insufficient copy range"));
+                    self.error("insufficient copy range".into());
                     return Ok(None);
                 }
             },
