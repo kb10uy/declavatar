@@ -16,13 +16,10 @@ jobs:
           echo '[registries.crates-io]' >> .cargo/config.toml
           echo 'protocol = "sparse"' >> .cargo/config.toml
 
-      - uses: "actions-rs/toolchain@v1"
-        with:
-          toolchain: "stable"
-      - uses: "actions-rs/cargo@v1"
-        with:
-          command: "build"
-          args: "--all-features --release"
+      - uses: "actions-rust-lang/setup-rust-toolchain@v1"
+      - shell: "bash"
+        run: |
+          cargo build --all-features --release
 
       - uses: "actions/upload-artifact@v3"
         with:

@@ -10,44 +10,34 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v3"
+      - uses: "actions-rust-lang/setup-rust-toolchain@v1"
+        with:
+          components: "rustfmt, clippy"
       - shell: "bash"
         run: |
           mkdir '.cargo'
           echo '[registries.crates-io]' >> .cargo/config.toml
           echo 'protocol = "sparse"' >> .cargo/config.toml
 
-      - uses: "actions-rs/toolchain@v1"
-        with:
-          toolchain: "stable"
-          profile: "minimal"
-          components: "rustfmt, clippy"
-          override: true
-      - uses: "actions-rs/cargo@v1"
-        with:
-          command: "clippy"
-          args: "--all-features"
-      - uses: "actions-rs/cargo@v1"
-        with:
-          command: "fmt"
-          args: "--all -- --check"
+      - uses: "actions-rust-lang/rustfmt@v1"
+      - shell: "bash"
+        run: |
+          cargo clippy --all-features
 
   test:
     name: "Test"
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v3"
+      - uses: "actions-rust-lang/setup-rust-toolchain@v1"
+        with:
+          components: "rustfmt, clippy"
       - shell: "bash"
         run: |
           mkdir '.cargo'
           echo '[registries.crates-io]' >> .cargo/config.toml
           echo 'protocol = "sparse"' >> .cargo/config.toml
 
-      - uses: "actions-rs/toolchain@v1"
-        with:
-          toolchain: "stable"
-          profile: "minimal"
-          override: true
-      - uses: "actions-rs/cargo@v1"
-        with:
-          command: "test"
-          args: "--all-features"
+      - shell: "bash"
+        run: |
+          cargo test --all-features
