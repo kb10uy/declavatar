@@ -1,6 +1,6 @@
 # アバター定義ファイル
 
-Declavatar のアバター定義ファイルは [KDL](https://kdl.dev) で記述する。基本的な構文についてはそちらを参照のこと。
+* Declavatar のアバター定義ファイルは [KDL](https://kdl.dev) で記述する。基本的な構文についてはそちらを参照のこと。
 
 ```kdl
 version "1.0.0"
@@ -35,5 +35,5 @@ avatar {
 * 直下に定義可能なノードは次のとおり。
     - [parameters](./avatar-parameters.md)
     - [animations](./avatar-animations.md)
-    - [drivers]()
+    - [drivers](./avatar-drivers.md)
     - [menu](./avatar-menu.md)
