@@ -51,7 +51,7 @@ namespace KusakaFactory.Declavatar
             kdl.Append($"    animations {{\n");
             foreach (var mesh in blendShapeMeshes)
             {
-                kdl.Append($"        shape-group \"{mesh.Name}\" {{\n");
+                kdl.Append($"        group \"{mesh.Name}\" {{\n");
                 kdl.Append($"            mesh \"{mesh.Path}\"\n");
                 kdl.Append($"            parameter \"{mesh.Name}\"\n");
                 kdl.Append($"\n");
