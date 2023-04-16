@@ -11,7 +11,10 @@ avatar "avatarname" {
         float "param2"
         float "param3"
         float "param4"
-        bool "param5"
+        bool "param5" save=true
+
+        int "Internal" scope="internal"
+        int "Local" scope="local" save=true
     }
 
     animations {
