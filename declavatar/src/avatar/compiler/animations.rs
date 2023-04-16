@@ -77,7 +77,7 @@ impl Compile<(DeclAnimationGroup, &Vec<Parameter>)> for AvatarCompiler {
         &mut self,
         (group, parameters): (DeclAnimationGroup, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
+        if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
             return Ok(None);
         };
 
@@ -307,7 +307,7 @@ impl Compile<(DeclAnimationSwitch, &Vec<Parameter>)> for AvatarCompiler {
         &mut self,
         (switch, parameters): (DeclAnimationSwitch, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &switch.parameter, &ParameterType::BOOL_TYPE))? {
+        if !self.ensure((parameters, &switch.parameter, &ParameterType::BOOL_TYPE, true))? {
             return Ok(None);
         };
 
@@ -387,7 +387,7 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
         &mut self,
         (puppet, parameters): (DeclPuppet, &Vec<Parameter>),
     ) -> Result<Option<AnimationGroup>> {
-        if !self.ensure((parameters, &puppet.parameter, &ParameterType::FLOAT_TYPE))? {
+        if !self.ensure((parameters, &puppet.parameter, &ParameterType::FLOAT_TYPE, true))? {
             return Ok(None);
         };
 

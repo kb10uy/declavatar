@@ -155,7 +155,12 @@ impl
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
+                    if !self.ensure((
+                        parameters,
+                        &group.parameter,
+                        &ParameterType::INT_TYPE,
+                        true,
+                    ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
                         ));
@@ -184,7 +189,12 @@ impl
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::BOOL_TYPE))? {
+                    if !self.ensure((
+                        parameters,
+                        &group.parameter,
+                        &ParameterType::BOOL_TYPE,
+                        true,
+                    ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer bool parameter"
                         ));
@@ -195,13 +205,13 @@ impl
                 }
             }
             DeclBooleanControlTarget::IntParameter { name, value } => {
-                if !self.ensure((parameters, &name, &ParameterType::INT_TYPE))? {
+                if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Int(value))
             }
             DeclBooleanControlTarget::BoolParameter { name, value } => {
-                if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE))? {
+                if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE, true))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Bool(value))
@@ -225,7 +235,7 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
     ) -> Result<Option<MenuItem>> {
         match decl_puppet.axes {
             DeclPuppetAxes::Radial(param) => {
-                if !self.ensure((parameters, &param, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &param, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
 
@@ -238,10 +248,10 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 horizontal,
                 vertical,
             } => {
-                if !self.ensure((parameters, &horizontal.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &horizontal.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &vertical.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &vertical.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
 
@@ -265,16 +275,16 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 up,
                 down,
             } => {
-                if !self.ensure((parameters, &left.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &left.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &right.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &right.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &up.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &up.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &down.0, &ParameterType::FLOAT_TYPE))? {
+                if !self.ensure((parameters, &down.0, &ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
 

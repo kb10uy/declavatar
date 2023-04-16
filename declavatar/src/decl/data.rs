@@ -23,8 +23,8 @@ pub struct Parameters {
 #[derive(Debug, Clone)]
 pub struct Parameter {
     pub ty: ParameterType,
+    pub scope: Option<ParameterScope>,
     pub save: Option<bool>,
-    pub local: Option<bool>,
     pub name: String,
 }
 
@@ -33,6 +33,13 @@ pub enum ParameterType {
     Int(Option<u8>),
     Float(Option<f64>),
     Bool(Option<bool>),
+}
+
+#[derive(Debug, Clone)]
+pub enum ParameterScope {
+    Internal,
+    Local,
+    Synced,
 }
 
 #[derive(Debug, Clone)]

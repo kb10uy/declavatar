@@ -2,7 +2,7 @@ use crate::{
     compiler::Compile,
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
-        data::{Parameter, ParameterType, Parameters},
+        data::{Parameter, ParameterScope, ParameterType, Parameters},
         error::{DeclError, DeclErrorKind, Result},
     },
 };
@@ -13,6 +13,9 @@ pub const NODE_NAME_PARAMETERS: &str = "parameters";
 pub const NODE_NAME_INT: &str = "int";
 pub const NODE_NAME_FLOAT: &str = "float";
 pub const NODE_NAME_BOOL: &str = "bool";
+pub const SCOPE_INTERNAL: &str = "internal";
+pub const SCOPE_LOCAL: &str = "local";
+pub const SCOPE_SYNCED: &str = "synced";
 
 pub(super) struct ForParameters;
 impl Compile<(ForParameters, &KdlNode)> for DeclCompiler {
@@ -51,7 +54,19 @@ impl Compile<(ForParameter, &KdlNode)> for DeclCompiler {
 
         let parameter_name = entries.get_argument(0, "name")?;
         let save = entries.try_get_property("save")?;
-        let local = entries.try_get_property("local")?;
+        let scope = match entries.try_get_property::<&str>("scope")? {
+            Some(SCOPE_INTERNAL) => Some(ParameterScope::Internal),
+            Some(SCOPE_LOCAL) => Some(ParameterScope::Local),
+            Some(SCOPE_SYNCED) => Some(ParameterScope::Synced),
+            None => None,
+
+            Some(_) => {
+                return Err(DeclError::new(
+                    node.span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ))
+            }
+        };
         let ty = match name {
             NODE_NAME_INT => {
                 let default = entries.try_get_property("default")?.map(|x: i64| x as u8);
@@ -71,7 +86,7 @@ impl Compile<(ForParameter, &KdlNode)> for DeclCompiler {
         Ok(Parameter {
             ty,
             save,
-            local,
+            scope,
             name: parameter_name,
         })
     }

@@ -70,7 +70,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
+                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
                         ));
@@ -93,19 +93,19 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     Driver::SetInt(group.parameter.clone(), option_index as u8)
                 }
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE))? {
+                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE))? {
+                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetFloat(name, value)
                 }
                 DeclDriveTarget::BoolParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE))? {
+                    if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetBool(name, value)
@@ -113,13 +113,13 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
             },
             DeclDrive::Add(dt) => match dt {
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE))? {
+                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE))? {
+                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddFloat(name, value)
@@ -140,7 +140,7 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE))? {
+                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
                         ));

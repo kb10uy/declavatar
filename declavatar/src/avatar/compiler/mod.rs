@@ -5,7 +5,7 @@ mod parameters;
 
 use crate::{
     avatar::{
-        data::{Avatar, Parameter, ParameterType},
+        data::{Avatar, Parameter, ParameterScope, ParameterType},
         error::{AvatarError, Result},
     },
     compiler::{Compile, Compiler, ErrorStackCompiler, Validate},
@@ -41,18 +41,22 @@ impl Compile<DeclAvatar> for AvatarCompiler {
     }
 }
 
-impl Validate<(&Vec<Parameter>, &str, &ParameterType)> for AvatarCompiler {
+impl Validate<(&Vec<Parameter>, &str, &ParameterType, bool)> for AvatarCompiler {
     fn validate(
         &mut self,
-        (parameters, name, ty): (&Vec<Parameter>, &str, &ParameterType),
+        (parameters, name, ty, should_exposed): (&Vec<Parameter>, &str, &ParameterType, bool),
     ) -> Result<bool> {
         let parameter = match parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
             None => {
-                self.error(format!("parameter '{}' not found", name));
+                self.error(format!("parameter '{name}' not found"));
                 return Ok(false);
             }
         };
+        if parameter.scope == ParameterScope::Internal && should_exposed {
+            self.error(format!("parameter '{name}' must not internal"));
+            return Ok(false);
+        }
         match (&parameter.value_type, ty) {
             (ParameterType::Int(_), ParameterType::Int(_)) => Ok(true),
             (ParameterType::Float(_), ParameterType::Float(_)) => Ok(true),

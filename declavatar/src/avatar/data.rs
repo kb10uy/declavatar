@@ -13,7 +13,7 @@ pub struct Avatar {
 pub struct Parameter {
     pub name: String,
     pub value_type: ParameterType,
-    pub sync_type: ParameterSync,
+    pub scope: ParameterScope,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -40,8 +40,9 @@ impl ParameterType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(tag = "type", content = "save")]
-pub enum ParameterSync {
-    Local,
+pub enum ParameterScope {
+    Internal,
+    Local(bool),
     Synced(bool),
 }
 

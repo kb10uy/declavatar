@@ -1,11 +1,14 @@
 use crate::{
     avatar::{
         compiler::AvatarCompiler,
-        data::{Parameter, ParameterSync, ParameterType},
+        data::{Parameter, ParameterScope, ParameterType},
         error::Result,
     },
     compiler::{Compile, Compiler},
-    decl::data::{ParameterType as DeclParameterType, Parameters as DeclParameters},
+    decl::data::{
+        ParameterScope as DeclParameterScope, ParameterType as DeclParameterType,
+        Parameters as DeclParameters,
+    },
 };
 
 impl Compile<Vec<DeclParameters>> for AvatarCompiler {
@@ -22,13 +25,20 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
                 DeclParameterType::Float(dv) => ParameterType::Float(dv.unwrap_or(0.0)),
                 DeclParameterType::Bool(dv) => ParameterType::Bool(dv.unwrap_or(false)),
             };
-            let sync_type = match (decl_parameter.local, decl_parameter.save) {
-                (Some(true), None | Some(false)) => ParameterSync::Local,
-                (None | Some(false), None) => ParameterSync::Synced(false),
-                (None | Some(false), Some(save)) => ParameterSync::Synced(save),
-                (Some(true), Some(true)) => {
+            let scope = match (decl_parameter.scope, decl_parameter.save) {
+                (Some(DeclParameterScope::Internal), None | Some(false)) => {
+                    ParameterScope::Internal
+                }
+                (Some(DeclParameterScope::Local), None) => ParameterScope::Local(false),
+                (Some(DeclParameterScope::Local), Some(saved)) => ParameterScope::Local(saved),
+                (None | Some(DeclParameterScope::Synced), None) => ParameterScope::Synced(false),
+                (None | Some(DeclParameterScope::Synced), Some(saved)) => {
+                    ParameterScope::Synced(saved)
+                }
+
+                (Some(DeclParameterScope::Internal), Some(true)) => {
                     self.error(format!(
-                        "local parameter '{}' cannot be saved",
+                        "internal parameter '{}' cannot be saved",
                         decl_parameter.name
                     ));
                     continue;
@@ -36,7 +46,7 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
             };
 
             if let Some(defined) = parameters.iter().find(|p| p.name == decl_parameter.name) {
-                if defined.value_type != value_type || defined.sync_type != sync_type {
+                if defined.value_type != value_type || defined.scope != scope {
                     self.error(format!(
                         "parameter '{}' have incompatible declarations",
                         decl_parameter.name
@@ -48,7 +58,7 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
             parameters.push(Parameter {
                 name,
                 value_type,
-                sync_type,
+                scope,
             });
         }
 
