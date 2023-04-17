@@ -116,26 +116,38 @@ impl Compile<(ForBooleanControl, &KdlNode)> for DeclCompiler {
 
         let item_name = entries.get_argument(0, "name")?;
         let target_group = entries.try_get_property("group")?;
+        let target_switch = entries.try_get_property("switch")?;
         let target_parameter = entries.try_get_property("parameter")?;
-        let target = match (target_group, target_parameter) {
-            (Some(group), None) => {
+
+        let target = match (target_group, target_switch, target_parameter) {
+            (Some(group_name), None, None) => {
                 let option = entries.try_get_property("option")?;
                 BooleanControlTarget::Group {
-                    name: group,
+                    name: group_name,
                     option,
                 }
             }
-            (None, Some(name)) => {
+            (None, Some(switch_name), None) => {
+                let invert = entries.try_get_property("invert")?;
+                BooleanControlTarget::Switch {
+                    name: switch_name,
+                    invert,
+                }
+            }
+            (None, None, Some(parameter_name)) => {
                 let value: &KdlValue = entries.get_property("value")?;
                 let int_value = value.as_i64();
                 let bool_value = value.as_bool();
                 if let Some(value) = int_value {
                     BooleanControlTarget::IntParameter {
-                        name,
+                        name: parameter_name,
                         value: value as u8,
                     }
                 } else if let Some(value) = bool_value {
-                    BooleanControlTarget::BoolParameter { name, value }
+                    BooleanControlTarget::BoolParameter {
+                        name: parameter_name,
+                        value,
+                    }
                 } else {
                     let entry_span = node.get("value").expect("must have entry").span();
                     return Err(DeclError::new(
@@ -144,6 +156,7 @@ impl Compile<(ForBooleanControl, &KdlNode)> for DeclCompiler {
                     ));
                 }
             }
+
             _ => {
                 return Err(DeclError::new(
                     node.name().span(),

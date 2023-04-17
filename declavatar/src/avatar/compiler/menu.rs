@@ -150,59 +150,62 @@ impl
                 name: group_name,
                 option,
             } => {
-                if let Some(option_name) = option {
-                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
-                        self.error(format!("animation group '{group_name}' not found"));
-                        return Ok(None);
-                    };
-                    if !self.ensure((
-                        parameters,
-                        &group.parameter,
-                        &ParameterType::INT_TYPE,
-                        true,
-                    ))? {
-                        self.error(format!(
-                            "animation group '{group_name}' should refer int parameter"
-                        ));
-                        return Ok(None);
-                    };
-                    let option_index = match &group.content {
-                        AnimationGroupContent::Group { options, .. } => {
-                            let Some(option) = options.iter().find(|o| o.name == option_name) else {
-                                self.error(format!("option '{option_name}' not found in '{group_name}'"));
-                                return Ok(None);
-                            };
-                            option.order
-                        }
-                        _ => {
-                            self.error("parameter driver with group is valid only for groups but not switches".into());
+                let Some(option_name) = option else {
+                    self.error(format!("option value must be specified for group '{group_name}'"));
+                    return Ok(None);
+                };
+                let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
+                    self.error(format!("animation group '{group_name}' not found"));
+                    return Ok(None);
+                };
+                if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
+                    self.error(format!(
+                        "animation group '{group_name}' should refer int parameter"
+                    ));
+                    return Ok(None);
+                };
+                let option_index = match &group.content {
+                    AnimationGroupContent::Group { options, .. } => {
+                        let Some(option) = options.iter().find(|o| o.name == option_name) else {
+                            self.error(format!("option '{option_name}' not found in '{group_name}'"));
                             return Ok(None);
-                        }
-                    };
-
-                    (
-                        group.parameter.clone(),
-                        ParameterType::Int(option_index as u8),
-                    )
-                } else {
-                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
-                        self.error(format!("animation group '{group_name}' not found"));
+                        };
+                        option.order
+                    }
+                    _ => {
+                        self.error(
+                            "parameter driver with group is valid only for groups but not switches"
+                                .into(),
+                        );
                         return Ok(None);
-                    };
-                    if !self.ensure((
-                        parameters,
-                        &group.parameter,
-                        &ParameterType::BOOL_TYPE,
-                        true,
-                    ))? {
-                        self.error(format!(
-                            "animation group '{group_name}' should refer bool parameter"
-                        ));
-                        return Ok(None);
-                    };
+                    }
+                };
+                (group_name, ParameterType::Int(option_index as u8))
+            }
+            DeclBooleanControlTarget::Switch {
+                name: switch_name,
+                invert,
+            } => {
+                let Some(switch) = animation_groups.iter().find(|ag| ag.name == switch_name) else {
+                    self.error(format!("animation switch '{switch_name}' not found"));
+                    return Ok(None);
+                };
+                if !self.ensure((
+                    parameters,
+                    &switch.parameter,
+                    &ParameterType::BOOL_TYPE,
+                    true,
+                ))? {
+                    self.error(format!(
+                        "animation group '{switch_name}' should refer bool parameter"
+                    ));
+                    return Ok(None);
+                };
 
-                    (group.parameter.clone(), ParameterType::Bool(true))
-                }
+                (
+                    switch.parameter.clone(),
+                    ParameterType::Bool(!invert.unwrap_or(false)),
+                )
             }
             DeclBooleanControlTarget::IntParameter { name, value } => {
                 if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {

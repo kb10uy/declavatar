@@ -203,6 +203,10 @@ pub enum BooleanControlTarget {
         name: String,
         option: Option<String>,
     },
+    Switch {
+        name: String,
+        invert: Option<bool>,
+    },
     IntParameter {
         name: String,
         value: u8,
