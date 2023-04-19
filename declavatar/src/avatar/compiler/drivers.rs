@@ -70,7 +70,12 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((
+                        parameters,
+                        &group.parameter,
+                        &ParameterType::INT_TYPE,
+                        true,
+                    ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
                         ));
@@ -140,7 +145,12 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((
+                        parameters,
+                        &group.parameter,
+                        &ParameterType::INT_TYPE,
+                        true,
+                    ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
                         ));
