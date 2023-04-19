@@ -20,7 +20,7 @@ namespace KusakaFactory.Declavatar
     {
         public string Name { get; set; }
         public ParameterType ValueType { get; set; }
-        public ParameterSync SyncType { get; set; }
+        public ParameterScope Scope { get; set; }
     }
 
     public sealed class ParameterType
@@ -29,7 +29,7 @@ namespace KusakaFactory.Declavatar
         public object Default { get; set; }
     }
 
-    public sealed class ParameterSync
+    public sealed class ParameterScope
     {
         public string Type { get; set; }
         public bool? Save { get; set; }
@@ -399,6 +399,19 @@ namespace KusakaFactory.Declavatar
                 case Target.Object o: return $"o://{o.Name}";
                 default: throw new ArgumentException("invalid target type");
             }
+        }
+
+        public static VRCExpressionParameters.Parameter ConstructParameter(this Parameter definition)
+        {
+            if (definition.Scope.Type == "Internal") return null;
+
+            var parameter = new VRCExpressionParameters.Parameter();
+            parameter.name = definition.Name;
+            parameter.saved = definition.Scope.Save ?? false;
+            parameter.networkSynced = definition.Scope.Type == "Synced";
+            parameter.valueType = definition.ValueType.ConvertToVRCParameterType();
+            parameter.defaultValue = definition.ValueType.ConvertToVRCParameterValue();
+            return parameter;
         }
 
         public static VRCExpressionParameters.ValueType ConvertToVRCParameterType(this ParameterType value)

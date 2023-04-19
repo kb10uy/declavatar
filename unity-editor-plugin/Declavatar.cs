@@ -99,14 +99,8 @@ namespace KusakaFactory.Declavatar
             var parameters = new List<VRCExpressionParameters.Parameter>();
             foreach (var definition in parameterDefinitions)
             {
-                if (definition.SyncType.Type == "Local") continue;
-
-                var parameter = new VRCExpressionParameters.Parameter();
-                parameter.name = definition.Name;
-                parameter.saved = definition.SyncType.Save ?? false;
-                parameter.valueType = definition.ValueType.ConvertToVRCParameterType();
-                parameter.defaultValue = definition.ValueType.ConvertToVRCParameterValue();
-                parameters.Add(parameter);
+                var parameter = definition.ConstructParameter();
+                if (parameter != null) parameters.Add(parameter);
             }
 
             var parametersAsset = ScriptableObject.CreateInstance<VRCExpressionParameters>();
@@ -367,34 +361,37 @@ namespace KusakaFactory.Declavatar
             var mouthTrackingState = mouthPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Mouth);
             var mouthAnimationState = mouthPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Mouth);
 
-            var (firstName, firstIsInt) = mouthPreventions[0];
-            AacFlTransitionContinuation mouthTrackingConditon;
-            AacFlTransitionContinuation mouthAnimationCondition;
-            if (firstIsInt)
+            if (mouthPreventions.Count > 0)
             {
-                var firstParameter = mouthPreventionLayer.IntParameter(firstName);
-                mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsEqualTo(0));
-                mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsNotEqualTo(0));
-            }
-            else
-            {
-                var firstParameter = mouthPreventionLayer.BoolParameter(firstName);
-                mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsFalse());
-                mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsTrue());
-            }
-            foreach (var (name, isInt) in mouthPreventions.Skip(1))
-            {
-                if (isInt)
+                var (firstName, firstIsInt) = mouthPreventions[0];
+                AacFlTransitionContinuation mouthTrackingConditon;
+                AacFlTransitionContinuation mouthAnimationCondition;
+                if (firstIsInt)
                 {
-                    var parameter = mouthPreventionLayer.IntParameter(name);
-                    mouthTrackingConditon.And(parameter.IsEqualTo(0));
-                    mouthAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                    var firstParameter = mouthPreventionLayer.IntParameter(firstName);
+                    mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsEqualTo(0));
+                    mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsNotEqualTo(0));
                 }
                 else
                 {
-                    var parameter = mouthPreventionLayer.BoolParameter(name);
-                    mouthTrackingConditon.And(parameter.IsFalse());
-                    mouthAnimationCondition.Or().When(parameter.IsTrue());
+                    var firstParameter = mouthPreventionLayer.BoolParameter(firstName);
+                    mouthTrackingConditon = mouthAnimationState.TransitionsTo(mouthTrackingState).When(firstParameter.IsFalse());
+                    mouthAnimationCondition = mouthTrackingState.TransitionsTo(mouthAnimationState).When(firstParameter.IsTrue());
+                }
+                foreach (var (name, isInt) in mouthPreventions.Skip(1))
+                {
+                    if (isInt)
+                    {
+                        var parameter = mouthPreventionLayer.IntParameter(name);
+                        mouthTrackingConditon.And(parameter.IsEqualTo(0));
+                        mouthAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                    }
+                    else
+                    {
+                        var parameter = mouthPreventionLayer.BoolParameter(name);
+                        mouthTrackingConditon.And(parameter.IsFalse());
+                        mouthAnimationCondition.Or().When(parameter.IsTrue());
+                    }
                 }
             }
 
@@ -403,34 +400,37 @@ namespace KusakaFactory.Declavatar
             var eyelidsTrackingState = eyelidsPreventionLayer.NewState("Tracking").TrackingTracks(AacFlState.TrackingElement.Eyes);
             var eyelidsAnimationState = eyelidsPreventionLayer.NewState("Animation").TrackingAnimates(AacFlState.TrackingElement.Eyes);
 
-            (firstName, firstIsInt) = eyelidsPreventions[0];
-            AacFlTransitionContinuation eyelidsTrackingConditon;
-            AacFlTransitionContinuation eyelidsAnimationCondition;
-            if (firstIsInt)
+            if (eyelidsPreventions.Count > 0)
             {
-                var firstParameter = eyelidsPreventionLayer.IntParameter(firstName);
-                eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsEqualTo(0));
-                eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsNotEqualTo(0));
-            }
-            else
-            {
-                var firstParameter = eyelidsPreventionLayer.BoolParameter(firstName);
-                eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsFalse());
-                eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsTrue());
-            }
-            foreach (var (name, isInt) in eyelidsPreventions.Skip(1))
-            {
-                if (isInt)
+                var (firstName, firstIsInt) = eyelidsPreventions[0];
+                AacFlTransitionContinuation eyelidsTrackingConditon;
+                AacFlTransitionContinuation eyelidsAnimationCondition;
+                if (firstIsInt)
                 {
-                    var parameter = eyelidsPreventionLayer.IntParameter(name);
-                    eyelidsTrackingConditon.And(parameter.IsEqualTo(0));
-                    eyelidsAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                    var firstParameter = eyelidsPreventionLayer.IntParameter(firstName);
+                    eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsEqualTo(0));
+                    eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsNotEqualTo(0));
                 }
                 else
                 {
-                    var parameter = eyelidsPreventionLayer.BoolParameter(name);
-                    eyelidsTrackingConditon.And(parameter.IsFalse());
-                    eyelidsAnimationCondition.Or().When(parameter.IsTrue());
+                    var firstParameter = eyelidsPreventionLayer.BoolParameter(firstName);
+                    eyelidsTrackingConditon = eyelidsAnimationState.TransitionsTo(eyelidsTrackingState).When(firstParameter.IsFalse());
+                    eyelidsAnimationCondition = eyelidsTrackingState.TransitionsTo(eyelidsAnimationState).When(firstParameter.IsTrue());
+                }
+                foreach (var (name, isInt) in eyelidsPreventions.Skip(1))
+                {
+                    if (isInt)
+                    {
+                        var parameter = eyelidsPreventionLayer.IntParameter(name);
+                        eyelidsTrackingConditon.And(parameter.IsEqualTo(0));
+                        eyelidsAnimationCondition.Or().When(parameter.IsNotEqualTo(0));
+                    }
+                    else
+                    {
+                        var parameter = eyelidsPreventionLayer.BoolParameter(name);
+                        eyelidsTrackingConditon.And(parameter.IsFalse());
+                        eyelidsAnimationCondition.Or().When(parameter.IsTrue());
+                    }
                 }
             }
         }
