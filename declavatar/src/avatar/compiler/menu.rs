@@ -150,10 +150,6 @@ impl
                 name: group_name,
                 option,
             } => {
-                let Some(option_name) = option else {
-                    self.error(format!("option value must be specified for group '{group_name}'"));
-                    return Ok(None);
-                };
                 let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
                     self.error(format!("animation group '{group_name}' not found"));
                     return Ok(None);
@@ -164,6 +160,8 @@ impl
                     ));
                     return Ok(None);
                 };
+
+                let option_name = option.unwrap_or_else(|| group_name.clone());
                 let option_index = match &group.content {
                     AnimationGroupContent::Group { options, .. } => {
                         let Some(option) = options.iter().find(|o| o.name == option_name) else {
