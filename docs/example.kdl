@@ -75,8 +75,14 @@ avatar "avatarname" {
             object "Cap" enabled=true disabled=false
         }
 
+        // Extended Feature: Puppet -------------------------------------------
+
+        parameters {
+            float "long-momiage"
+        }
+
         puppet "ロングもみあげ" {
-            parameter "param1"
+            parameter "long-momiage"
             mesh "Hair"
 
             keyframe 0.0 {
@@ -91,6 +97,26 @@ avatar "avatarname" {
                 shape "もみあげ" value=1.0
                 shape "もみあげ2" value=1.0
             }
+        }
+
+        // Extended Feature: Material Swap ------------------------------------
+
+        parameters {
+            bool "deluxe"
+        }
+
+        assets {
+            material "jacket0-normal"
+            material "jacket0-deluxe"
+            material "jacket1-common"
+        }
+
+        switch "デラックス" {
+            parameter "deluxe"
+            mesh "Jacket"
+
+            material slot=0 disabled=(asset)"jacket0-normal" enabled=(asset)"jacket0-deluxe"
+            material slot=1 disabled=(asset)"jacket1-common" enabled=(asset)"jacket1-common"
         }
     }
 
