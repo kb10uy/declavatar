@@ -1,6 +1,9 @@
 use semver::Version;
 
 #[derive(Debug, Clone)]
+pub struct AssetKey(pub String);
+
+#[derive(Debug, Clone)]
 pub struct Document {
     pub version: Version,
     pub avatar: Avatar,
