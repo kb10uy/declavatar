@@ -103,12 +103,17 @@ avatar "avatarname" {
 
         parameters {
             bool "deluxe"
+            int "color"
         }
 
         assets {
             material "jacket0-normal"
             material "jacket0-deluxe"
             material "jacket1-common"
+
+            material "hair-red"
+            material "hair-green"
+            material "hair-blue"
         }
 
         switch "デラックス" {
@@ -117,6 +122,20 @@ avatar "avatarname" {
 
             material slot=0 disabled=(asset)"jacket0-normal" enabled=(asset)"jacket0-deluxe"
             material slot=1 disabled=(asset)"jacket1-common" enabled=(asset)"jacket1-common"
+        }
+
+        group "色相環" {
+            parameter "color"
+            mesh "Hair"
+
+            default {
+                material (asset)"hair-red"
+            }
+
+            option "緑" material="hair-green"
+            option "青" {
+                material (asset)"hair-blue"
+            }
         }
     }
 
