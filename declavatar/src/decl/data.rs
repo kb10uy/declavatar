@@ -1,9 +1,6 @@
 use semver::Version;
 
 #[derive(Debug, Clone)]
-pub struct AssetKey(pub String);
-
-#[derive(Debug, Clone)]
 pub struct Document {
     pub version: Version,
     pub avatar: Avatar,
@@ -115,6 +112,11 @@ pub enum Target {
     Object {
         object: String,
         value: Option<bool>,
+    },
+    Material {
+        slot: usize,
+        material: Option<AssetKey>,
+        mesh: Option<String>,
     },
     Indeterminate {
         label: String,

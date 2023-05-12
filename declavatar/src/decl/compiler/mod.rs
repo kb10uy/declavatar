@@ -6,10 +6,7 @@ mod parameters;
 
 use crate::{
     compiler::ErrorStackCompiler,
-    decl::{
-        data::AssetKey,
-        error::{DeclError, DeclErrorKind, Result},
-    },
+    decl::error::{DeclError, DeclErrorKind, Result},
 };
 
 use std::collections::HashMap;
@@ -166,21 +163,5 @@ impl<'a> FromKdlEntry<'a> for bool {
             .value()
             .as_bool()
             .ok_or_else(|| DeclError::new(entry.span(), DeclErrorKind::IncorrectType("boolean")))
-    }
-}
-
-impl<'a> FromKdlEntry<'a> for AssetKey {
-    fn from_kdl_entry(entry: &'a KdlEntry) -> Result<AssetKey> {
-        match entry.ty() {
-            Some(id) if id.value() == "asset" => entry
-                .value()
-                .as_string()
-                .map(|s| AssetKey(s.to_string()))
-                .ok_or_else(|| DeclError::new(entry.span(), DeclErrorKind::IncorrectType("asset"))),
-            _ => Err(DeclError::new(
-                entry.span(),
-                DeclErrorKind::IncorrectType("asset"),
-            )),
-        }
     }
 }

@@ -23,6 +23,7 @@ const NODE_NAME_DEFAULT: &str = "default";
 const NODE_NAME_OPTION: &str = "option";
 const NODE_NAME_SHAPE: &str = "shape";
 const NODE_NAME_OBJECT: &str = "object";
+const NODE_NAME_MATERIAL: &str = "material";
 const NODE_NAME_KEYFRAME: &str = "keyframe";
 
 pub(super) struct ForAnimations;
@@ -205,6 +206,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                         let value = child_entries.try_get_property("value")?;
                         Target::Object { object, value }
                     }
+                    NODE_NAME_MATERIAL => {}
                     _ => {
                         return Err(DeclError::new(
                             child.name().span(),
