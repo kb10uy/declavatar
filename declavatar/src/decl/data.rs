@@ -1,3 +1,9 @@
+use crate::decl::{
+    compiler::FromKdlEntry,
+    error::{DeclError, DeclErrorKind, Result},
+};
+
+use kdl::{KdlEntry, KdlValue};
 use semver::Version;
 
 #[derive(Debug, Clone)]
@@ -241,4 +247,49 @@ pub enum PuppetAxes {
         up: (String, String),
         down: (String, String),
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum AssetType {
+    Indeterminate,
+    Material,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssetKey {
+    pub ty: AssetType,
+    pub key: String,
+}
+
+impl<'a> FromKdlEntry<'a> for AssetKey {
+    fn from_kdl_entry(entry: &'a KdlEntry) -> Result<AssetKey> {
+        let ty_ident = entry
+            .ty()
+            .ok_or(DeclError::new(
+                entry.span(),
+                DeclErrorKind::UnannotatedValue,
+            ))?
+            .value();
+        let ty = match ty_ident {
+            "material" => AssetType::Material,
+            _ => {
+                return Err(DeclError::new(
+                    entry.span(),
+                    DeclErrorKind::InvalidAnnotation,
+                ))
+            }
+        };
+        let key = match entry.value() {
+            KdlValue::String(s) => s.clone(),
+            KdlValue::RawString(s) => s.clone(),
+            _ => {
+                return Err(DeclError::new(
+                    entry.span(),
+                    DeclErrorKind::IncorrectType("string"),
+                ))
+            }
+        };
+
+        Ok(AssetKey { ty, key })
+    }
 }

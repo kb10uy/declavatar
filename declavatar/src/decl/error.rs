@@ -46,6 +46,14 @@ pub enum DeclErrorKind {
     #[error("this node must not have children")]
     MustNotHaveChildren,
 
+    /// This value must be typed via `(type)` format.
+    #[error("this value must be annoatated")]
+    UnannotatedValue,
+
+    /// Invalid type specified.
+    #[error("specified annotation is invalid")]
+    InvalidAnnotation,
+
     /// Invalid name node detected.
     #[error("the node is invalid")]
     InvalidNodeDetected,
