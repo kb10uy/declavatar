@@ -206,7 +206,9 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                         let value = child_entries.try_get_property("value")?;
                         Target::Object { object, value }
                     }
-                    NODE_NAME_MATERIAL => {}
+                    NODE_NAME_MATERIAL => {
+                        unimplemented!()
+                    }
                     _ => {
                         return Err(DeclError::new(
                             child.name().span(),
