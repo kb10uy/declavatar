@@ -121,7 +121,7 @@ pub enum Target {
     },
     Material {
         slot: usize,
-        material: Option<AssetKey>,
+        value: Option<AssetKey>,
         mesh: Option<String>,
     },
     Indeterminate {
