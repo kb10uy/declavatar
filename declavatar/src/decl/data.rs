@@ -255,14 +255,24 @@ pub enum PuppetAxes {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AssetType {
     Indeterminate,
     Material,
     Animation,
 }
 
-#[derive(Debug, Clone)]
+impl AssetType {
+    pub fn type_name(self) -> &'static str {
+        match self {
+            AssetType::Indeterminate => "",
+            AssetType::Material => "material",
+            AssetType::Animation => "animation",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetKey {
     pub ty: AssetType,
     pub key: String,

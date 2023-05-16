@@ -6,11 +6,13 @@ mod parameters;
 
 use crate::{
     avatar::{
-        data::{AnimationGroup, Asset, Avatar, Parameter, ParameterScope, ParameterType},
+        data::{
+            AnimationGroup, Asset, AssetType, Avatar, Parameter, ParameterScope, ParameterType,
+        },
         error::{AvatarError, Result},
     },
     compiler::{Compile, Compiler, ErrorStackCompiler, Validate},
-    decl::data::Avatar as DeclAvatar,
+    decl::data::{AssetKey as DeclAssetKey, AssetType as DeclAssetType, Avatar as DeclAvatar},
 };
 
 pub type AvatarCompiler = ErrorStackCompiler<AvatarError>;
@@ -63,10 +65,10 @@ impl Compile<DeclAvatar> for AvatarCompiler {
     }
 }
 
-impl Validate<(&Vec<Parameter>, &str, &ParameterType, bool)> for AvatarCompiler {
+impl Validate<(&Vec<Parameter>, &str, ParameterType, bool)> for AvatarCompiler {
     fn validate(
         &mut self,
-        (parameters, name, ty, should_exposed): (&Vec<Parameter>, &str, &ParameterType, bool),
+        (parameters, name, ty, should_exposed): (&Vec<Parameter>, &str, ParameterType, bool),
     ) -> Result<bool> {
         let parameter = match parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
@@ -89,6 +91,37 @@ impl Validate<(&Vec<Parameter>, &str, &ParameterType, bool)> for AvatarCompiler 
                     name,
                     ty.type_name()
                 ));
+                Ok(false)
+            }
+        }
+    }
+}
+
+impl Validate<(&Vec<Asset>, &DeclAssetKey, DeclAssetType)> for AvatarCompiler {
+    fn validate(
+        &mut self,
+        (assets, asset_key, target_type): (&Vec<Asset>, &DeclAssetKey, DeclAssetType),
+    ) -> Result<bool> {
+        let asset = match assets.iter().find(|a| a.key == asset_key.key) {
+            Some(a) => a,
+            None => {
+                self.error(format!("asset '{}' not found", asset_key.key));
+                return Ok(false);
+            }
+        };
+        if asset_key.ty != target_type {
+            self.error(format!(
+                "asset '{}' must be {}",
+                asset_key.key,
+                target_type.type_name()
+            ));
+            return Ok(false);
+        }
+        match (asset.asset_type, target_type) {
+            (AssetType::Material, DeclAssetType::Material) => Ok(true),
+            (AssetType::Animation, DeclAssetType::Animation) => Ok(true),
+            _ => {
+                self.error(format!("asset '{}' has wrong type", asset_key.key));
                 Ok(false)
             }
         }

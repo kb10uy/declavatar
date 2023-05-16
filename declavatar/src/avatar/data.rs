@@ -102,6 +102,7 @@ pub struct GroupOption {
 pub enum Target {
     Shape(ShapeTarget),
     Object(ObjectTarget),
+    Material(MaterialTarget),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -115,6 +116,13 @@ pub struct ShapeTarget {
 pub struct ObjectTarget {
     pub name: String,
     pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MaterialTarget {
+    pub mesh: String,
+    pub slot: usize,
+    pub asset_key: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -210,20 +218,22 @@ impl Target {
         match self {
             Target::Shape(ShapeTarget { mesh, name, .. }) => format!("s-{mesh}-{name}"),
             Target::Object(ObjectTarget { name, .. }) => format!("o-{name}"),
+            Target::Material(MaterialTarget { mesh, slot, .. }) => format!("m-{mesh}-{slot}"),
         }
     }
 
-    pub fn clone_as_disabled(&self) -> Target {
+    pub fn clone_as_disabled(&self) -> Option<Target> {
         match self {
-            Target::Shape(ShapeTarget { mesh, name, .. }) => Target::Shape(ShapeTarget {
+            Target::Shape(ShapeTarget { mesh, name, .. }) => Some(Target::Shape(ShapeTarget {
                 mesh: mesh.clone(),
                 name: name.clone(),
                 value: 0.0,
-            }),
-            Target::Object(ObjectTarget { name, .. }) => Target::Object(ObjectTarget {
+            })),
+            Target::Object(ObjectTarget { name, .. }) => Some(Target::Object(ObjectTarget {
                 name: name.clone(),
                 enabled: false,
-            }),
+            })),
+            Target::Material(_) => None,
         }
     }
 }

@@ -65,8 +65,8 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                     };
                     if !self.ensure((
                         parameters,
-                        &group.parameter,
-                        &ParameterType::INT_TYPE,
+                        group.parameter.as_str(),
+                        ParameterType::INT_TYPE,
                         true,
                     ))? {
                         self.error(format!(
@@ -91,19 +91,19 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                     Driver::SetInt(group.parameter.clone(), option_index as u8)
                 }
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetFloat(name, value)
                 }
                 DeclDriveTarget::BoolParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetBool(name, value)
@@ -111,13 +111,13 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
             },
             DeclDrive::Add(dt) => match dt {
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddFloat(name, value)
@@ -140,8 +140,8 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                     };
                     if !self.ensure((
                         parameters,
-                        &group.parameter,
-                        &ParameterType::INT_TYPE,
+                        group.parameter.as_str(),
+                        ParameterType::INT_TYPE,
                         true,
                     ))? {
                         self.error(format!(
