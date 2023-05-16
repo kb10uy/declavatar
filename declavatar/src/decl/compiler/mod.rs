@@ -1,4 +1,5 @@
 mod animations;
+mod assets;
 mod document;
 mod drivers;
 mod menu;

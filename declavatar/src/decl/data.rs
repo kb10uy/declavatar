@@ -16,6 +16,7 @@ pub struct Document {
 pub struct Avatar {
     pub name: String,
     pub parameters_blocks: Vec<Parameters>,
+    pub assets_blocks: Vec<Assets>,
     pub animations_blocks: Vec<Animations>,
     pub drivers_blocks: Vec<Drivers>,
     pub menu_blocks: Vec<Menu>,
@@ -24,6 +25,11 @@ pub struct Avatar {
 #[derive(Debug, Clone)]
 pub struct Parameters {
     pub parameters: Vec<Parameter>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Assets {
+    pub assets: Vec<AssetKey>,
 }
 
 #[derive(Debug, Clone)]
@@ -253,6 +259,7 @@ pub enum PuppetAxes {
 pub enum AssetType {
     Indeterminate,
     Material,
+    Animation,
 }
 
 #[derive(Debug, Clone)]
@@ -272,6 +279,7 @@ impl<'a> FromKdlEntry<'a> for AssetKey {
             .value();
         let ty = match ty_ident {
             "material" => AssetType::Material,
+            "animation" => AssetType::Animation,
             _ => {
                 return Err(DeclError::new(
                     entry.span(),

@@ -3,6 +3,7 @@ use crate::{
     decl::{
         compiler::{
             animations::{ForAnimations, NODE_NAME_ANIMATIONS},
+            assets::{ForAssets, NODE_NAME_ASSETS},
             deconstruct_node,
             drivers::{ForDrivers, NODE_NAME_DRIVERS},
             menu::{ForMenu, NODE_NAME_MENU},
@@ -84,6 +85,7 @@ impl Compile<(ForAvatar, &KdlNode)> for DeclCompiler {
         let mut animations_blocks = vec![];
         let mut drivers_blocks = vec![];
         let mut parameters_blocks = vec![];
+        let mut assets_blocks = vec![];
         let mut menu_blocks = vec![];
 
         for child in children {
@@ -96,6 +98,7 @@ impl Compile<(ForAvatar, &KdlNode)> for DeclCompiler {
                 NODE_NAME_PARAMETERS => {
                     parameters_blocks.push(self.compile((ForParameters, child))?)
                 }
+                NODE_NAME_ASSETS => assets_blocks.push(self.compile((ForAssets, child))?),
                 NODE_NAME_MENU => menu_blocks.push(self.compile((ForMenu, child))?),
                 _ => {
                     return Err(DeclError::new(
@@ -108,9 +111,10 @@ impl Compile<(ForAvatar, &KdlNode)> for DeclCompiler {
 
         Ok(Avatar {
             name,
+            parameters_blocks,
+            assets_blocks,
             animations_blocks,
             drivers_blocks,
-            parameters_blocks,
             menu_blocks,
         })
     }
