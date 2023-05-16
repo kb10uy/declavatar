@@ -1,6 +1,6 @@
 use crate::{
     avatar::{
-        compiler::AvatarCompiler,
+        compiler::{AvatarCompiler, CompiledDependencies},
         data::{
             AnimationGroup, AnimationGroupContent, GroupOption, ObjectTarget, Parameter,
             ParameterType, Preventions, PuppetKeyframe, ShapeTarget, Target,
@@ -18,12 +18,12 @@ use crate::{
 
 use std::collections::HashSet;
 
-impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
+impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
     type Output = Vec<AnimationGroup>;
 
     fn compile(
         &mut self,
-        (animations_blocks, parameters): (Vec<DeclAnimations>, &Vec<Parameter>),
+        (animations_blocks, compiled_deps): (Vec<DeclAnimations>, &CompiledDependencies),
     ) -> Result<Vec<AnimationGroup>> {
         let mut animation_groups = vec![];
 
@@ -33,13 +33,13 @@ impl Compile<(Vec<DeclAnimations>, &Vec<Parameter>)> for AvatarCompiler {
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
                 DeclAnimationElement::Group(group) => {
-                    self.compile((group, parameters))?
+                    self.compile((group, &compiled_deps.parameters))?
                 }
                 DeclAnimationElement::Switch(switch) => {
-                    self.compile((switch, parameters))?
+                    self.compile((switch, &compiled_deps.parameters))?
                 }
                 DeclAnimationElement::Puppet(puppet) => {
-                    self.compile((puppet, parameters))?
+                    self.compile((puppet, &compiled_deps.parameters))?
                 }
             }) else {
                 continue;

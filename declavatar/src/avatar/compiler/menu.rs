@@ -1,6 +1,6 @@
 use crate::{
     avatar::{
-        compiler::AvatarCompiler,
+        compiler::{AvatarCompiler, CompiledAnimations},
         data::{
             AnimationGroup, AnimationGroupContent, BiAxis, MenuBoolean, MenuFourAxis, MenuGroup,
             MenuItem, MenuRadial, MenuTwoAxis, Parameter, ParameterType, UniAxis,
@@ -14,17 +14,16 @@ use crate::{
     },
 };
 
-impl Compile<(Vec<DeclMenu>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
+impl Compile<(Vec<DeclMenu>, &CompiledAnimations)> for AvatarCompiler {
     type Output = MenuGroup;
 
     fn compile(
         &mut self,
-        (menu_blocks, parameters, animation_groups): (
-            Vec<DeclMenu>,
-            &Vec<Parameter>,
-            &Vec<AnimationGroup>,
-        ),
+        (menu_blocks, compiled_anims): (Vec<DeclMenu>, &CompiledAnimations),
     ) -> Result<MenuGroup> {
+        let animation_groups = &compiled_anims.animation_groups;
+        let parameters = &compiled_anims.parameters;
+
         let mut top_items = vec![];
         let mut next_group_id = 1;
 

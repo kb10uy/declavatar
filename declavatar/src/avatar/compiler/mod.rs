@@ -1,11 +1,12 @@
 mod animations;
+mod assets;
 mod drivers;
 mod menu;
 mod parameters;
 
 use crate::{
     avatar::{
-        data::{Avatar, Parameter, ParameterScope, ParameterType},
+        data::{AnimationGroup, Asset, Avatar, Parameter, ParameterScope, ParameterType},
         error::{AvatarError, Result},
     },
     compiler::{Compile, Compiler, ErrorStackCompiler, Validate},
@@ -13,6 +14,17 @@ use crate::{
 };
 
 pub type AvatarCompiler = ErrorStackCompiler<AvatarError>;
+
+struct CompiledDependencies {
+    pub parameters: Vec<Parameter>,
+    pub assets: Vec<Asset>,
+}
+
+struct CompiledAnimations {
+    pub parameters: Vec<Parameter>,
+    pub assets: Vec<Asset>,
+    pub animation_groups: Vec<AnimationGroup>,
+}
 
 impl Compile<DeclAvatar> for AvatarCompiler {
     type Output = Option<Avatar>;
@@ -28,13 +40,23 @@ impl Compile<DeclAvatar> for AvatarCompiler {
         };
 
         let parameters = self.parse(avatar.parameters_blocks)?;
-        let animation_groups = self.parse((avatar.animations_blocks, &parameters))?;
-        let driver_groups = self.parse((avatar.drivers_blocks, &parameters, &animation_groups))?;
-        let top_menu_group = self.parse((avatar.menu_blocks, &parameters, &animation_groups))?;
+        let assets = self.parse(avatar.assets_blocks)?;
+        let compiled_deps = CompiledDependencies { parameters, assets };
+
+        let animation_groups = self.parse((avatar.animations_blocks, &compiled_deps))?;
+        let compiled_anims = CompiledAnimations {
+            parameters: compiled_deps.parameters,
+            assets: compiled_deps.assets,
+            animation_groups,
+        };
+
+        let driver_groups = self.parse((avatar.drivers_blocks, &compiled_anims))?;
+        let top_menu_group = self.parse((avatar.menu_blocks, &compiled_anims))?;
         Ok(Some(Avatar {
             name,
-            parameters,
-            animation_groups,
+            parameters: compiled_anims.parameters,
+            assets: compiled_anims.assets,
+            animation_groups: compiled_anims.animation_groups,
             driver_groups,
             top_menu_group,
         }))

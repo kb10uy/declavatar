@@ -4,6 +4,7 @@ use serde::Serialize;
 pub struct Avatar {
     pub name: String,
     pub parameters: Vec<Parameter>,
+    pub assets: Vec<Asset>,
     pub animation_groups: Vec<AnimationGroup>,
     pub driver_groups: Vec<DriverGroup>,
     pub top_menu_group: MenuGroup,
@@ -44,6 +45,18 @@ pub enum ParameterScope {
     Internal,
     Local(bool),
     Synced(bool),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Asset {
+    pub asset_type: AssetType,
+    pub key: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub enum AssetType {
+    Material,
+    Animation,
 }
 
 #[derive(Debug, Clone, Serialize)]
