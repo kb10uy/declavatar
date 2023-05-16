@@ -74,13 +74,15 @@ avatar "avatarname" {
             parameter "Cap"
             object "Cap" enabled=true disabled=false
         }
+    }
 
-        // Extended Feature: Puppet -------------------------------------------
+    // Extended Feature: Puppet -------------------------------------------
 
-        parameters {
-            float "long-momiage"
-        }
+    parameters {
+        float "long-momiage"
+    }
 
+    animations {
         puppet "ロングもみあげ" {
             parameter "long-momiage"
             mesh "Hair"
@@ -98,30 +100,32 @@ avatar "avatarname" {
                 shape "もみあげ2" value=1.0
             }
         }
+    }
 
-        // Extended Feature: Material Swap ------------------------------------
+    // Extended Feature: Material Swap ------------------------------------
 
-        parameters {
-            bool "deluxe"
-            int "color"
-        }
+    parameters {
+        bool "deluxe"
+        int "color"
+    }
 
-        assets {
-            material "jacket0-normal"
-            material "jacket0-deluxe"
-            material "jacket1-common"
+    assets {
+        material "jacket0-normal"
+        material "jacket0-deluxe"
+        material "jacket1-common"
 
-            material "hair-red"
-            material "hair-green"
-            material "hair-blue"
-        }
+        material "hair-red"
+        material "hair-green"
+        material "hair-blue"
+    }
 
+    animations {
         switch "デラックス" {
             parameter "deluxe"
             mesh "Jacket"
 
-            material slot=0 disabled=(asset)"jacket0-normal" enabled=(asset)"jacket0-deluxe"
-            material slot=1 disabled=(asset)"jacket1-common" enabled=(asset)"jacket1-common"
+            material 0 disabled=(material)"jacket0-normal" enabled=(material)"jacket0-deluxe"
+            material 1 disabled=(material)"jacket1-common" enabled=(material)"jacket1-common"
         }
 
         group "色相環" {
@@ -129,12 +133,12 @@ avatar "avatarname" {
             mesh "Hair"
 
             default {
-                material (asset)"hair-red"
+                material 0 value=(material)"hair-red"
             }
 
-            option "緑" material="hair-green"
+            // option "緑" material=(material)"hair-green"
             option "青" {
-                material (asset)"hair-blue"
+                material 0 value=(material)"hair-blue"
             }
         }
     }
