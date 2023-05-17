@@ -11,6 +11,7 @@ namespace KusakaFactory.Declavatar
     {
         public string Name { get; set; }
         public List<Parameter> Parameters { get; set; }
+        public List<Asset> Assets { get; set; }
         public List<AnimationGroup> AnimationGroups { get; set; }
         public List<DriverGroup> DriverGroups { get; set; }
         public ExMenuItem.ExMenuGroup TopMenuGroup { get; set; }
@@ -33,6 +34,12 @@ namespace KusakaFactory.Declavatar
     {
         public string Type { get; set; }
         public bool? Save { get; set; }
+    }
+
+    public sealed class Asset
+    {
+        public string AssetType { get; set; }
+        public string Key { get; set; }
     }
 
     [JsonConverter(typeof(Converters.AnimationGroupContentConverter))]
@@ -90,6 +97,13 @@ namespace KusakaFactory.Declavatar
         {
             public string Name { get; set; }
             public bool Enabled { get; set; }
+        }
+
+        public sealed class Material : Target
+        {
+            public string Mesh { get; set; }
+            public uint Slot { get; set; }
+            public string AssetKey { get; set; }
         }
     }
 
@@ -302,6 +316,7 @@ namespace KusakaFactory.Declavatar
                 {
                     case "Shape": return new Target.Shape { Mesh = content["mesh"].Value<string>(), Name = content["name"].Value<string>(), Value = content["value"].Value<float>(), };
                     case "Object": return new Target.Object { Name = content["name"].Value<string>(), Enabled = content["enabled"].Value<bool>() };
+                    case "Material": return new Target.Material { Mesh = content["mesh"].Value<string>(), Slot = content["slot"].Value<uint>(), AssetKey = content["asset_key"].Value<string>() };
                     default: throw new JsonException("invalid driver type");
                 }
             }
@@ -397,6 +412,7 @@ namespace KusakaFactory.Declavatar
             {
                 case Target.Shape s: return $"s://{s.Mesh}/{s.Name}";
                 case Target.Object o: return $"o://{o.Name}";
+                case Target.Material m: return $"m://{m.Mesh}/{m.Slot}";
                 default: throw new ArgumentException("invalid target type");
             }
         }
