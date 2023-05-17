@@ -1,6 +1,6 @@
 use crate::{
     avatar::{
-        compiler::AvatarCompiler,
+        compiler::{AvatarCompiler, CompiledAnimations},
         data::{
             AnimationGroup, AnimationGroupContent, BiAxis, MenuBoolean, MenuFourAxis, MenuGroup,
             MenuItem, MenuRadial, MenuTwoAxis, Parameter, ParameterType, UniAxis,
@@ -14,17 +14,16 @@ use crate::{
     },
 };
 
-impl Compile<(Vec<DeclMenu>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
+impl Compile<(Vec<DeclMenu>, &CompiledAnimations)> for AvatarCompiler {
     type Output = MenuGroup;
 
     fn compile(
         &mut self,
-        (menu_blocks, parameters, animation_groups): (
-            Vec<DeclMenu>,
-            &Vec<Parameter>,
-            &Vec<AnimationGroup>,
-        ),
+        (menu_blocks, compiled_anims): (Vec<DeclMenu>, &CompiledAnimations),
     ) -> Result<MenuGroup> {
+        let animation_groups = &compiled_anims.animation_groups;
+        let parameters = &compiled_anims.parameters;
+
         let mut top_items = vec![];
         let mut next_group_id = 1;
 
@@ -154,7 +153,12 @@ impl
                     self.error(format!("animation group '{group_name}' not found"));
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &group.parameter, &ParameterType::INT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    group.parameter.as_str(),
+                    ParameterType::INT_TYPE,
+                    true,
+                ))? {
                     self.error(format!(
                         "animation group '{group_name}' should refer int parameter"
                     ));
@@ -190,8 +194,8 @@ impl
                 };
                 if !self.ensure((
                     parameters,
-                    &switch.parameter,
-                    &ParameterType::BOOL_TYPE,
+                    switch.parameter.as_str(),
+                    ParameterType::BOOL_TYPE,
                     true,
                 ))? {
                     self.error(format!(
@@ -206,13 +210,13 @@ impl
                 )
             }
             DeclBooleanControlTarget::IntParameter { name, value } => {
-                if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
+                if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Int(value))
             }
             DeclBooleanControlTarget::BoolParameter { name, value } => {
-                if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE, true))? {
+                if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, true))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Bool(value))
@@ -236,7 +240,7 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
     ) -> Result<Option<MenuItem>> {
         match decl_puppet.axes {
             DeclPuppetAxes::Radial(param) => {
-                if !self.ensure((parameters, &param, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((parameters, param.as_str(), ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
 
@@ -249,10 +253,20 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 horizontal,
                 vertical,
             } => {
-                if !self.ensure((parameters, &horizontal.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    horizontal.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    true,
+                ))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &vertical.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    vertical.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    true,
+                ))? {
                     return Ok(None);
                 };
 
@@ -276,16 +290,21 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 up,
                 down,
             } => {
-                if !self.ensure((parameters, &left.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((parameters, left.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &right.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    right.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    true,
+                ))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &up.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((parameters, up.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, &down.0, &ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((parameters, down.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
                     return Ok(None);
                 };
 

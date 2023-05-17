@@ -1,0 +1,44 @@
+version "1.0.0"
+
+avatar "semantics-list" {
+    parameters {
+        int "explicit"
+        int "implicit"
+    }
+
+    assets {
+        material "M_Spam"
+        material "M_Ham"
+    }
+
+    animations {
+        group "explicit options" {
+            parameter "explicit"
+            mesh "Foo"
+
+            option "label 1" {
+                shape "fuga" value=0.5
+                object "Qux" value=false
+                material (material)"M_Spam" slot=0
+            }
+
+            // Prefer below
+            option "label 1" {
+                shape "fuga" value=0.5
+                object "Qux" value=false
+                material 0 value=(material)"M_Spam"
+            }
+
+            option "label 2" {
+                shape "fuga" value=0.5
+                object "Qux" value=false
+                material "M_Ham" slot=1
+            }
+        }
+
+        group "implicit options" {
+            parameter "implicit"
+            mesh "Bar"
+        }
+    }
+}

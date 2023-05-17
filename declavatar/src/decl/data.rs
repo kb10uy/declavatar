@@ -1,3 +1,9 @@
+use crate::decl::{
+    compiler::FromKdlEntry,
+    error::{DeclError, DeclErrorKind, Result},
+};
+
+use kdl::{KdlEntry, KdlValue};
 use semver::Version;
 
 #[derive(Debug, Clone)]
@@ -10,6 +16,7 @@ pub struct Document {
 pub struct Avatar {
     pub name: String,
     pub parameters_blocks: Vec<Parameters>,
+    pub assets_blocks: Vec<Assets>,
     pub animations_blocks: Vec<Animations>,
     pub drivers_blocks: Vec<Drivers>,
     pub menu_blocks: Vec<Menu>,
@@ -18,6 +25,11 @@ pub struct Avatar {
 #[derive(Debug, Clone)]
 pub struct Parameters {
     pub parameters: Vec<Parameter>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Assets {
+    pub assets: Vec<AssetKey>,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +124,11 @@ pub enum Target {
     Object {
         object: String,
         value: Option<bool>,
+    },
+    Material {
+        slot: usize,
+        value: Option<AssetKey>,
+        mesh: Option<String>,
     },
     Indeterminate {
         label: String,
@@ -236,4 +253,61 @@ pub enum PuppetAxes {
         up: (String, String),
         down: (String, String),
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssetType {
+    Indeterminate,
+    Material,
+    Animation,
+}
+
+impl AssetType {
+    pub fn type_name(self) -> &'static str {
+        match self {
+            AssetType::Indeterminate => "",
+            AssetType::Material => "material",
+            AssetType::Animation => "animation",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssetKey {
+    pub ty: AssetType,
+    pub key: String,
+}
+
+impl<'a> FromKdlEntry<'a> for AssetKey {
+    fn from_kdl_entry(entry: &'a KdlEntry) -> Result<AssetKey> {
+        let ty_ident = entry
+            .ty()
+            .ok_or(DeclError::new(
+                entry.span(),
+                DeclErrorKind::UnannotatedValue,
+            ))?
+            .value();
+        let ty = match ty_ident {
+            "material" => AssetType::Material,
+            "animation" => AssetType::Animation,
+            _ => {
+                return Err(DeclError::new(
+                    entry.span(),
+                    DeclErrorKind::InvalidAnnotation,
+                ))
+            }
+        };
+        let key = match entry.value() {
+            KdlValue::String(s) => s.clone(),
+            KdlValue::RawString(s) => s.clone(),
+            _ => {
+                return Err(DeclError::new(
+                    entry.span(),
+                    DeclErrorKind::IncorrectType("string"),
+                ))
+            }
+        };
+
+        Ok(AssetKey { ty, key })
+    }
 }

@@ -51,8 +51,8 @@ impl Compile<Vec<DeclParameters>> for AvatarCompiler {
                         "parameter '{}' have incompatible declarations",
                         decl_parameter.name
                     ));
-                    continue;
                 }
+                continue;
             }
 
             parameters.push(Parameter {

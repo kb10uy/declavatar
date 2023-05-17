@@ -1,25 +1,19 @@
 use crate::{
     avatar::{
-        compiler::AvatarCompiler,
-        data::{
-            AnimationGroup, AnimationGroupContent, Driver, DriverGroup, Parameter, ParameterType,
-        },
+        compiler::{AvatarCompiler, CompiledAnimations},
+        data::{AnimationGroupContent, Driver, DriverGroup, ParameterType},
         error::Result,
     },
     compiler::{Compile, Compiler},
     decl::data::{Drive as DeclDrive, DriveTarget as DeclDriveTarget, Drivers as DeclDrivers},
 };
 
-impl Compile<(Vec<DeclDrivers>, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
+impl Compile<(Vec<DeclDrivers>, &CompiledAnimations)> for AvatarCompiler {
     type Output = Vec<DriverGroup>;
 
     fn compile(
         &mut self,
-        (drivers_blocks, parameters, animation_groups): (
-            Vec<DeclDrivers>,
-            &Vec<Parameter>,
-            &Vec<AnimationGroup>,
-        ),
+        (drivers_blocks, compiled_anims): (Vec<DeclDrivers>, &CompiledAnimations),
     ) -> Result<Vec<DriverGroup>> {
         let mut driver_groups = vec![];
 
@@ -28,7 +22,7 @@ impl Compile<(Vec<DeclDrivers>, &Vec<Parameter>, &Vec<AnimationGroup>)> for Avat
             let mut drivers = vec![];
 
             for drive in decl_driver.drives {
-                let Some(driver) = self.compile((drive, parameters, animation_groups))? else {
+                let Some(driver) = self.compile((drive, compiled_anims))? else {
                     continue;
                 };
                 drivers.push(driver);
@@ -45,17 +39,16 @@ impl Compile<(Vec<DeclDrivers>, &Vec<Parameter>, &Vec<AnimationGroup>)> for Avat
     }
 }
 
-impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompiler {
+impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
     type Output = Option<Driver>;
 
     fn compile(
         &mut self,
-        (decl_drive, parameters, animation_groups): (
-            DeclDrive,
-            &Vec<Parameter>,
-            &Vec<AnimationGroup>,
-        ),
+        (decl_drive, compiled_anims): (DeclDrive, &CompiledAnimations),
     ) -> Result<Option<Driver>> {
+        let animation_groups = &compiled_anims.animation_groups;
+        let parameters = &compiled_anims.parameters;
+
         let driver = match decl_drive {
             DeclDrive::Set(dt) => match dt {
                 DeclDriveTarget::Group {
@@ -72,8 +65,8 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     };
                     if !self.ensure((
                         parameters,
-                        &group.parameter,
-                        &ParameterType::INT_TYPE,
+                        group.parameter.as_str(),
+                        ParameterType::INT_TYPE,
                         true,
                     ))? {
                         self.error(format!(
@@ -98,19 +91,19 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     Driver::SetInt(group.parameter.clone(), option_index as u8)
                 }
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetFloat(name, value)
                 }
                 DeclDriveTarget::BoolParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::BOOL_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::SetBool(name, value)
@@ -118,13 +111,13 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
             },
             DeclDrive::Add(dt) => match dt {
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, &name, &ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
                         return Ok(None);
                     };
                     Driver::AddFloat(name, value)
@@ -147,8 +140,8 @@ impl Compile<(DeclDrive, &Vec<Parameter>, &Vec<AnimationGroup>)> for AvatarCompi
                     };
                     if !self.ensure((
                         parameters,
-                        &group.parameter,
-                        &ParameterType::INT_TYPE,
+                        group.parameter.as_str(),
+                        ParameterType::INT_TYPE,
                         true,
                     ))? {
                         self.error(format!(

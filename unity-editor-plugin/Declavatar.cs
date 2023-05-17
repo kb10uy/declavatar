@@ -17,13 +17,15 @@ namespace KusakaFactory.Declavatar
     public sealed class Declavatar
     {
         private Avatar _avatar;
+        private ExternalAssets _externals;
         private VRCAvatarDescriptor _descriptor;
         private string _basePath;
         private AacFlBase _aac = null;
 
-        public Declavatar(Avatar avatar, VRCAvatarDescriptor descriptor, string basePath)
+        public Declavatar(Avatar avatar, ExternalAssets externals, VRCAvatarDescriptor descriptor, string basePath)
         {
             _avatar = avatar;
+            _externals = externals;
             _basePath = basePath;
             _descriptor = descriptor;
         }
@@ -235,6 +237,11 @@ namespace KusakaFactory.Declavatar
                         var go = searcher.FindGameObject(obj.Name);
                         idleClip.Toggling(go, obj.Enabled);
                         break;
+                    case Target.Material material:
+                        var mr = searcher.FindRenderer(material.Mesh);
+                        var targetMaterial = _externals.Materials[material.AssetKey];
+                        idleClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
+                        break;
                 }
             }
             var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
@@ -253,6 +260,11 @@ namespace KusakaFactory.Declavatar
                         case Target.Object obj:
                             var go = searcher.FindGameObject(obj.Name);
                             clip.Toggling(go, obj.Enabled);
+                            break;
+                        case Target.Material material:
+                            var mr = searcher.FindRenderer(material.Mesh);
+                            var targetMaterial = _externals.Materials[material.AssetKey];
+                            clip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                             break;
                     }
                 }
@@ -282,6 +294,11 @@ namespace KusakaFactory.Declavatar
                         var go = searcher.FindGameObject(obj.Name);
                         disabledClip.Toggling(go, obj.Enabled);
                         break;
+                    case Target.Material material:
+                        var mr = searcher.FindRenderer(material.Mesh);
+                        var targetMaterial = _externals.Materials[material.AssetKey];
+                        disabledClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
+                        break;
                 }
             }
             foreach (var target in s.Enabled)
@@ -295,6 +312,11 @@ namespace KusakaFactory.Declavatar
                     case Target.Object obj:
                         var go = searcher.FindGameObject(obj.Name);
                         enabledClip.Toggling(go, obj.Enabled);
+                        break;
+                    case Target.Material material:
+                        var mr = searcher.FindRenderer(material.Mesh);
+                        var targetMaterial = _externals.Materials[material.AssetKey];
+                        enabledClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                         break;
                 }
             }
@@ -336,6 +358,20 @@ namespace KusakaFactory.Declavatar
                         {
                             foreach (var point in points) kfs.Constant(point.Position * 100.0f, point.Target.Enabled ? 1.0f : 0.0f);
                         });
+                    }
+                    else if (group.Key.StartsWith("m://"))
+                    {
+                        // Use traditional API for matarial swapping
+                        var points = group.Select((p) => (p.Position, Target: p.Target as Target.Material)).ToList();
+                        var mr = searcher.FindRenderer(points[0].Target.Mesh);
+
+                        var binding = e.BindingFromComponent(mr, $"m_Materials.Array.data[{points[0].Target.Slot}]");
+                        var keyframes = points.Select((p) => new ObjectReferenceKeyframe
+                        {
+                            time = p.Position * 100.0f,
+                            value = _externals.Materials[p.Target.AssetKey],
+                        }).ToArray();
+                        AnimationUtility.SetObjectReferenceCurve(clip.Clip, binding, keyframes);
                     }
                 }
             });
@@ -447,9 +483,16 @@ namespace KusakaFactory.Declavatar
         }
     }
 
-    public sealed class GameObjectSearcher
+    public sealed class ExternalAssets
+    {
+        public IReadOnlyDictionary<string, Material> Materials { get; set; }
+        public IReadOnlyDictionary<string, Animation> Animations { get; set; }
+    }
+
+    internal sealed class GameObjectSearcher
     {
         private GameObject _root = null;
+        private Dictionary<string, Renderer> _renderers = new Dictionary<string, Renderer>();
         private Dictionary<string, SkinnedMeshRenderer> _skinnedMeshRenderers = new Dictionary<string, SkinnedMeshRenderer>();
         private Dictionary<string, GameObject> _objects = new Dictionary<string, GameObject>();
         private HashSet<string> _searchedPaths = new HashSet<string>();
@@ -457,6 +500,22 @@ namespace KusakaFactory.Declavatar
         public GameObjectSearcher(GameObject root)
         {
             _root = root;
+        }
+
+        public Renderer FindRenderer(string path)
+        {
+            var cachedPath = $"mr://{path}";
+            if (_searchedPaths.Contains(cachedPath))
+            {
+                return _renderers.TryGetValue(path, out var mr) ? mr : null;
+            }
+            else
+            {
+                var mr = _root.transform.Find(path)?.GetComponent<Renderer>();
+                _searchedPaths.Add(cachedPath);
+                _renderers[path] = mr;
+                return mr;
+            }
         }
 
         public SkinnedMeshRenderer FindSkinnedMeshRenderer(string path)

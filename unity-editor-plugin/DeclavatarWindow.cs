@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
@@ -17,8 +18,8 @@ namespace KusakaFactory.Declavatar
 
         private string _avatarJson = "";
         private Avatar _avatar = null;
-        // private Animation[] _parameterAnimations = new Animation[3];
-        // private GameObject[] _parameterObjects = new GameObject[3];
+        private Dictionary<string, Material> _materialAssets = new Dictionary<string, Material>();
+        private Dictionary<string, Animation> _animationAssets = new Dictionary<string, Animation>();
 
         private Vector2 _windowErrorsScroll = Vector2.zero;
 
@@ -40,6 +41,7 @@ namespace KusakaFactory.Declavatar
             DrawHeader();
             DrawSources();
             DrawStatistics();
+            DrawAssets();
             DrawGenerators();
             DrawErrorsList();
             // DrawNativeDebug();
@@ -73,6 +75,8 @@ namespace KusakaFactory.Declavatar
 
         private void DrawStatistics()
         {
+            if (_avatar == null) return;
+
             GUILayout.Label("Statistics", Constants.BigBoldLabel);
             EditorGUILayout.BeginVertical(Constants.MarginBox);
 
@@ -110,6 +114,46 @@ namespace KusakaFactory.Declavatar
             EditorGUILayout.Separator();
         }
 
+        private void DrawAssets()
+        {
+            if (_materialAssets.Count == 0 && _animationAssets.Count == 0) return;
+
+            GUILayout.Label("External Assets", Constants.BigBoldLabel);
+            EditorGUILayout.BeginVertical(Constants.MarginBox);
+
+            if (_materialAssets.Count != 0)
+            {
+                var materialKeys = _materialAssets.Keys.ToList();
+                foreach (var materialKey in materialKeys)
+                {
+                    _materialAssets[materialKey] = (Material)EditorGUILayout.ObjectField(
+                        materialKey,
+                        _materialAssets[materialKey],
+                        typeof(Material),
+                        false
+                    );
+                }
+                EditorGUILayout.Separator();
+            }
+
+            if (_animationAssets.Count != 0)
+            {
+                var animationKeys = _animationAssets.Keys.ToList();
+                foreach (var animationKey in animationKeys)
+                {
+                    _animationAssets[animationKey] = (Animation)EditorGUILayout.ObjectField(
+                        animationKey,
+                        _animationAssets[animationKey],
+                        typeof(Animation),
+                        false
+                    );
+                }
+                EditorGUILayout.Separator();
+            }
+
+            EditorGUILayout.EndVertical();
+        }
+
         private void DrawGenerators()
         {
             GUILayout.Label("Generation", Constants.BigBoldLabel);
@@ -121,30 +165,6 @@ namespace KusakaFactory.Declavatar
                 true
             );
             EditorGUILayout.Separator();
-
-            /*
-            for (int i = 0; i < _parameterAnimations.Length; i++)
-            {
-                _parameterAnimations[i] = (Animation)EditorGUILayout.ObjectField(
-                    $"Animation {i + 1}",
-                    _parameterAnimations[i],
-                    typeof(Animation),
-                    false
-                );
-            }
-            EditorGUILayout.Separator();
-
-            for (int i = 0; i < _parameterObjects.Length; i++)
-            {
-                _parameterObjects[i] = (GameObject)EditorGUILayout.ObjectField(
-                    $"GameObject {i + 1}",
-                    _parameterObjects[i],
-                    typeof(GameObject),
-                    true
-                );
-            }
-            EditorGUILayout.Separator();
-            */
 
             _outputPath = EditorGUILayout.TextField("Output Path", _outputPath);
             if (GUILayout.Button("Set to declaration file directory")) SetAutoOutputPath();
@@ -230,13 +250,36 @@ namespace KusakaFactory.Declavatar
                 _avatarJson = _declavatarPlugin.GetAvatarJson();
                 _avatar = Declavatar.Deserialize(_avatarJson);
                 _errors = _declavatarPlugin.FetchErrors();
+                UpdateAssetsList();
                 Repaint();
             }
             else
             {
                 _avatarJson = "";
+                _avatar = null;
                 _errors = _declavatarPlugin.FetchErrors();
+                UpdateAssetsList();
                 Repaint();
+            }
+        }
+
+        private void UpdateAssetsList()
+        {
+            _materialAssets.Clear();
+            _animationAssets.Clear();
+            if (_avatar == null) return;
+
+            foreach (var asset in _avatar.Assets)
+            {
+                switch (asset.AssetType)
+                {
+                    case "Material":
+                        _materialAssets.Add(asset.Key, null);
+                        break;
+                    case "Animation":
+                        _animationAssets.Add(asset.Key, null);
+                        break;
+                }
             }
         }
 
@@ -251,7 +294,8 @@ namespace KusakaFactory.Declavatar
         {
             if (_avatarDescriptor == null) return;
 
-            var declavatar = new Declavatar(_avatar, _avatarDescriptor, _outputPath);
+            var externals = new ExternalAssets { Materials = _materialAssets, Animations = _animationAssets };
+            var declavatar = new Declavatar(_avatar, externals, _avatarDescriptor, _outputPath);
             declavatar.GenerateTemplateTextAsset();
         }
 
@@ -259,7 +303,8 @@ namespace KusakaFactory.Declavatar
         {
             if (_avatar == null || _avatarDescriptor == null) return;
 
-            var declavatar = new Declavatar(_avatar, _avatarDescriptor, _outputPath);
+            var externals = new ExternalAssets { Materials = _materialAssets, Animations = _animationAssets };
+            var declavatar = new Declavatar(_avatar, externals, _avatarDescriptor, _outputPath);
             declavatar.GenerateAllAssets();
         }
 

@@ -23,6 +23,7 @@ const NODE_NAME_DEFAULT: &str = "default";
 const NODE_NAME_OPTION: &str = "option";
 const NODE_NAME_SHAPE: &str = "shape";
 const NODE_NAME_OBJECT: &str = "object";
+const NODE_NAME_MATERIAL: &str = "material";
 const NODE_NAME_KEYFRAME: &str = "keyframe";
 
 pub(super) struct ForAnimations;
@@ -205,6 +206,16 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                         let value = child_entries.try_get_property("value")?;
                         Target::Object { object, value }
                     }
+                    NODE_NAME_MATERIAL => {
+                        let slot: i64 = child_entries.get_argument(0, "slot")?;
+                        let mesh = child_entries.try_get_property("mesh")?;
+                        let value = child_entries.try_get_property("value")?;
+                        Target::Material {
+                            slot: slot as usize,
+                            value,
+                            mesh,
+                        }
+                    }
                     _ => {
                         return Err(DeclError::new(
                             child.name().span(),
@@ -285,6 +296,22 @@ impl Compile<(ForSwitch, &KdlNode)> for DeclCompiler {
                         shape: shape.clone(),
                         mesh: mesh.clone(),
                         value: disabled_value,
+                    });
+                }
+                NODE_NAME_MATERIAL => {
+                    let slot: i64 = child_entries.get_argument(0, "slot")?;
+                    let mesh = child_entries.try_get_property("mesh")?;
+                    let enabled_value = child_entries.try_get_property("enabled")?;
+                    let disabled_value = child_entries.try_get_property("disabled")?;
+                    enabled.push(Target::Material {
+                        slot: slot as usize,
+                        value: enabled_value,
+                        mesh: mesh.clone(),
+                    });
+                    disabled.push(Target::Material {
+                        slot: slot as usize,
+                        value: disabled_value,
+                        mesh: mesh.clone(),
                     });
                 }
                 _ => {
@@ -387,6 +414,16 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
                     let object = child_entries.get_argument(0, "object")?;
                     let value = child_entries.try_get_property("value")?;
                     Target::Object { object, value }
+                }
+                NODE_NAME_MATERIAL => {
+                    let slot: i64 = child_entries.get_argument(0, "slot")?;
+                    let mesh = child_entries.try_get_property("mesh")?;
+                    let value = child_entries.try_get_property("value")?;
+                    Target::Material {
+                        slot: slot as usize,
+                        value,
+                        mesh,
+                    }
                 }
                 _ => {
                     return Err(DeclError::new(
