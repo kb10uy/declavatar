@@ -1,11 +1,11 @@
-name: "Build library on x86_64 Mac"
+name: "Build library binaries"
 
 on:
   workflow_dispatch:
 
 jobs:
   build-x86_64-apple-darwin:
-    name: "Build"
+    name: "Build macOS binary"
     runs-on: "macos-latest"
 
     steps:
@@ -25,3 +25,25 @@ jobs:
         with:
           name: "built library"
           path: "./target/release/libdeclavatar.dylib"
+
+  build-x86_64-unknown-linux-gnu:
+    name: "Build Linux binary"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v3"
+      - shell: "bash"
+        run: |
+          mkdir '.cargo'
+          echo '[registries.crates-io]' >> .cargo/config.toml
+          echo 'protocol = "sparse"' >> .cargo/config.toml
+
+      - uses: "actions-rust-lang/setup-rust-toolchain@v1"
+      - shell: "bash"
+        run: |
+          cargo build --all-features --release
+
+      - uses: "actions/upload-artifact@v3"
+        with:
+          name: "built library"
+          path: "./target/release/libdeclavatar.so"
