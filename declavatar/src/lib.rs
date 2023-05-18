@@ -5,3 +5,6 @@ mod compiler;
 
 #[cfg(feature = "cdylib")]
 mod capi;
+
+#[cfg(test)]
+mod testing;
