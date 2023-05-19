@@ -50,3 +50,50 @@ impl Compile<(ForAsset, AssetType, &KdlNode)> for DeclCompiler {
         Ok(AssetKey { ty, key })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        compiler::Compile,
+        decl::{
+            data::{AssetKey, AssetType},
+            DeclCompiler,
+        },
+        testing::parse_node,
+    };
+
+    use super::ForAssets;
+
+    #[test]
+    fn assets_block_compiles() {
+        let block_doc = parse_node(
+            r#"
+            assets {
+                material "foo"
+                animation "bar"
+            }
+            "#,
+        );
+        let block_node = &block_doc.nodes()[0];
+
+        let mut compiler = DeclCompiler::new();
+        let block = compiler
+            .compile((ForAssets, block_node))
+            .expect("failed to compile parameters block");
+        assert_eq!(block.assets.len(), 2);
+        assert_eq!(
+            block.assets[0],
+            AssetKey {
+                key: "foo".to_string(),
+                ty: AssetType::Material,
+            }
+        );
+        assert_eq!(
+            block.assets[1],
+            AssetKey {
+                key: "bar".to_string(),
+                ty: AssetType::Animation,
+            }
+        );
+    }
+}
