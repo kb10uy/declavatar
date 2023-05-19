@@ -6,13 +6,13 @@ use crate::decl::{
 use kdl::{KdlEntry, KdlValue};
 use semver::Version;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Document {
     pub version: Version,
     pub avatar: Avatar,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Avatar {
     pub name: String,
     pub parameters_blocks: Vec<Parameters>,
@@ -22,17 +22,17 @@ pub struct Avatar {
     pub menu_blocks: Vec<Menu>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Parameters {
     pub parameters: Vec<Parameter>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Assets {
     pub assets: Vec<AssetKey>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
     pub ty: ParameterType,
     pub scope: Option<ParameterScope>,
@@ -40,33 +40,33 @@ pub struct Parameter {
     pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ParameterType {
     Int(Option<u8>),
     Float(Option<f64>),
     Bool(Option<bool>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParameterScope {
     Internal,
     Local,
     Synced,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Animations {
     pub elements: Vec<AnimationElement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AnimationElement {
     Group(AnimationGroup),
     Switch(AnimationSwitch),
     Puppet(Puppet),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AnimationGroup {
     pub name: String,
     pub parameter: String,
@@ -76,7 +76,7 @@ pub struct AnimationGroup {
     pub options: Vec<GroupBlock>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GroupBlock {
     pub name: Option<String>,
     pub declared_order: usize,
@@ -84,7 +84,7 @@ pub struct GroupBlock {
     pub targets: Vec<Target>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AnimationSwitch {
     pub name: String,
     pub parameter: String,
@@ -94,7 +94,7 @@ pub struct AnimationSwitch {
     pub enabled: Vec<Target>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Puppet {
     pub name: String,
     pub mesh: Option<String>,
@@ -102,19 +102,19 @@ pub struct Puppet {
     pub keyframes: Vec<PuppetKeyframe>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Preventions {
     pub mouth: Option<bool>,
     pub eyelids: Option<bool>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PuppetKeyframe {
     pub position: f64,
     pub targets: Vec<Target>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Target {
     Shape {
         shape: String,
@@ -139,19 +139,19 @@ pub enum Target {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Drivers {
     pub groups: Vec<DriverGroup>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DriverGroup {
     pub name: String,
     pub local: Option<bool>,
     pub drives: Vec<Drive>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Drive {
     Set(DriveTarget),
     Add(DriveTarget),
@@ -169,7 +169,7 @@ pub enum Drive {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DriveTarget {
     Group {
         name: String,
@@ -189,32 +189,32 @@ pub enum DriveTarget {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Menu {
     pub elements: Vec<MenuElement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MenuElement {
     SubMenu(SubMenu),
     Boolean(BooleanControl),
     Puppet(PuppetControl),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubMenu {
     pub name: String,
     pub elements: Vec<MenuElement>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BooleanControl {
     pub name: String,
     pub toggle: bool,
     pub target: BooleanControlTarget,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BooleanControlTarget {
     Group {
         name: String,
@@ -234,13 +234,13 @@ pub enum BooleanControlTarget {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PuppetControl {
     pub name: String,
     pub axes: PuppetAxes,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PuppetAxes {
     Radial(String),
     TwoAxis {
