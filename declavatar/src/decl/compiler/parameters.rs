@@ -91,3 +91,81 @@ impl Compile<(ForParameter, &KdlNode)> for DeclCompiler {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        compiler::Compile,
+        decl::{
+            data::{Parameter, ParameterScope, ParameterType},
+            DeclCompiler,
+        },
+        testing::parse_node,
+    };
+
+    use super::ForParameters;
+
+    #[test]
+    fn parameters_block_compiles() {
+        let block_doc = parse_node(
+            r#"
+            parameters {
+                int "foo"
+                float "bar" save=false
+                bool "baz" scope="local"
+            }
+            "#,
+        );
+        let block_node = &block_doc.nodes()[0];
+
+        let mut compiler = DeclCompiler::new();
+        let block = compiler
+            .compile((ForParameters, block_node))
+            .expect("failed to compile parameters block");
+        assert_eq!(block.parameters.len(), 3);
+        assert_eq!(
+            block.parameters[0],
+            Parameter {
+                name: "foo".to_string(),
+                save: None,
+                scope: None,
+                ty: ParameterType::Int(None)
+            }
+        );
+        assert_eq!(
+            block.parameters[1],
+            Parameter {
+                name: "bar".to_string(),
+                save: Some(false),
+                scope: None,
+                ty: ParameterType::Float(None)
+            }
+        );
+        assert_eq!(
+            block.parameters[2],
+            Parameter {
+                name: "baz".to_string(),
+                save: None,
+                scope: Some(ParameterScope::Local),
+                ty: ParameterType::Bool(None)
+            }
+        );
+    }
+
+    #[test]
+    fn parameters_block_fails_compile() {
+        let invalid_doc1 = parse_node(
+            r#"
+            parameters {
+                unknown "hoge"
+            }
+            "#,
+        );
+        let invalid_node1 = &invalid_doc1.nodes()[0];
+
+        let mut compiler = DeclCompiler::new();
+        compiler
+            .compile((ForParameters, invalid_node1))
+            .expect_err("compiles parameters block incorrectly");
+    }
+}
