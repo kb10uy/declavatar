@@ -166,3 +166,54 @@ impl<'a> FromKdlEntry<'a> for bool {
             .ok_or_else(|| DeclError::new(entry.span(), DeclErrorKind::IncorrectType("boolean")))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::testing::parse_node;
+
+    use super::deconstruct_node;
+
+    #[test]
+    fn deconstructs_single_node() {
+        let doc = parse_node(r#"single 42 "hoge" prop=42"#);
+        let node = &doc.nodes()[0];
+
+        let (name, _, children) = deconstruct_node(node, Some("single"), Some(false))
+            .expect("node deconstruction failed");
+        assert_eq!(name, "single");
+        assert!(children.is_empty());
+    }
+
+    #[test]
+    fn deconstructs_entries() {
+        let doc = parse_node(r#"single 42 "hoge" prop=42 value=1.0"#);
+        let node = &doc.nodes()[0];
+        let (_, entries, _) = deconstruct_node(node, Some("single"), Some(false))
+            .expect("node deconstruction failed");
+
+        let arg1: i64 = entries.get_argument(0, "arg1").expect("argument failed");
+        let arg2: Option<String> = entries.try_get_argument(1).expect("argument failed");
+        let prop1: i64 = entries.get_property("prop").expect("argument failed");
+        let prop2: Option<f64> = entries.try_get_property("value").expect("argument failed");
+        assert_eq!(arg1, 42);
+        assert_eq!(arg2, Some("hoge".to_string()));
+        assert_eq!(prop1, 42);
+        assert_eq!(prop2, Some(1.0));
+    }
+
+    #[test]
+    fn fails_for_invalid_nodes() {
+        let invalid_doc = parse_node(
+            r#"
+            multi {
+                single 42
+            }
+            "#,
+        );
+        let invalid_node = &invalid_doc.nodes()[0];
+
+        assert!(deconstruct_node(invalid_node, Some("multi"), Some(false)).is_err());
+        assert!(deconstruct_node(invalid_node, Some("invalid_name"), Some(true)).is_err());
+        assert!(deconstruct_node(invalid_node, None, Some(false)).is_err());
+    }
+}
