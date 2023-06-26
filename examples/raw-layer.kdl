@@ -1,0 +1,40 @@
+version "1.0.0"
+
+avatar "gesture-example" type="raw" {
+    parameters {
+        float "BlendX"
+        float "BlendY"
+    }
+
+    assets {
+        animation "test"
+    }
+
+    animations {
+        layer "Hoge" {
+            default "blend"
+
+            state "blend" {
+                clip (animation)"test"
+                speed 1.0 by="BlendX"
+                time "BlendY"
+
+                transition {
+                    when {
+                        eq "Emote" 1
+                    }
+                    duration 0.5
+                }
+
+                transition {
+                    when {
+                        be "Enabled"
+                        not "Overriden"
+                    }
+                    duration 0.75
+                }
+            }
+
+        }
+    }
+}
