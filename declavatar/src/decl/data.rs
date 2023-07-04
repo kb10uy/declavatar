@@ -140,6 +140,60 @@ pub enum Target {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct Layer {
+    pub name: String,
+    pub default_state: Option<String>,
+    pub states: Vec<LayerState>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayerState {
+    pub name: String,
+    pub animation: LayerAnimation,
+    pub speed: (Option<f64>, Option<String>),
+    pub time: Option<String>,
+    pub transitions: Vec<LayerTransition>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayerAnimation {
+    Clip(AssetKey),
+    BlendTree(Option<LayerBlendTreeType>, Vec<LayerBlendTreeField>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LayerBlendTreeType {
+    Linear,
+    Simple2D,
+    Freeform2D,
+    Cartesian2D,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayerBlendTreeField {
+    pub clip: AssetKey,
+    pub position: [f64; 2],
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayerTransition {
+    pub conditions: Vec<LayerCondition>,
+    pub duration: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayerCondition {
+    Be(String),
+    Not(String),
+    EqInt(String, i64),
+    NeqInt(String, i64),
+    GtInt(String, i64),
+    LeInt(String, i64),
+    GtFloat(String, f64),
+    LeFloat(String, f64),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Drivers {
     pub groups: Vec<DriverGroup>,
 }

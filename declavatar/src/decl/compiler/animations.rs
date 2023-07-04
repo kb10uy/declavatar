@@ -4,10 +4,12 @@ use crate::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, AnimationGroup, AnimationSwitch, Animations, DriveTarget, GroupBlock,
+            Layer, LayerAnimation, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
             Preventions, Puppet, PuppetKeyframe, Target,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
+    ensure_nochild,
 };
 
 use kdl::{KdlNode, KdlValue};
@@ -25,6 +27,21 @@ const NODE_NAME_SHAPE: &str = "shape";
 const NODE_NAME_OBJECT: &str = "object";
 const NODE_NAME_MATERIAL: &str = "material";
 const NODE_NAME_KEYFRAME: &str = "keyframe";
+const NODE_NAME_LAYER: &str = "layer";
+const NODE_NAME_STATE: &str = "state";
+const NODE_NAME_CLIP: &str = "clip";
+const NODE_NAME_BLENDTREE: &str = "blendtree";
+const NODE_NAME_SPEED: &str = "speed";
+const NODE_NAME_TIME: &str = "time";
+const NODE_NAME_TRANSITION: &str = "transition";
+const NODE_NAME_WHEN: &str = "when";
+const NODE_NAME_BE: &str = "be";
+const NODE_NAME_NOT: &str = "not";
+const NODE_NAME_EQ: &str = "eq";
+const NODE_NAME_NEQ: &str = "neq";
+const NODE_NAME_GT: &str = "gt";
+const NODE_NAME_LE: &str = "le";
+const NODE_NAME_DURATION: &str = "duration";
 
 pub(super) struct ForAnimations;
 impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
@@ -436,5 +453,219 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
         }
 
         Ok(PuppetKeyframe { position, targets })
+    }
+}
+
+struct ForLayer;
+impl Compile<(ForLayer, &KdlNode)> for DeclCompiler {
+    type Output = Layer;
+
+    fn compile(&mut self, (_, node): (ForLayer, &KdlNode)) -> Result<Layer> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_LAYER), Some(true))?;
+        let name = entries.get_argument(0, "name")?;
+
+        let mut states = vec![];
+        let mut default_state = None;
+        for child in children {
+            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+            match child_name {
+                NODE_NAME_STATE => {
+                    states.push(self.compile((ForLayerState, child))?);
+                }
+                NODE_NAME_DEFAULT => {
+                    ensure_nochild!(child, grandchildren);
+                    let state_name = child_entries.get_argument(0, "state")?;
+                    default_state = Some(state_name);
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
+            };
+        }
+
+        Ok(Layer {
+            name,
+            default_state,
+            states,
+        })
+    }
+}
+
+struct ForLayerState;
+impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
+    type Output = LayerState;
+
+    fn compile(&mut self, (_, node): (ForLayerState, &KdlNode)) -> Result<LayerState> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_STATE), Some(true))?;
+        let name = entries.get_argument(0, "name")?;
+
+        let mut animation = None;
+        let mut speed = (None, None);
+        let mut time = None;
+        let mut transitions = vec![];
+        for child in children {
+            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+            match child_name {
+                NODE_NAME_CLIP => {
+                    ensure_nochild!(child, grandchildren);
+                    let key = child_entries.get_argument(0, "animation")?;
+                    animation = Some(LayerAnimation::Clip(key));
+                }
+                NODE_NAME_BLENDTREE => {
+                    let tree_type = match child_entries.try_get_property::<&str>("type")? {
+                        None => None,
+                        Some("1d") => Some(LayerBlendTreeType::Linear),
+                        Some("2d-simple") => Some(LayerBlendTreeType::Simple2D),
+                        Some("2d-freeform") => Some(LayerBlendTreeType::Freeform2D),
+                        Some("2d-cartesian") => Some(LayerBlendTreeType::Cartesian2D),
+                        Some(_) => {
+                            return Err(DeclError::new(
+                                child.name().span(),
+                                DeclErrorKind::InvalidAnnotation,
+                            ))
+                        }
+                    };
+
+                    animation = Some(LayerAnimation::BlendTree(tree_type, vec![]));
+                }
+                NODE_NAME_SPEED => {
+                    ensure_nochild!(child, grandchildren);
+                    let base = child_entries.get_argument(0, "speed")?;
+                    let multiplier = child_entries.try_get_property("by")?;
+                    speed = (Some(base), multiplier);
+                }
+                NODE_NAME_TIME => {
+                    ensure_nochild!(child, grandchildren);
+                    let param = child_entries.get_argument(0, "param")?;
+                    time = Some(param);
+                }
+                NODE_NAME_TRANSITION => {
+                    transitions.push(self.compile((ForLayerTransition, child))?);
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
+            }
+        }
+
+        let animation = animation.ok_or_else(|| {
+            DeclError::new(
+                node.name().span(),
+                DeclErrorKind::NodeNotFound(NODE_NAME_CLIP),
+            )
+        })?;
+
+        Ok(LayerState {
+            name,
+            animation,
+            speed,
+            time,
+            transitions,
+        })
+    }
+}
+
+struct ForLayerTransition;
+impl Compile<(ForLayerTransition, &KdlNode)> for DeclCompiler {
+    type Output = LayerTransition;
+
+    fn compile(&mut self, (_, node): (ForLayerTransition, &KdlNode)) -> Result<LayerTransition> {
+        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_TRANSITION), Some(true))?;
+
+        let mut conditions = vec![];
+        let mut duration = None;
+        for child in children {
+            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+            match child_name {
+                NODE_NAME_WHEN => {
+                    for grandchild in grandchildren {
+                        conditions.push(self.compile((ForLayerCondition, grandchild))?);
+                    }
+                }
+                NODE_NAME_DURATION => {
+                    duration = Some(child_entries.get_argument(0, "duration")?);
+                }
+                _ => {
+                    return Err(DeclError::new(
+                        child.name().span(),
+                        DeclErrorKind::InvalidNodeDetected,
+                    ));
+                }
+            }
+        }
+
+        Ok(LayerTransition {
+            conditions,
+            duration,
+        })
+    }
+}
+
+struct ForLayerCondition;
+impl Compile<(ForLayerCondition, &KdlNode)> for DeclCompiler {
+    type Output = LayerCondition;
+
+    fn compile(&mut self, (_, node): (ForLayerCondition, &KdlNode)) -> Result<LayerCondition> {
+        let (node_name, entries, _) = deconstruct_node(node, None, Some(false))?;
+        let condition = match node_name {
+            NODE_NAME_BE => LayerCondition::Be(entries.get_argument(0, "parameter")?),
+            NODE_NAME_NOT => LayerCondition::Not(entries.get_argument(0, "parameter")?),
+            NODE_NAME_EQ => LayerCondition::EqInt(
+                entries.get_argument(0, "parameter")?,
+                entries.get_argument(1, "value")?,
+            ),
+            NODE_NAME_NEQ => LayerCondition::NeqInt(
+                entries.get_argument(0, "parameter")?,
+                entries.get_argument(1, "value")?,
+            ),
+            NODE_NAME_GT => {
+                let parameter = entries.get_argument(0, "parameter")?;
+                let (int_value, float_value) = {
+                    let value: &KdlValue = entries.get_argument(1, "value")?;
+                    (value.as_i64(), value.as_f64())
+                };
+                if let Some(v) = int_value {
+                    LayerCondition::GtInt(parameter, v)
+                } else if let Some(v) = float_value {
+                    LayerCondition::GtFloat(parameter, v)
+                } else {
+                    return Err(DeclError::new(
+                        node.name().span(),
+                        DeclErrorKind::IncorrectType("int or float"),
+                    ));
+                }
+            }
+            NODE_NAME_LE => {
+                let parameter = entries.get_argument(0, "parameter")?;
+                let (int_value, float_value) = {
+                    let value: &KdlValue = entries.get_argument(1, "value")?;
+                    (value.as_i64(), value.as_f64())
+                };
+                if let Some(v) = int_value {
+                    LayerCondition::LeInt(parameter, v)
+                } else if let Some(v) = float_value {
+                    LayerCondition::LeFloat(parameter, v)
+                } else {
+                    return Err(DeclError::new(
+                        node.name().span(),
+                        DeclErrorKind::IncorrectType("int or float"),
+                    ));
+                }
+            }
+            _ => {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        };
+
+        Ok(condition)
     }
 }

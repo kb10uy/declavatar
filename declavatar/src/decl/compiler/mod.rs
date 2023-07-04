@@ -167,6 +167,18 @@ impl<'a> FromKdlEntry<'a> for bool {
     }
 }
 
+#[macro_export]
+macro_rules! ensure_nochild {
+    ($n:expr, $e:expr) => {
+        if !$e.is_empty() {
+            return Err(DeclError::new(
+                $n.span(),
+                DeclErrorKind::MustNotHaveChildren,
+            ));
+        }
+    };
+}
+
 #[cfg(test)]
 mod test {
     use crate::testing::parse_node;

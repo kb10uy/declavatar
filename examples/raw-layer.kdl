@@ -8,6 +8,11 @@ avatar "gesture-example" type="raw" {
 
     assets {
         animation "test"
+        animation "neutral"
+        animation "up"
+        animation "down"
+        animation "left"
+        animation "right"
     }
 
     animations {
@@ -19,14 +24,14 @@ avatar "gesture-example" type="raw" {
                 speed 1.0 by="BlendX"
                 time "BlendY"
 
-                transition {
+                transition "tree" {
                     when {
                         eq "Emote" 1
                     }
                     duration 0.5
                 }
 
-                transition {
+                transition "tree" {
                     when {
                         be "Enabled"
                         not "Overriden"
@@ -35,6 +40,22 @@ avatar "gesture-example" type="raw" {
                 }
             }
 
+            state "tree" {
+                blendtree type="2d-cartesian" {
+                    field (animation)"neutral" 0.0 0.0
+                    field (animation)"right" 1.0 0.0
+                    field (animation)"left" -1.0 0.0
+                    field (animation)"up" 0.0 1.0
+                    field (animation)"down" 0.0 -1.0
+                }
+
+                transition "blend" {
+                    when {
+                        not "Enabled"
+                    }
+                    duration 0.0
+                }
+            }
         }
     }
 }
