@@ -4,8 +4,8 @@ use crate::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, AnimationGroup, AnimationSwitch, Animations, DriveTarget, GroupBlock,
-            Layer, LayerAnimation, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
-            Preventions, Puppet, PuppetKeyframe, Target,
+            Layer, LayerAnimation, LayerBlendTreeField, LayerBlendTreeType, LayerCondition,
+            LayerState, LayerTransition, Preventions, Puppet, PuppetKeyframe, Target,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
@@ -31,6 +31,7 @@ const NODE_NAME_LAYER: &str = "layer";
 const NODE_NAME_STATE: &str = "state";
 const NODE_NAME_CLIP: &str = "clip";
 const NODE_NAME_BLENDTREE: &str = "blendtree";
+const NODE_NAME_FIELD: &str = "field";
 const NODE_NAME_SPEED: &str = "speed";
 const NODE_NAME_TIME: &str = "time";
 const NODE_NAME_TRANSITION: &str = "transition";
@@ -57,10 +58,11 @@ impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
                 NODE_NAME_GROUP => AnimationElement::Group(self.compile((ForGroup, child))?),
                 NODE_NAME_SWITCH => AnimationElement::Switch(self.compile((ForSwitch, child))?),
                 NODE_NAME_PUPPET => AnimationElement::Puppet(self.compile((ForPuppet, child))?),
+                NODE_NAME_LAYER => AnimationElement::Layer(self.compile((ForLayer, child))?),
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
-                        DeclErrorKind::MustHaveChildren,
+                        DeclErrorKind::InvalidNodeDetected,
                     ));
                 }
             };
@@ -515,21 +517,7 @@ impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
                     animation = Some(LayerAnimation::Clip(key));
                 }
                 NODE_NAME_BLENDTREE => {
-                    let tree_type = match child_entries.try_get_property::<&str>("type")? {
-                        None => None,
-                        Some("1d") => Some(LayerBlendTreeType::Linear),
-                        Some("2d-simple") => Some(LayerBlendTreeType::Simple2D),
-                        Some("2d-freeform") => Some(LayerBlendTreeType::Freeform2D),
-                        Some("2d-cartesian") => Some(LayerBlendTreeType::Cartesian2D),
-                        Some(_) => {
-                            return Err(DeclError::new(
-                                child.name().span(),
-                                DeclErrorKind::InvalidAnnotation,
-                            ))
-                        }
-                    };
-
-                    animation = Some(LayerAnimation::BlendTree(tree_type, vec![]));
+                    animation = Some(self.compile((ForLayerBlendTree, child))?);
                 }
                 NODE_NAME_SPEED => {
                     ensure_nochild!(child, grandchildren);
@@ -568,6 +556,43 @@ impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
             time,
             transitions,
         })
+    }
+}
+
+struct ForLayerBlendTree;
+impl Compile<(ForLayerBlendTree, &KdlNode)> for DeclCompiler {
+    type Output = LayerAnimation;
+
+    fn compile(&mut self, (_, node): (ForLayerBlendTree, &KdlNode)) -> Result<LayerAnimation> {
+        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_BLENDTREE), Some(true))?;
+
+        let tree_type = match entries.try_get_property::<&str>("type")? {
+            None => None,
+            Some("1d") => Some(LayerBlendTreeType::Linear),
+            Some("2d-simple") => Some(LayerBlendTreeType::Simple2D),
+            Some("2d-freeform") => Some(LayerBlendTreeType::Freeform2D),
+            Some("2d-cartesian") => Some(LayerBlendTreeType::Cartesian2D),
+            Some(_) => {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::InvalidAnnotation,
+                ))
+            }
+        };
+
+        let mut fields = vec![];
+        for child in children {
+            let (_, entries, _) = deconstruct_node(child, Some(NODE_NAME_FIELD), Some(false))?;
+            let clip = entries.get_argument(0, "motion")?;
+            let position = [
+                entries.get_argument(1, "position_x")?,
+                entries.try_get_argument(2)?.unwrap_or(0.0),
+            ];
+
+            fields.push(LayerBlendTreeField { clip, position })
+        }
+
+        Ok(LayerAnimation::BlendTree(tree_type, fields))
     }
 }
 

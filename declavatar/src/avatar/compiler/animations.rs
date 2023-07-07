@@ -41,6 +41,9 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
                 DeclAnimationElement::Puppet(puppet) => {
                     self.compile((puppet, compiled_deps))?
                 }
+                DeclAnimationElement::Layer(layer) => {
+                    continue;
+                }
             }) else {
                 continue;
             };

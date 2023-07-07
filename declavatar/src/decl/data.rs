@@ -64,6 +64,7 @@ pub enum AnimationElement {
     Group(AnimationGroup),
     Switch(AnimationSwitch),
     Puppet(Puppet),
+    Layer(Layer),
 }
 
 #[derive(Debug, Clone, PartialEq)]
