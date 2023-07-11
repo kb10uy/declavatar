@@ -62,7 +62,6 @@ pub enum AssetType {
 #[derive(Debug, Clone, Serialize)]
 pub struct AnimationGroup {
     pub name: String,
-    pub parameter: String,
     pub content: AnimationGroupContent,
 }
 
@@ -70,17 +69,24 @@ pub struct AnimationGroup {
 #[serde(tag = "type")]
 pub enum AnimationGroupContent {
     Group {
+        parameter: String,
         preventions: Preventions,
         default_targets: Vec<Target>,
         options: Vec<GroupOption>,
     },
     Switch {
+        parameter: String,
         preventions: Preventions,
         disabled: Vec<Target>,
         enabled: Vec<Target>,
     },
     Puppet {
+        parameter: String,
         keyframes: Vec<PuppetKeyframe>,
+    },
+    Layer {
+        default_index: usize,
+        states: Vec<LayerState>,
     },
 }
 
@@ -129,6 +135,53 @@ pub struct MaterialTarget {
 pub struct PuppetKeyframe {
     pub position: f64,
     pub targets: Vec<Target>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LayerState {
+    pub name: String,
+    pub animation: LayerAnimation,
+    pub speed: (Option<f64>, Option<String>),
+    pub time: Option<String>,
+    pub transitions: Vec<LayerTransition>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum LayerAnimation {
+    Clip(String),
+    BlendTree(LayerBlendTreeType, Vec<LayerBlendTreeField>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub enum LayerBlendTreeType {
+    Linear,
+    Simple2D,
+    Freeform2D,
+    Cartesian2D,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LayerBlendTreeField {
+    pub clip: String,
+    pub position: [f64; 2],
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LayerTransition {
+    pub conditions: Vec<LayerCondition>,
+    pub duration: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum LayerCondition {
+    Be(String),
+    Not(String),
+    EqInt(String, i64),
+    NeqInt(String, i64),
+    GtInt(String, i64),
+    LeInt(String, i64),
+    GtFloat(String, f64),
+    LeFloat(String, f64),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

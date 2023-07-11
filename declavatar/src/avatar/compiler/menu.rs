@@ -153,9 +153,13 @@ impl
                     self.error(format!("animation group '{group_name}' not found"));
                     return Ok(None);
                 };
+                let AnimationGroup { content: AnimationGroupContent::Group { parameter, options, .. }, .. } = group else {
+                    self.error(format!("animation group '{group_name}' is not selection group"));
+                    return Ok(None);
+                };
                 if !self.ensure((
                     parameters,
-                    group.parameter.as_str(),
+                    parameter.as_str(),
                     ParameterType::INT_TYPE,
                     true,
                 ))? {
@@ -166,23 +170,11 @@ impl
                 };
 
                 let option_name = option.unwrap_or_else(|| group_name.clone());
-                let option_index = match &group.content {
-                    AnimationGroupContent::Group { options, .. } => {
-                        let Some(option) = options.iter().find(|o| o.name == option_name) else {
-                            self.error(format!("option '{option_name}' not found in '{group_name}'"));
-                            return Ok(None);
-                        };
-                        option.order
-                    }
-                    _ => {
-                        self.error(
-                            "parameter driver with group is valid only for groups but not switches"
-                                .into(),
-                        );
-                        return Ok(None);
-                    }
+                let Some(option) = options.iter().find(|o| o.name == option_name) else {
+                    self.error(format!("option '{option_name}' not found in '{group_name}'"));
+                    return Ok(None);
                 };
-                (group_name, ParameterType::Int(option_index as u8))
+                (group_name, ParameterType::Int(option.order as u8))
             }
             DeclBooleanControlTarget::Switch {
                 name: switch_name,
@@ -192,9 +184,13 @@ impl
                     self.error(format!("animation switch '{switch_name}' not found"));
                     return Ok(None);
                 };
+                let AnimationGroup { content: AnimationGroupContent::Switch { parameter, .. }, .. } = switch else {
+                    self.error(format!("animation group '{switch_name}' is not switch group"));
+                    return Ok(None);
+                };
                 if !self.ensure((
                     parameters,
-                    switch.parameter.as_str(),
+                    parameter.as_str(),
                     ParameterType::BOOL_TYPE,
                     true,
                 ))? {
@@ -205,7 +201,7 @@ impl
                 };
 
                 (
-                    switch.parameter.clone(),
+                    parameter.clone(),
                     ParameterType::Bool(!invert.unwrap_or(false)),
                 )
             }

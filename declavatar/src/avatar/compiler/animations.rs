@@ -2,8 +2,10 @@ use crate::{
     avatar::{
         compiler::{AvatarCompiler, CompiledDependencies},
         data::{
-            AnimationGroup, AnimationGroupContent, GroupOption, MaterialTarget, ObjectTarget,
-            ParameterType, Preventions, PuppetKeyframe, ShapeTarget, Target,
+            AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation,
+            LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
+            MaterialTarget, ObjectTarget, ParameterType, Preventions, PuppetKeyframe, ShapeTarget,
+            Target,
         },
         error::Result,
     },
@@ -12,7 +14,9 @@ use crate::{
         AnimationElement as DeclAnimationElement, AnimationGroup as DeclAnimationGroup,
         AnimationSwitch as DeclAnimationSwitch, Animations as DeclAnimations,
         AssetType as DeclAssetType, DriveTarget as DeclDriveTarget, GroupBlock as DeclGroupBlock,
-        Puppet as DeclPuppet, Target as DeclTarget,
+        Layer as DeclLayer, LayerAnimation as DeclLayerAnimation,
+        LayerBlendTreeType as DeclLayerBlendTreeType, LayerCondition as DeclLayerCondition,
+        LayerState as DeclLayerState, Puppet as DeclPuppet, Target as DeclTarget,
     },
 };
 
@@ -28,7 +32,6 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
         let mut animation_groups = vec![];
 
         let mut used_group_names: HashSet<String> = HashSet::new();
-        let mut used_parameters: HashSet<String> = HashSet::new();
         let decl_animations = animations_blocks.into_iter().flat_map(|ab| ab.elements);
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
@@ -42,7 +45,7 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
                     self.compile((puppet, compiled_deps))?
                 }
                 DeclAnimationElement::Layer(layer) => {
-                    continue;
+                    self.compile((layer, compiled_deps))?
                 }
             }) else {
                 continue;
@@ -55,15 +58,6 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
                 ));
             } else {
                 used_group_names.insert(animation_group.name.clone());
-            }
-
-            if used_parameters.contains(&animation_group.parameter) {
-                self.warn(format!(
-                    "parameter '{}' is used multiple times",
-                    animation_group.parameter
-                ));
-            } else {
-                used_parameters.insert(animation_group.parameter.clone());
             }
 
             animation_groups.push(animation_group);
@@ -124,8 +118,8 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
 
         Ok(Some(AnimationGroup {
             name: group.name,
-            parameter: group.parameter,
             content: AnimationGroupContent::Group {
+                parameter: group.parameter,
                 preventions: Preventions {
                     mouth: group.preventions.mouth.unwrap_or(false),
                     eyelids: group.preventions.eyelids.unwrap_or(false),
@@ -451,8 +445,8 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
 
         Ok(Some(AnimationGroup {
             name: switch.name,
-            parameter: switch.parameter,
             content: AnimationGroupContent::Switch {
+                parameter: switch.parameter,
                 preventions: Preventions {
                     mouth: switch.preventions.mouth.unwrap_or(false),
                     eyelids: switch.preventions.eyelids.unwrap_or(false),
@@ -541,8 +535,212 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
 
         Ok(Some(AnimationGroup {
             name: puppet.name,
-            parameter: puppet.parameter,
-            content: AnimationGroupContent::Puppet { keyframes },
+            content: AnimationGroupContent::Puppet {
+                parameter: puppet.parameter,
+                keyframes,
+            },
+        }))
+    }
+}
+
+impl Compile<(DeclLayer, &CompiledDependencies)> for AvatarCompiler {
+    type Output = Option<AnimationGroup>;
+
+    fn compile(
+        &mut self,
+        (layer, compiled_deps): (DeclLayer, &CompiledDependencies),
+    ) -> Result<Option<AnimationGroup>> {
+        let mut compiled_states = vec![];
+        for state in layer.states {
+            let Some(state) = self.compile((state, compiled_deps))? else {
+                continue;
+            };
+            compiled_states.push(state);
+        }
+        let default_index = match layer.default_state {
+            Some(ds) => {
+                let Some(i) = compiled_states.iter().position(|s| s.name == ds) else {
+                    self.error(format!("state {ds} not found in layer {}", layer.name));
+                    return Ok(None);
+                };
+                i
+            }
+            None => 0,
+        };
+
+        Ok(Some(AnimationGroup {
+            name: layer.name,
+            content: AnimationGroupContent::Layer {
+                default_index,
+                states: compiled_states,
+            },
+        }))
+    }
+}
+
+impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
+    type Output = Option<LayerState>;
+
+    fn compile(
+        &mut self,
+        (state, compiled_deps): (DeclLayerState, &CompiledDependencies),
+    ) -> Result<Option<LayerState>> {
+        let assets = &compiled_deps.assets;
+        let parameters = &compiled_deps.parameters;
+
+        let animation = match state.animation {
+            DeclLayerAnimation::Clip(anim) => {
+                if !self.validate((assets, &anim, DeclAssetType::Animation))? {
+                    return Ok(None);
+                }
+                LayerAnimation::Clip(anim.key)
+            }
+            DeclLayerAnimation::BlendTree(ty, decl_fields) => {
+                let blend_type = match ty {
+                    Some(DeclLayerBlendTreeType::Linear) => LayerBlendTreeType::Linear,
+                    Some(DeclLayerBlendTreeType::Simple2D) => LayerBlendTreeType::Simple2D,
+                    Some(DeclLayerBlendTreeType::Freeform2D) => LayerBlendTreeType::Freeform2D,
+                    Some(DeclLayerBlendTreeType::Cartesian2D) => LayerBlendTreeType::Cartesian2D,
+                    None => {
+                        self.error(format!(
+                            "BlendTree type must be specified for State {}",
+                            state.name
+                        ));
+                        return Ok(None);
+                    }
+                };
+                let mut fields = vec![];
+                for decl_field in decl_fields {
+                    if !self.validate((assets, &decl_field.clip, DeclAssetType::Animation))? {
+                        return Ok(None);
+                    }
+                    fields.push(LayerBlendTreeField {
+                        clip: decl_field.clip.key,
+                        position: decl_field.position,
+                    });
+                }
+                LayerAnimation::BlendTree(blend_type, fields)
+            }
+        };
+
+        let mut transitions = vec![];
+        for decl_transition in state.transitions {
+            let mut conditions = vec![];
+            for decl_condition in decl_transition.conditions {
+                let condition = match decl_condition {
+                    DeclLayerCondition::Be(param) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::BOOL_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::Be(param)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::Not(param) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::BOOL_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::Not(param)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::EqInt(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::INT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::EqInt(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::NeqInt(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::INT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::NeqInt(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::GtInt(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::INT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::GtInt(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::LeInt(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::INT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::LeInt(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::GtFloat(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::FLOAT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::GtFloat(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    DeclLayerCondition::LeFloat(param, value) => {
+                        if self.validate((
+                            parameters,
+                            param.as_str(),
+                            ParameterType::FLOAT_TYPE,
+                            false,
+                        ))? {
+                            LayerCondition::LeFloat(param, value)
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                };
+                conditions.push(condition);
+            }
+
+            let duration = decl_transition.duration.unwrap_or(0.0);
+            transitions.push(LayerTransition {
+                conditions,
+                duration,
+            });
+        }
+
+        Ok(Some(LayerState {
+            name: state.name,
+            animation,
+            speed: state.speed,
+            time: state.time,
+            transitions,
         }))
     }
 }
