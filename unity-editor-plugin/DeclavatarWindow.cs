@@ -170,8 +170,14 @@ namespace KusakaFactory.Declavatar
             if (GUILayout.Button("Set to declaration file directory")) SetAutoOutputPath();
             EditorGUILayout.Separator();
 
+            EditorGUI.BeginDisabledGroup(_avatar != null || _avatarDescriptor == null);
             if (GUILayout.Button("Generate Template Declaration")) GenerateTemplate();
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUI.BeginDisabledGroup(_avatar == null || _avatarDescriptor == null);
             if (GUILayout.Button("Generate Assets", GUILayout.Height(40))) GenerateAssets();
+            EditorGUI.EndDisabledGroup();
+
             GUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
@@ -251,6 +257,7 @@ namespace KusakaFactory.Declavatar
                 _avatar = Declavatar.Deserialize(_avatarJson);
                 _errors = _declavatarPlugin.FetchErrors();
                 UpdateAssetsList();
+                SetAutoOutputPath();
                 Repaint();
             }
             else
