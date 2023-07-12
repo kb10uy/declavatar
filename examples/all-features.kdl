@@ -1,6 +1,7 @@
 version "1.0.0"
 
 avatar "avatarname" {
+    // Expression Parameter Definitions ---------------------------------------
     parameters {
         int "Expression"
         bool "Breast"
@@ -16,6 +17,8 @@ avatar "avatarname" {
         int "Internal" scope="internal"
         int "Local" scope="local" save=true
     }
+
+    // FX Animation Groups ----------------------------------------------------
 
     animations {
         group "表情" {
@@ -76,7 +79,7 @@ avatar "avatarname" {
         }
     }
 
-    // Extended Feature: Puppet -------------------------------------------
+    // Extended Feature: Puppet -----------------------------------------------
 
     parameters {
         float "long-momiage"
@@ -102,7 +105,7 @@ avatar "avatarname" {
         }
     }
 
-    // Extended Feature: Material Swap ------------------------------------
+    // Extended Feature: Material Swap ----------------------------------------
 
     parameters {
         bool "deluxe"
@@ -143,6 +146,8 @@ avatar "avatarname" {
         }
     }
 
+    // Parameter Driver Sets --------------------------------------------------
+
     drivers {
         group "夏" local=true {
             set group="表情" option="にっこり"
@@ -155,6 +160,8 @@ avatar "avatarname" {
             copy from="param2" to="param3"
         }
     }
+
+    // Expressions Menu Asset -------------------------------------------------
 
     menu {
         submenu "服装" {
