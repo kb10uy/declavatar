@@ -146,6 +146,60 @@ avatar "avatarname" {
         }
     }
 
+    // Extended Feature: Raw Layer Definition ---------------------------------
+
+    parameters {
+        int "variable1"
+        bool "variable2"
+    }
+
+    assets {
+        animation "move1"
+        animation "move2"
+        animation "move3"
+    }
+
+    animations {
+        layer "レイヤー定義" {
+            default "State 1"
+
+            state "State 1" {
+                clip (animation)"move1"
+
+                transition "State 2" {
+                    when {
+                        be "variable2"
+                    }
+                }
+            }
+
+            state "State 2" {
+                clip (animation)"move2"
+
+                transition "State 1" {
+                    when {
+                        not "variable2"
+                    }
+                }
+                transition "State 3" {
+                    when {
+                        gt "variable1" 100
+                    }
+                }
+            }
+
+            state "State 3" {
+                clip (animation)"move3"
+
+                transition "State 2" {
+                    when {
+                        le "variable1" 80
+                    }
+                }
+            }
+        }
+    }
+
     // Parameter Driver Sets --------------------------------------------------
 
     drivers {
