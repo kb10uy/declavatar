@@ -1,6 +1,6 @@
 version "1.0.0"
 
-avatar "gesture-example" type="raw" {
+avatar "gesture-example" {
     parameters {
         float "BlendX"
         float "BlendY"
