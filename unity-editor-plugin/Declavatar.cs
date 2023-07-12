@@ -205,23 +205,28 @@ namespace KusakaFactory.Declavatar
                 switch (animationGroup.Content)
                 {
                     case AnimationGroup.Group g:
-                        GenerateShapeGroupLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, g);
+                        GenerateShapeGroupLayer(fxAnimator, animationGroup.Name, g);
                         break;
                     case AnimationGroup.Switch s:
-                        GenerateShapeSwitchLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, s);
+                        GenerateShapeSwitchLayer(fxAnimator, animationGroup.Name, s);
                         break;
                     case AnimationGroup.Puppet p:
-                        GeneratePuppetLayer(fxAnimator, animationGroup.Name, animationGroup.Parameter, p);
+                        GeneratePuppetLayer(fxAnimator, animationGroup.Name, p);
                         break;
+                    case AnimationGroup.Layer l:
+                        GenerateRawLayer(fxAnimator, animationGroup.Name, l);
+                        break;
+                    default:
+                        throw new DeclavatarException("Invalid AnimationGroup deserialization object");
                 }
             }
             GeneratePreventionLayers(fxAnimator);
         }
 
-        private void GenerateShapeGroupLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Group g)
+        private void GenerateShapeGroupLayer(AnimatorController controller, string name, AnimationGroup.Group g)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
-            var layerParameter = layer.IntParameter(parameter);
+            var layerParameter = layer.IntParameter(g.Parameter);
             var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
             var idleClip = _aac.NewClip($"sg-{name}-0");
@@ -242,6 +247,8 @@ namespace KusakaFactory.Declavatar
                         var targetMaterial = _externals.Materials[material.AssetKey];
                         idleClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                         break;
+                    default:
+                        throw new DeclavatarException("Invalid Target deserialization object");
                 }
             }
             var idleState = layer.NewState("Disabled", 0, 0).WithAnimation(idleClip);
@@ -266,6 +273,8 @@ namespace KusakaFactory.Declavatar
                             var targetMaterial = _externals.Materials[material.AssetKey];
                             clip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                             break;
+                        default:
+                            throw new DeclavatarException("Invalid Target deserialization object");
                     }
                 }
                 var state = layer.NewState($"{option.Order} {option.Name}", (int)option.Order / 8 + 1, (int)option.Order % 8).WithAnimation(clip);
@@ -274,10 +283,10 @@ namespace KusakaFactory.Declavatar
             }
         }
 
-        private void GenerateShapeSwitchLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Switch s)
+        private void GenerateShapeSwitchLayer(AnimatorController controller, string name, AnimationGroup.Switch s)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
-            var layerParameter = layer.BoolParameter(parameter);
+            var layerParameter = layer.BoolParameter(s.Parameter);
             var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
             var disabledClip = _aac.NewClip($"ss-{name}-disabled");
@@ -299,6 +308,8 @@ namespace KusakaFactory.Declavatar
                         var targetMaterial = _externals.Materials[material.AssetKey];
                         disabledClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                         break;
+                    default:
+                        throw new DeclavatarException("Invalid Target deserialization object");
                 }
             }
             foreach (var target in s.Enabled)
@@ -318,6 +329,8 @@ namespace KusakaFactory.Declavatar
                         var targetMaterial = _externals.Materials[material.AssetKey];
                         enabledClip.SwappingMaterial(mr, (int)material.Slot, targetMaterial);
                         break;
+                    default:
+                        throw new DeclavatarException("Invalid Target deserialization object");
                 }
             }
             var disabledState = layer.NewState("Disabled").WithAnimation(disabledClip);
@@ -326,10 +339,10 @@ namespace KusakaFactory.Declavatar
             enabledState.TransitionsTo(disabledState).When(layerParameter.IsFalse());
         }
 
-        private void GeneratePuppetLayer(AnimatorController controller, string name, string parameter, AnimationGroup.Puppet puppet)
+        private void GeneratePuppetLayer(AnimatorController controller, string name, AnimationGroup.Puppet puppet)
         {
             var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
-            var layerParameter = layer.FloatParameter(parameter);
+            var layerParameter = layer.FloatParameter(puppet.Parameter);
             var searcher = new GameObjectSearcher(_descriptor.gameObject);
 
             var groups = puppet.Keyframes
@@ -380,14 +393,125 @@ namespace KusakaFactory.Declavatar
             state.MotionTime(layerParameter);
         }
 
+        private void GenerateRawLayer(AnimatorController controller, string name, AnimationGroup.Layer agLayer)
+        {
+            var layer = _aac.CreateSupportingArbitraryControllerLayer(controller, name);
+
+            // Create states
+            var states = new List<AacFlState>();
+            foreach (var agState in agLayer.States)
+            {
+                var state = layer.NewState(agState.Name);
+                states.Add(state);
+                switch (agState.Animation)
+                {
+                    case LayerAnimation.Clip clip:
+                        state.WithAnimation(_externals.AnimationClips[clip.AssetKey]);
+                        break;
+                    case LayerAnimation.BlendTree blendTree:
+                        var tree = new BlendTree();
+                        switch (blendTree.BlendType)
+                        {
+                            case "Linear":
+                                tree.blendType = BlendTreeType.Simple1D;
+                                tree.blendParameter = blendTree.Parameters[0];
+                                foreach (var field in blendTree.Fields)
+                                {
+                                    var fieldAnimation = _externals.AnimationClips[field.AssetKey];
+                                    tree.AddChild(fieldAnimation, field.Position[0]);
+                                }
+                                break;
+                            case "Simple2D":
+                                tree.blendType = BlendTreeType.SimpleDirectional2D;
+                                tree.blendParameter = blendTree.Parameters[0];
+                                tree.blendParameterY = blendTree.Parameters[1];
+                                foreach (var field in blendTree.Fields)
+                                {
+                                    var fieldAnimation = _externals.AnimationClips[field.AssetKey];
+                                    tree.AddChild(fieldAnimation, new Vector2(field.Position[0], field.Position[1]));
+                                }
+                                break;
+                            case "Freeform2D":
+                                tree.blendType = BlendTreeType.FreeformDirectional2D;
+                                tree.blendParameter = blendTree.Parameters[0];
+                                tree.blendParameterY = blendTree.Parameters[1];
+                                foreach (var field in blendTree.Fields)
+                                {
+                                    var fieldAnimation = _externals.AnimationClips[field.AssetKey];
+                                    tree.AddChild(fieldAnimation, new Vector2(field.Position[0], field.Position[1]));
+                                }
+                                break;
+                            case "Cartesian2D":
+                                tree.blendType = BlendTreeType.FreeformCartesian2D;
+                                tree.blendParameter = blendTree.Parameters[0];
+                                tree.blendParameterY = blendTree.Parameters[1];
+                                foreach (var field in blendTree.Fields)
+                                {
+                                    var fieldAnimation = _externals.AnimationClips[field.AssetKey];
+                                    tree.AddChild(fieldAnimation, new Vector2(field.Position[0], field.Position[1]));
+                                }
+                                break;
+                            default:
+                                throw new DeclavatarException($"Invalid BlendTree Type {blendTree.BlendType}");
+                        }
+                        state.WithAnimation(tree);
+                        break;
+                }
+            }
+
+            // Set transitions
+            for (int i = 0; i < states.Count; ++i)
+            {
+                var fromState = states[i];
+                var agState = agLayer.States[i];
+                foreach (var transition in agState.Transitions)
+                {
+                    var targetState = states[(int)transition.Target];
+                    var conds = fromState.TransitionsTo(targetState).WithTransitionDurationSeconds(transition.Duration).WhenConditions();
+                    foreach (var condBlock in transition.Conditions)
+                    {
+                        switch (condBlock)
+                        {
+                            case LayerCondition.Be be:
+                                conds.And(layer.BoolParameter(be.Parameter).IsTrue());
+                                break;
+                            case LayerCondition.Not not:
+                                conds.And(layer.BoolParameter(not.Parameter).IsFalse());
+                                break;
+                            case LayerCondition.EqInt eqInt:
+                                conds.And(layer.IntParameter(eqInt.Parameter).IsEqualTo(eqInt.Value));
+                                break;
+                            case LayerCondition.NeqInt neqInt:
+                                conds.And(layer.IntParameter(neqInt.Parameter).IsNotEqualTo(neqInt.Value));
+                                break;
+                            case LayerCondition.GtInt gtInt:
+                                conds.And(layer.IntParameter(gtInt.Parameter).IsGreaterThan(gtInt.Value));
+                                break;
+                            case LayerCondition.LeInt leInt:
+                                conds.And(layer.IntParameter(leInt.Parameter).IsLessThan(leInt.Value));
+                                break;
+                            case LayerCondition.GtFloat gtFloat:
+                                conds.And(layer.FloatParameter(gtFloat.Parameter).IsGreaterThan(gtFloat.Value));
+                                break;
+                            case LayerCondition.LeFloat leFloat:
+                                conds.And(layer.FloatParameter(leFloat.Parameter).IsLessThan(leFloat.Value));
+                                break;
+                            default:
+                                throw new DeclavatarException("Invalid LayerCondition deserialization object");
+                        }
+                    }
+                }
+            }
+        }
+
         private void GeneratePreventionLayers(AnimatorController controller)
         {
             var preventions = _avatar.AnimationGroups.Select((ag) =>
             {
                 switch (ag.Content)
                 {
-                    case AnimationGroup.Group g: return (g.Preventions, ag.Parameter, IsInt: true);
-                    case AnimationGroup.Switch s: return (s.Preventions, ag.Parameter, IsInt: false);
+                    case AnimationGroup.Group g: return (g.Preventions, g.Parameter, IsInt: true);
+                    case AnimationGroup.Switch s: return (s.Preventions, s.Parameter, IsInt: false);
                     default: return (new Preventions(), null, false);
                 }
             });
@@ -486,7 +610,7 @@ namespace KusakaFactory.Declavatar
     public sealed class ExternalAssets
     {
         public IReadOnlyDictionary<string, Material> Materials { get; set; }
-        public IReadOnlyDictionary<string, Animation> Animations { get; set; }
+        public IReadOnlyDictionary<string, AnimationClip> AnimationClips { get; set; }
     }
 
     internal sealed class GameObjectSearcher
@@ -512,6 +636,7 @@ namespace KusakaFactory.Declavatar
             else
             {
                 var mr = _root.transform.Find(path)?.GetComponent<Renderer>();
+                if (mr == null) throw new DeclavatarException($"Renderer '{path}' not found");
                 _searchedPaths.Add(cachedPath);
                 _renderers[path] = mr;
                 return mr;
@@ -528,6 +653,7 @@ namespace KusakaFactory.Declavatar
             else
             {
                 var smr = _root.transform.Find(path)?.GetComponent<SkinnedMeshRenderer>();
+                if (smr == null) throw new DeclavatarException($"SkinnedMeshRenderer '{path}' not found");
                 _searchedPaths.Add(cachedPath);
                 _skinnedMeshRenderers[path] = smr;
                 return smr;
@@ -544,10 +670,18 @@ namespace KusakaFactory.Declavatar
             else
             {
                 var go = _root.transform.Find(path)?.gameObject;
+                if (go == null) throw new DeclavatarException($"GameObject '{path}' not found");
                 _searchedPaths.Add(cachedPath);
                 _objects[path] = go;
                 return go;
             }
         }
+    }
+
+    public class DeclavatarException : Exception
+    {
+        public DeclavatarException() : base() { }
+
+        public DeclavatarException(string message) : base(message) { }
     }
 }

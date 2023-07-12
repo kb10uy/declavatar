@@ -19,7 +19,7 @@ namespace KusakaFactory.Declavatar
         private string _avatarJson = "";
         private Avatar _avatar = null;
         private Dictionary<string, Material> _materialAssets = new Dictionary<string, Material>();
-        private Dictionary<string, Animation> _animationAssets = new Dictionary<string, Animation>();
+        private Dictionary<string, AnimationClip> _animationClipAssets = new Dictionary<string, AnimationClip>();
 
         private Vector2 _windowErrorsScroll = Vector2.zero;
 
@@ -116,7 +116,7 @@ namespace KusakaFactory.Declavatar
 
         private void DrawAssets()
         {
-            if (_materialAssets.Count == 0 && _animationAssets.Count == 0) return;
+            if (_materialAssets.Count == 0 && _animationClipAssets.Count == 0) return;
 
             GUILayout.Label("External Assets", Constants.BigBoldLabel);
             EditorGUILayout.BeginVertical(Constants.MarginBox);
@@ -136,15 +136,15 @@ namespace KusakaFactory.Declavatar
                 EditorGUILayout.Separator();
             }
 
-            if (_animationAssets.Count != 0)
+            if (_animationClipAssets.Count != 0)
             {
-                var animationKeys = _animationAssets.Keys.ToList();
+                var animationKeys = _animationClipAssets.Keys.ToList();
                 foreach (var animationKey in animationKeys)
                 {
-                    _animationAssets[animationKey] = (Animation)EditorGUILayout.ObjectField(
+                    _animationClipAssets[animationKey] = (AnimationClip)EditorGUILayout.ObjectField(
                         animationKey,
-                        _animationAssets[animationKey],
-                        typeof(Animation),
+                        _animationClipAssets[animationKey],
+                        typeof(AnimationClip),
                         false
                     );
                 }
@@ -266,7 +266,7 @@ namespace KusakaFactory.Declavatar
         private void UpdateAssetsList()
         {
             _materialAssets.Clear();
-            _animationAssets.Clear();
+            _animationClipAssets.Clear();
             if (_avatar == null) return;
 
             foreach (var asset in _avatar.Assets)
@@ -277,7 +277,7 @@ namespace KusakaFactory.Declavatar
                         _materialAssets.Add(asset.Key, null);
                         break;
                     case "Animation":
-                        _animationAssets.Add(asset.Key, null);
+                        _animationClipAssets.Add(asset.Key, null);
                         break;
                 }
             }
@@ -294,7 +294,7 @@ namespace KusakaFactory.Declavatar
         {
             if (_avatarDescriptor == null) return;
 
-            var externals = new ExternalAssets { Materials = _materialAssets, Animations = _animationAssets };
+            var externals = new ExternalAssets { Materials = _materialAssets, AnimationClips = _animationClipAssets };
             var declavatar = new Declavatar(_avatar, externals, _avatarDescriptor, _outputPath);
             declavatar.GenerateTemplateTextAsset();
         }
@@ -303,7 +303,7 @@ namespace KusakaFactory.Declavatar
         {
             if (_avatar == null || _avatarDescriptor == null) return;
 
-            var externals = new ExternalAssets { Materials = _materialAssets, Animations = _animationAssets };
+            var externals = new ExternalAssets { Materials = _materialAssets, AnimationClips = _animationClipAssets };
             var declavatar = new Declavatar(_avatar, externals, _avatarDescriptor, _outputPath);
             declavatar.GenerateAllAssets();
         }

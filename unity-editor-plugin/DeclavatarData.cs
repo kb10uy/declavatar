@@ -46,11 +46,11 @@ namespace KusakaFactory.Declavatar
     public sealed class AnimationGroup
     {
         public string Name { get; set; }
-        public string Parameter { get; set; }
         public object Content { get; set; }
 
         public sealed class Group
         {
+            public string Parameter { get; set; }
             public Preventions Preventions { get; set; }
             public List<Target> DefaultTargets { get; set; }
             public List<GroupOption> Options { get; set; }
@@ -65,6 +65,7 @@ namespace KusakaFactory.Declavatar
 
         public sealed class Switch
         {
+            public string Parameter { get; set; }
             public Preventions Preventions { get; set; }
             public List<Target> Disabled { get; set; }
             public List<Target> Enabled { get; set; }
@@ -72,14 +73,36 @@ namespace KusakaFactory.Declavatar
 
         public sealed class Puppet
         {
+            public string Parameter { get; set; }
             public List<PuppetKeyframe> Keyframes { get; set; }
         }
-
 
         public sealed class PuppetKeyframe
         {
             public float Position { get; set; }
             public List<Target> Targets { get; set; }
+        }
+
+        public sealed class Layer
+        {
+            public uint DefaultStateIndex { get; set; }
+            public List<LayerState> States { get; set; }
+        }
+
+        public sealed class LayerState
+        {
+            public string Name { get; set; }
+            public LayerAnimation Animation { get; set; }
+            // public object Speed { get; set; }
+            public string Time { get; set; }
+            public List<LayerTransition> Transitions { get; set; }
+        }
+
+        public sealed class LayerTransition
+        {
+            public uint Target { get; set; }
+            public List<LayerCondition> Conditions { get; set; }
+            public float Duration { get; set; }
         }
     }
 
@@ -118,6 +141,79 @@ namespace KusakaFactory.Declavatar
         public string Name { get; set; }
         public bool Local { get; set; }
         public List<Driver> Drivers { get; set; }
+    }
+
+    [JsonConverter(typeof(Converters.LayerAnimationConverter))]
+    public abstract class LayerAnimation
+    {
+        public sealed class Clip : LayerAnimation
+        {
+            public string AssetKey { get; set; }
+        }
+
+        public sealed class BlendTree : LayerAnimation
+        {
+            public string BlendType { get; set; }
+            public List<string> Parameters { get; set; }
+            public List<LayerBlendTreeField> Fields { get; set; }
+        }
+    }
+
+    [JsonConverter(typeof(Converters.LayerBlendTreeFieldConverter))]
+    public sealed class LayerBlendTreeField
+    {
+        public string AssetKey { get; set; }
+        public float[] Position { get; set; }
+    }
+
+    [JsonConverter(typeof(Converters.LayerConditionConverter))]
+    public abstract class LayerCondition
+    {
+        public sealed class Be : LayerCondition
+        {
+            public string Parameter { get; set; }
+        }
+
+        public sealed class Not : LayerCondition
+        {
+            public string Parameter { get; set; }
+        }
+
+        public sealed class EqInt : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public int Value { get; set; }
+        }
+
+        public sealed class NeqInt : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public int Value { get; set; }
+        }
+
+        public sealed class GtInt : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public int Value { get; set; }
+        }
+
+        public sealed class LeInt : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public int Value { get; set; }
+        }
+
+        public sealed class GtFloat : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public float Value { get; set; }
+        }
+
+        public sealed class LeFloat : LayerCondition
+        {
+            public string Parameter { get; set; }
+            public float Value { get; set; }
+        }
     }
 
     [JsonConverter(typeof(Converters.DriverConverter))]
@@ -277,6 +373,9 @@ namespace KusakaFactory.Declavatar
                     case "Puppet":
                         content = contentObject.ToObject<AnimationGroup.Puppet>(serializer);
                         break;
+                    case "Layer":
+                        content = contentObject.ToObject<AnimationGroup.Layer>(serializer);
+                        break;
                     default:
                         throw new JsonException("invalid group type");
                 }
@@ -284,7 +383,6 @@ namespace KusakaFactory.Declavatar
                 return new AnimationGroup
                 {
                     Name = obj["name"].Value<string>(),
-                    Parameter = obj["parameter"].Value<string>(),
                     Content = content,
                 };
             }
@@ -317,6 +415,94 @@ namespace KusakaFactory.Declavatar
                     case "Shape": return new Target.Shape { Mesh = content["mesh"].Value<string>(), Name = content["name"].Value<string>(), Value = content["value"].Value<float>(), };
                     case "Object": return new Target.Object { Name = content["name"].Value<string>(), Enabled = content["enabled"].Value<bool>() };
                     case "Material": return new Target.Material { Mesh = content["mesh"].Value<string>(), Slot = content["slot"].Value<uint>(), AssetKey = content["asset_key"].Value<string>() };
+                    default: throw new JsonException("invalid driver type");
+                }
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class LayerAnimationConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(LayerAnimation);
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                var obj = JObject.Load(reader);
+                var type = obj["type"].Value<string>();
+                var content = obj["content"];
+                switch (type)
+                {
+                    case "Clip": return new LayerAnimation.Clip { AssetKey = content.Value<string>() };
+                    case "BlendTree":
+                        var ty = content["blend_type"].Value<string>();
+                        var parameters = content["params"].Values<string>().ToList();
+                        var fields = content["fields"].ToArray().Select((jt) => jt.ToObject<LayerBlendTreeField>()).ToList();
+                        return new LayerAnimation.BlendTree { BlendType = ty, Parameters = parameters, Fields = fields };
+                    default: throw new JsonException("invalid layer animation type");
+                }
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class LayerBlendTreeFieldConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(LayerBlendTreeField);
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                var obj = JObject.Load(reader);
+                var clip = obj["clip"].Value<string>();
+                var position = obj["position"].Values<float>().ToArray();
+                return new LayerBlendTreeField { AssetKey = clip, Position = position };
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public sealed class LayerConditionConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(LayerCondition);
+            }
+
+            public override object ReadJson(
+                JsonReader reader,
+                Type objectType,
+                object existingValue,
+                JsonSerializer serializer
+            )
+            {
+                var obj = JObject.Load(reader);
+                var type = obj["type"].Value<string>();
+                var content = obj["content"];
+                switch (type)
+                {
+                    case "Be": return new LayerCondition.Be { Parameter = content.Value<string>() };
+                    case "Not": return new LayerCondition.Not { Parameter = content.Value<string>() };
+                    case "EqInt": return new LayerCondition.EqInt { Parameter = content[0].Value<string>(), Value = content[1].Value<int>() };
+                    case "NeqInt": return new LayerCondition.NeqInt { Parameter = content[0].Value<string>(), Value = content[1].Value<int>() };
+                    case "GtInt": return new LayerCondition.GtInt { Parameter = content[0].Value<string>(), Value = content[1].Value<int>() };
+                    case "LeInt": return new LayerCondition.LeInt { Parameter = content[0].Value<string>(), Value = content[1].Value<int>() };
+                    case "GtFloat": return new LayerCondition.GtFloat { Parameter = content[0].Value<string>(), Value = content[1].Value<float>() };
+                    case "LeFloat": return new LayerCondition.LeFloat { Parameter = content[0].Value<string>(), Value = content[1].Value<float>() };
                     default: throw new JsonException("invalid driver type");
                 }
             }
