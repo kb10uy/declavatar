@@ -1,7 +1,7 @@
 use crate::{
     avatar::{
         compiler::{AvatarCompiler, CompiledAnimations},
-        data::{AnimationGroupContent, Driver, DriverGroup, ParameterType, AnimationGroup},
+        data::{AnimationGroup, AnimationGroupContent, Driver, DriverGroup, ParameterType},
         error::Result,
     },
     compiler::{Compile, Compiler},
