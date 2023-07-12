@@ -2,7 +2,7 @@ use crate::{
     avatar::{
         compiler::{AvatarCompiler, CompiledDependencies},
         data::{
-            AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation,
+            AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation, LayerBlendTree,
             LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
             MaterialTarget, ObjectTarget, ParameterType, Preventions, PuppetKeyframe, ShapeTarget,
             Target,
@@ -551,8 +551,10 @@ impl Compile<(DeclLayer, &CompiledDependencies)> for AvatarCompiler {
         (layer, compiled_deps): (DeclLayer, &CompiledDependencies),
     ) -> Result<Option<AnimationGroup>> {
         let mut compiled_states = vec![];
+        // if it compiles, states will be registered same order
+        let state_names: Vec<_> = layer.states.iter().map(|s| s.name.clone()).collect();
         for state in layer.states {
-            let Some(state) = self.compile((state, compiled_deps))? else {
+            let Some(state) = self.compile((state, &state_names, compiled_deps))? else {
                 continue;
             };
             compiled_states.push(state);
@@ -578,12 +580,12 @@ impl Compile<(DeclLayer, &CompiledDependencies)> for AvatarCompiler {
     }
 }
 
-impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
+impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCompiler {
     type Output = Option<LayerState>;
 
     fn compile(
         &mut self,
-        (state, compiled_deps): (DeclLayerState, &CompiledDependencies),
+        (state, state_names, compiled_deps): (DeclLayerState, &Vec<String>, &CompiledDependencies),
     ) -> Result<Option<LayerState>> {
         let assets = &compiled_deps.assets;
         let parameters = &compiled_deps.parameters;
@@ -595,8 +597,8 @@ impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
                 }
                 LayerAnimation::Clip(anim.key)
             }
-            DeclLayerAnimation::BlendTree(ty, decl_fields) => {
-                let blend_type = match ty {
+            DeclLayerAnimation::BlendTree(bt) => {
+                let blend_type = match bt.ty {
                     Some(DeclLayerBlendTreeType::Linear) => LayerBlendTreeType::Linear,
                     Some(DeclLayerBlendTreeType::Simple2D) => LayerBlendTreeType::Simple2D,
                     Some(DeclLayerBlendTreeType::Freeform2D) => LayerBlendTreeType::Freeform2D,
@@ -609,8 +611,33 @@ impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
                         return Ok(None);
                     }
                 };
+                let params = match blend_type {
+                    LayerBlendTreeType::Linear => {
+                        let Some(x) = bt.x else {
+                            self.error(format!(
+                                "BlendTree parameter must be specified for {}",
+                                state.name
+                            ));
+                            return Ok(None);
+                        };
+                        vec![x]
+                    }
+                    LayerBlendTreeType::Simple2D
+                    | LayerBlendTreeType::Freeform2D
+                    | LayerBlendTreeType::Cartesian2D => {
+                        let (Some(x), Some(y)) = (bt.x, bt.y) else {
+                            self.error(format!(
+                                "BlendTree parameter must be specified for {}",
+                                state.name
+                            ));
+                            return Ok(None);
+                        };
+                        vec![x, y]
+                    }
+                };
+
                 let mut fields = vec![];
-                for decl_field in decl_fields {
+                for decl_field in bt.fields {
                     if !self.validate((assets, &decl_field.clip, DeclAssetType::Animation))? {
                         return Ok(None);
                     }
@@ -619,12 +646,22 @@ impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
                         position: decl_field.position,
                     });
                 }
-                LayerAnimation::BlendTree(blend_type, fields)
+                LayerAnimation::BlendTree(LayerBlendTree {
+                    blend_type,
+                    params,
+                    fields,
+                })
             }
         };
 
         let mut transitions = vec![];
         for decl_transition in state.transitions {
+            let Some(target) = state_names.iter().position(|n| &decl_transition.target == n) else {
+                self.error(format!("state {} not found", decl_transition.target));
+                continue;
+            };
+            let duration = decl_transition.duration.unwrap_or(0.0);
+
             let mut conditions = vec![];
             for decl_condition in decl_transition.conditions {
                 let condition = match decl_condition {
@@ -728,10 +765,10 @@ impl Compile<(DeclLayerState, &CompiledDependencies)> for AvatarCompiler {
                 conditions.push(condition);
             }
 
-            let duration = decl_transition.duration.unwrap_or(0.0);
             transitions.push(LayerTransition {
-                conditions,
+                target,
                 duration,
+                conditions,
             });
         }
 

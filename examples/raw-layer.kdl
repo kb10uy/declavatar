@@ -4,6 +4,9 @@ avatar "gesture-example" type="raw" {
     parameters {
         float "BlendX"
         float "BlendY"
+        int "Emote"
+        bool "Enabled"
+        bool "Overridden"
     }
 
     assets {
@@ -34,14 +37,14 @@ avatar "gesture-example" type="raw" {
                 transition "tree" {
                     when {
                         be "Enabled"
-                        not "Overriden"
+                        not "Overridden"
                     }
                     duration 0.75
                 }
             }
 
             state "tree" {
-                blendtree type="2d-cartesian" {
+                blendtree type="2d-cartesian" x="BlendX" y="BlendY" {
                     field (animation)"neutral" 0.0 0.0
                     field (animation)"right" 1.0 0.0
                     field (animation)"left" -1.0 0.0

@@ -4,8 +4,9 @@ use crate::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
             AnimationElement, AnimationGroup, AnimationSwitch, Animations, DriveTarget, GroupBlock,
-            Layer, LayerAnimation, LayerBlendTreeField, LayerBlendTreeType, LayerCondition,
-            LayerState, LayerTransition, Preventions, Puppet, PuppetKeyframe, Target,
+            Layer, LayerAnimation, LayerBlendTree, LayerBlendTreeField, LayerBlendTreeType,
+            LayerCondition, LayerState, LayerTransition, Preventions, Puppet, PuppetKeyframe,
+            Target,
         },
         error::{DeclError, DeclErrorKind, Result},
     },
@@ -579,6 +580,8 @@ impl Compile<(ForLayerBlendTree, &KdlNode)> for DeclCompiler {
                 ))
             }
         };
+        let x = entries.try_get_property("x")?;
+        let y = entries.try_get_property("y")?;
 
         let mut fields = vec![];
         for child in children {
@@ -592,7 +595,12 @@ impl Compile<(ForLayerBlendTree, &KdlNode)> for DeclCompiler {
             fields.push(LayerBlendTreeField { clip, position })
         }
 
-        Ok(LayerAnimation::BlendTree(tree_type, fields))
+        Ok(LayerAnimation::BlendTree(LayerBlendTree {
+            ty: tree_type,
+            x,
+            y,
+            fields,
+        }))
     }
 }
 
@@ -601,8 +609,10 @@ impl Compile<(ForLayerTransition, &KdlNode)> for DeclCompiler {
     type Output = LayerTransition;
 
     fn compile(&mut self, (_, node): (ForLayerTransition, &KdlNode)) -> Result<LayerTransition> {
-        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_TRANSITION), Some(true))?;
+        let (_, entries, children) =
+            deconstruct_node(node, Some(NODE_NAME_TRANSITION), Some(true))?;
 
+        let target = entries.get_argument(0, "target")?;
         let mut conditions = vec![];
         let mut duration = None;
         for child in children {
@@ -626,6 +636,7 @@ impl Compile<(ForLayerTransition, &KdlNode)> for DeclCompiler {
         }
 
         Ok(LayerTransition {
+            target,
             conditions,
             duration,
         })

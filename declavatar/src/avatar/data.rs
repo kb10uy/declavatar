@@ -147,9 +147,17 @@ pub struct LayerState {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum LayerAnimation {
     Clip(String),
-    BlendTree(LayerBlendTreeType, Vec<LayerBlendTreeField>),
+    BlendTree(LayerBlendTree),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LayerBlendTree {
+    pub blend_type: LayerBlendTreeType,
+    pub params: Vec<String>,
+    pub fields: Vec<LayerBlendTreeField>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -168,11 +176,13 @@ pub struct LayerBlendTreeField {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct LayerTransition {
+    pub target: usize,
     pub conditions: Vec<LayerCondition>,
     pub duration: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum LayerCondition {
     Be(String),
     Not(String),

@@ -159,7 +159,15 @@ pub struct LayerState {
 #[derive(Debug, Clone, PartialEq)]
 pub enum LayerAnimation {
     Clip(AssetKey),
-    BlendTree(Option<LayerBlendTreeType>, Vec<LayerBlendTreeField>),
+    BlendTree(LayerBlendTree),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayerBlendTree {
+    pub ty: Option<LayerBlendTreeType>,
+    pub x: Option<String>,
+    pub y: Option<String>,
+    pub fields: Vec<LayerBlendTreeField>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -178,6 +186,7 @@ pub struct LayerBlendTreeField {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LayerTransition {
+    pub target: String,
     pub conditions: Vec<LayerCondition>,
     pub duration: Option<f64>,
 }
