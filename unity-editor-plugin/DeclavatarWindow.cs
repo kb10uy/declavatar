@@ -68,7 +68,9 @@ namespace KusakaFactory.Declavatar
             );
             EditorGUILayout.Separator();
 
+            EditorGUI.BeginDisabledGroup(_sourceTextAsset == null);
             if (GUILayout.Button("Compile Declaration", GUILayout.Height(40))) Compile();
+            EditorGUI.EndDisabledGroup();
             EditorGUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
@@ -167,7 +169,9 @@ namespace KusakaFactory.Declavatar
             EditorGUILayout.Separator();
 
             _outputPath = EditorGUILayout.TextField("Output Path", _outputPath);
+            EditorGUI.BeginDisabledGroup(_sourceTextAsset == null);
             if (GUILayout.Button("Set to declaration file directory")) SetAutoOutputPath();
+            EditorGUI.EndDisabledGroup();
             EditorGUILayout.Separator();
 
             EditorGUI.BeginDisabledGroup(_avatar != null || _avatarDescriptor == null);
