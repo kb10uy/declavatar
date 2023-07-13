@@ -116,12 +116,18 @@ pub struct ShapeTarget {
     pub mesh: String,
     pub name: String,
     pub value: f64,
+
+    #[serde(skip)]
+    pub cancel_to: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ObjectTarget {
     pub name: String,
     pub enabled: bool,
+
+    #[serde(skip)]
+    pub cancel_to: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -129,6 +135,9 @@ pub struct MaterialTarget {
     pub mesh: String,
     pub slot: usize,
     pub asset_key: String,
+
+    #[serde(skip)]
+    pub cancel_to: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -291,12 +300,51 @@ impl Target {
                 mesh: mesh.clone(),
                 name: name.clone(),
                 value: 0.0,
+                cancel_to: None,
             })),
             Target::Object(ObjectTarget { name, .. }) => Some(Target::Object(ObjectTarget {
                 name: name.clone(),
                 enabled: false,
+                cancel_to: None,
             })),
             Target::Material(_) => None,
+        }
+    }
+
+    pub fn clone_as_canceled(&self) -> Option<Target> {
+        match self {
+            Target::Shape(ShapeTarget {
+                mesh,
+                name,
+                cancel_to: Some(cancel_value),
+                ..
+            }) => Some(Target::Shape(ShapeTarget {
+                mesh: mesh.clone(),
+                name: name.clone(),
+                value: *cancel_value,
+                cancel_to: None,
+            })),
+            Target::Object(ObjectTarget {
+                name,
+                cancel_to: Some(cancel_value),
+                ..
+            }) => Some(Target::Object(ObjectTarget {
+                name: name.clone(),
+                enabled: *cancel_value,
+                cancel_to: None,
+            })),
+            Target::Material(MaterialTarget {
+                slot,
+                mesh,
+                cancel_to: Some(cancel_value),
+                ..
+            }) => Some(Target::Material(MaterialTarget {
+                mesh: mesh.clone(),
+                slot: *slot,
+                asset_key: cancel_value.clone(),
+                cancel_to: None,
+            })),
+            _ => None,
         }
     }
 }

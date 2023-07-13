@@ -95,8 +95,13 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
         let mut default_shape_indices: HashSet<_> =
             default_targets.iter().map(|t| t.index()).collect();
 
+        let canceled_defaults: Vec<_> = default_targets
+            .iter()
+            .flat_map(|dt| dt.clone_as_canceled())
+            .collect();
+
         for decl_option in group.options {
-            let Some(option) = self.compile((decl_option, compiled_deps, default_mesh, true))? else {
+            let Some(mut option) = self.compile((decl_option, compiled_deps, default_mesh, true))? else {
                 continue;
             };
 
@@ -111,6 +116,10 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
                 };
                 default_targets.push(disabled_target);
                 default_shape_indices.insert(shape_index);
+            }
+
+            for canceled_target in &canceled_defaults {
+                option.targets.push(canceled_target.clone());
             }
 
             options.push(option);
@@ -136,7 +145,7 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
 
     fn compile(
         &mut self,
-        (group_block, compiled_deps, default_mesh, default_to_max): (
+        (group_block, compiled_deps, default_mesh, is_selection_item): (
             DeclGroupBlock,
             &CompiledDependencies,
             Option<&str>,
@@ -146,7 +155,7 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
         let assets = &compiled_deps.assets;
 
         let name = group_block.name.unwrap_or_default();
-        let default_shape_value = if default_to_max { 1.0 } else { 0.0 };
+        let default_shape_value = if is_selection_item { 1.0 } else { 0.0 };
 
         let targets = if group_block.indeterminate {
             let block_targets = group_block.targets;
@@ -172,11 +181,13 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                     mesh,
                     name: shape,
                     value,
+                    cancel_to: None,
                 }),
                 (Some(mesh), Some(shape), None, None) => Target::Shape(ShapeTarget {
                     mesh,
                     name: shape,
                     value: default_shape_value,
+                    cancel_to: None,
                 }),
                 // shape 2
                 (Some(mesh), None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
@@ -184,12 +195,14 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                         mesh,
                         name: label,
                         value,
+                        cancel_to: None,
                     })
                 }
                 (Some(mesh), None, None, None) => Target::Shape(ShapeTarget {
                     mesh,
                     name: label,
                     value: default_shape_value,
+                    cancel_to: None,
                 }),
                 // shape 3
                 (None, Some(shape), None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
@@ -204,6 +217,7 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value,
+                        cancel_to: None,
                     })
                 }
                 (None, Some(shape), None, None) => {
@@ -218,6 +232,7 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value: default_shape_value,
+                        cancel_to: None,
                     })
                 }
                 // object
@@ -225,11 +240,13 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                     Target::Object(ObjectTarget {
                         name: object,
                         enabled: value,
+                        cancel_to: None,
                     })
                 }
                 (None, None, Some(object), None) => Target::Object(ObjectTarget {
                     name: object,
-                    enabled: default_to_max,
+                    enabled: is_selection_item,
+                    cancel_to: None,
                 }),
                 // dependent
                 (None, None, None, Some(DeclDriveTarget::FloatParameter { value, .. })) => {
@@ -244,12 +261,14 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                         mesh: mesh_name.to_string(),
                         name: label,
                         value,
+                        cancel_to: None,
                     })
                 }
                 (None, None, None, Some(DeclDriveTarget::BoolParameter { value, .. })) => {
                     Target::Object(ObjectTarget {
                         name: label,
                         enabled: value,
+                        cancel_to: None,
                     })
                 }
                 (None, None, None, None) => {
@@ -258,11 +277,13 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                             mesh: mesh_name.to_string(),
                             name: label,
                             value: default_shape_value,
+                            cancel_to: None,
                         })
                     } else {
                         Target::Object(ObjectTarget {
                             name: label,
-                            enabled: default_to_max,
+                            enabled: is_selection_item,
+                            cancel_to: None,
                         })
                     }
                 }
@@ -280,7 +301,12 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
             let mut targets = vec![];
             for decl_target in group_block.targets {
                 let target = match decl_target {
-                    DeclTarget::Shape { shape, mesh, value } => {
+                    DeclTarget::Shape {
+                        shape,
+                        mesh,
+                        value,
+                        cancel_to,
+                    } => {
                         let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
                             self.error(format!("shape '{shape}' in group '{name}' has no specified mesh"));
                             continue;
@@ -289,19 +315,40 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                             mesh: mesh_name.to_string(),
                             name: shape,
                             value: value.unwrap_or(default_shape_value),
+                            cancel_to,
                         })
                     }
-                    DeclTarget::Object { object, value } => Target::Object(ObjectTarget {
+                    DeclTarget::Object {
+                        object,
+                        value,
+                        cancel_to,
+                    } => Target::Object(ObjectTarget {
                         name: object,
-                        enabled: value.unwrap_or(default_to_max),
+                        enabled: value.unwrap_or(is_selection_item),
+                        cancel_to,
                     }),
-                    DeclTarget::Material { slot, value, mesh } => {
+                    DeclTarget::Material {
+                        slot,
+                        value,
+                        mesh,
+                        cancel_to,
+                    } => {
                         let Some(asset_key) = value else {
                             self.error(format!("material change for '{slot}' must have material"));
                             continue;
                         };
                         if !self.validate((assets, &asset_key, DeclAssetType::Material))? {
                             continue;
+                        }
+
+                        if let Some(cancel_asset_key) = &cancel_to {
+                            if !self.validate((
+                                assets,
+                                cancel_asset_key,
+                                DeclAssetType::Material,
+                            ))? {
+                                continue;
+                            }
                         }
 
                         let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
@@ -313,6 +360,7 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                             mesh: mesh_name.to_string(),
                             slot,
                             asset_key: asset_key.key,
+                            cancel_to: cancel_to.map(|c| c.key),
                         })
                     }
                     DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
@@ -354,7 +402,9 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
         let default_mesh = switch.default_mesh.as_deref();
         for target in switch.enabled {
             match target {
-                DeclTarget::Shape { shape, mesh, value } => {
+                DeclTarget::Shape {
+                    shape, mesh, value, ..
+                } => {
                     let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
                         self.error(format!(
                             "shape '{}' in group '{}' has no specified mesh",
@@ -366,15 +416,19 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value: value.unwrap_or(1.0),
+                        cancel_to: None,
                     }));
                 }
-                DeclTarget::Object { object, value } => {
+                DeclTarget::Object { object, value, .. } => {
                     enabled.push(Target::Object(ObjectTarget {
                         name: object,
                         enabled: value.unwrap_or(true),
+                        cancel_to: None,
                     }));
                 }
-                DeclTarget::Material { slot, value, mesh } => {
+                DeclTarget::Material {
+                    slot, value, mesh, ..
+                } => {
                     let Some(asset_key) = value else {
                         self.error(format!("material change for '{slot}' must have material"));
                         continue;
@@ -392,6 +446,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         mesh: mesh_name.to_string(),
                         slot,
                         asset_key: asset_key.key,
+                        cancel_to: None,
                     }));
                 }
                 DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
@@ -399,7 +454,9 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
         }
         for target in switch.disabled {
             match target {
-                DeclTarget::Shape { shape, mesh, value } => {
+                DeclTarget::Shape {
+                    shape, mesh, value, ..
+                } => {
                     let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
                         self.error(format!(
                             "shape '{}' in group '{}' has no specified mesh",
@@ -411,15 +468,19 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         mesh: mesh_name.to_string(),
                         name: shape,
                         value: value.unwrap_or(0.0),
+                        cancel_to: None,
                     }));
                 }
-                DeclTarget::Object { object, value } => {
+                DeclTarget::Object { object, value, .. } => {
                     disabled.push(Target::Object(ObjectTarget {
                         name: object,
                         enabled: value.unwrap_or(false),
+                        cancel_to: None,
                     }));
                 }
-                DeclTarget::Material { slot, value, mesh } => {
+                DeclTarget::Material {
+                    slot, value, mesh, ..
+                } => {
                     let Some(asset_key) = value else {
                         self.error(format!("material change for '{slot}' must have material"));
                         continue;
@@ -437,6 +498,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         mesh: mesh_name.to_string(),
                         slot,
                         asset_key: asset_key.key,
+                        cancel_to: None,
                     }));
                 }
                 DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
@@ -484,7 +546,9 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
             let mut targets = vec![];
             for decl_target in decl_keyframe.targets {
                 let target = match decl_target {
-                    DeclTarget::Shape { shape, mesh, value } => {
+                    DeclTarget::Shape {
+                        shape, mesh, value, ..
+                    } => {
                         let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
                             self.error(format!(
                                 "shape '{}' in puppet '{}' has no specified mesh",
@@ -496,13 +560,17 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
                             mesh: mesh_name.to_string(),
                             name: shape,
                             value: value.unwrap_or(1.0),
+                            cancel_to: None,
                         })
                     }
-                    DeclTarget::Object { object, value } => Target::Object(ObjectTarget {
+                    DeclTarget::Object { object, value, .. } => Target::Object(ObjectTarget {
                         name: object,
                         enabled: value.unwrap_or(true),
+                        cancel_to: None,
                     }),
-                    DeclTarget::Material { slot, value, mesh } => {
+                    DeclTarget::Material {
+                        slot, value, mesh, ..
+                    } => {
                         let Some(asset_key) = value else {
                             self.error(format!("material change for '{slot}' must have material"));
                             continue;
@@ -520,6 +588,7 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
                             mesh: mesh_name.to_string(),
                             slot,
                             asset_key: asset_key.key,
+                            cancel_to: None,
                         })
                     }
                     DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),

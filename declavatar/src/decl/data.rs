@@ -82,6 +82,7 @@ pub struct GroupBlock {
     pub name: Option<String>,
     pub declared_order: usize,
     pub indeterminate: bool,
+    pub cancel_default: Option<bool>,
     pub targets: Vec<Target>,
 }
 
@@ -121,15 +122,18 @@ pub enum Target {
         shape: String,
         mesh: Option<String>,
         value: Option<f64>,
+        cancel_to: Option<f64>,
     },
     Object {
         object: String,
         value: Option<bool>,
+        cancel_to: Option<bool>,
     },
     Material {
         slot: usize,
         value: Option<AssetKey>,
         mesh: Option<String>,
+        cancel_to: Option<AssetKey>,
     },
     Indeterminate {
         label: String,

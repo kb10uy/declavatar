@@ -161,6 +161,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
 
         let mut targets = vec![];
         let block_name;
+        let cancel_default;
         if indeterminate {
             // indeterminate option
             if name != NODE_NAME_OPTION {
@@ -197,6 +198,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
             };
 
             block_name = Some(label.clone());
+            cancel_default = None;
             targets.push(Target::Indeterminate {
                 label,
                 object,
@@ -211,6 +213,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                 NODE_NAME_DEFAULT => None,
                 _ => unreachable!("block type already refined here"),
             };
+            cancel_default = entries.try_get_property("cancel")?;
 
             for child in children {
                 let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
@@ -219,21 +222,34 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                         let shape = child_entries.get_argument(0, "shape")?;
                         let mesh = child_entries.try_get_property("mesh")?;
                         let value = child_entries.try_get_property("value")?;
-                        Target::Shape { shape, mesh, value }
+                        let cancel_to = child_entries.try_get_property("cancel-to")?;
+                        Target::Shape {
+                            shape,
+                            mesh,
+                            value,
+                            cancel_to,
+                        }
                     }
                     NODE_NAME_OBJECT => {
                         let object = child_entries.get_argument(0, "object")?;
                         let value = child_entries.try_get_property("value")?;
-                        Target::Object { object, value }
+                        let cancel_to = child_entries.try_get_property("cancel-to")?;
+                        Target::Object {
+                            object,
+                            value,
+                            cancel_to,
+                        }
                     }
                     NODE_NAME_MATERIAL => {
                         let slot: i64 = child_entries.get_argument(0, "slot")?;
                         let mesh = child_entries.try_get_property("mesh")?;
                         let value = child_entries.try_get_property("value")?;
+                        let cancel_to = child_entries.try_get_property("cancel-to")?;
                         Target::Material {
                             slot: slot as usize,
                             value,
                             mesh,
+                            cancel_to,
                         }
                     }
                     _ => {
@@ -251,6 +267,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
             name: block_name,
             declared_order: order,
             indeterminate,
+            cancel_default,
             targets,
         })
     }
@@ -296,10 +313,12 @@ impl Compile<(ForSwitch, &KdlNode)> for DeclCompiler {
                     enabled.push(Target::Object {
                         object: object.clone(),
                         value: enabled_value,
+                        cancel_to: None,
                     });
                     disabled.push(Target::Object {
                         object: object.clone(),
                         value: disabled_value,
+                        cancel_to: None,
                     });
                 }
                 NODE_NAME_SHAPE => {
@@ -311,11 +330,13 @@ impl Compile<(ForSwitch, &KdlNode)> for DeclCompiler {
                         shape: shape.clone(),
                         mesh: mesh.clone(),
                         value: enabled_value,
+                        cancel_to: None,
                     });
                     disabled.push(Target::Shape {
                         shape: shape.clone(),
                         mesh: mesh.clone(),
                         value: disabled_value,
+                        cancel_to: None,
                     });
                 }
                 NODE_NAME_MATERIAL => {
@@ -327,11 +348,13 @@ impl Compile<(ForSwitch, &KdlNode)> for DeclCompiler {
                         slot: slot as usize,
                         value: enabled_value,
                         mesh: mesh.clone(),
+                        cancel_to: None,
                     });
                     disabled.push(Target::Material {
                         slot: slot as usize,
                         value: disabled_value,
                         mesh: mesh.clone(),
+                        cancel_to: None,
                     });
                 }
                 _ => {
@@ -428,12 +451,21 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
                     let shape = child_entries.get_argument(0, "shape")?;
                     let mesh = child_entries.try_get_property("mesh")?;
                     let value = child_entries.try_get_property("value")?;
-                    Target::Shape { shape, mesh, value }
+                    Target::Shape {
+                        shape,
+                        mesh,
+                        value,
+                        cancel_to: None,
+                    }
                 }
                 NODE_NAME_OBJECT => {
                     let object = child_entries.get_argument(0, "object")?;
                     let value = child_entries.try_get_property("value")?;
-                    Target::Object { object, value }
+                    Target::Object {
+                        object,
+                        value,
+                        cancel_to: None,
+                    }
                 }
                 NODE_NAME_MATERIAL => {
                     let slot: i64 = child_entries.get_argument(0, "slot")?;
@@ -443,6 +475,7 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
                         slot: slot as usize,
                         value,
                         mesh,
+                        cancel_to: None,
                     }
                 }
                 _ => {
