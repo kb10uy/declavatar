@@ -101,6 +101,7 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
             .collect();
 
         for decl_option in group.options {
+            let cancel_default = decl_option.cancel_default.unwrap_or(false);
             let Some(mut option) = self.compile((decl_option, compiled_deps, default_mesh, true))? else {
                 continue;
             };
@@ -118,8 +119,8 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
                 default_shape_indices.insert(shape_index);
             }
 
-            for canceled_target in &canceled_defaults {
-                option.targets.push(canceled_target.clone());
+            if cancel_default {
+                option.targets.extend_from_slice(&canceled_defaults);
             }
 
             options.push(option);

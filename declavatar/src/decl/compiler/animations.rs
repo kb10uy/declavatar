@@ -161,7 +161,7 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
 
         let mut targets = vec![];
         let block_name;
-        let cancel_default;
+        let cancel_default = entries.try_get_property("cancel")?;
         if indeterminate {
             // indeterminate option
             if name != NODE_NAME_OPTION {
@@ -198,7 +198,6 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
             };
 
             block_name = Some(label.clone());
-            cancel_default = None;
             targets.push(Target::Indeterminate {
                 label,
                 object,
@@ -213,7 +212,6 @@ impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
                 NODE_NAME_DEFAULT => None,
                 _ => unreachable!("block type already refined here"),
             };
-            cancel_default = entries.try_get_property("cancel")?;
 
             for child in children {
                 let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
