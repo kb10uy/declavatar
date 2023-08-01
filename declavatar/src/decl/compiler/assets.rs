@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{AssetKey, AssetType, Assets},
@@ -24,8 +24,8 @@ impl Compile<(ForAssets, &KdlNode)> for DeclCompiler {
         for child in children {
             let child_name = child.name().value();
             let asset_key = match child_name {
-                NODE_NAME_MATERIAL => self.compile((ForAsset, AssetType::Material, child))?,
-                NODE_NAME_ANIMATION => self.compile((ForAsset, AssetType::Animation, child))?,
+                NODE_NAME_MATERIAL => self.parse((ForAsset, AssetType::Material, child))?,
+                NODE_NAME_ANIMATION => self.parse((ForAsset, AssetType::Animation, child))?,
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),

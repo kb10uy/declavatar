@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{
             animations::{ForAnimations, NODE_NAME_ANIMATIONS},
@@ -49,7 +49,7 @@ impl Compile<KdlDocument> for DeclCompiler {
             match node_name {
                 NODE_NAME_AVATAR => match avatar {
                     None => {
-                        avatar = Some(self.compile((ForAvatar, node))?);
+                        avatar = Some(self.parse((ForAvatar, node))?);
                     }
                     _ => {
                         return Err(DeclError::new(
@@ -91,15 +91,11 @@ impl Compile<(ForAvatar, &KdlNode)> for DeclCompiler {
         for child in children {
             let child_name = child.name().value();
             match child_name {
-                NODE_NAME_ANIMATIONS => {
-                    animations_blocks.push(self.compile((ForAnimations, child))?)
-                }
-                NODE_NAME_DRIVERS => drivers_blocks.push(self.compile((ForDrivers, child))?),
-                NODE_NAME_PARAMETERS => {
-                    parameters_blocks.push(self.compile((ForParameters, child))?)
-                }
-                NODE_NAME_ASSETS => assets_blocks.push(self.compile((ForAssets, child))?),
-                NODE_NAME_MENU => menu_blocks.push(self.compile((ForMenu, child))?),
+                NODE_NAME_ANIMATIONS => animations_blocks.push(self.parse((ForAnimations, child))?),
+                NODE_NAME_DRIVERS => drivers_blocks.push(self.parse((ForDrivers, child))?),
+                NODE_NAME_PARAMETERS => parameters_blocks.push(self.parse((ForParameters, child))?),
+                NODE_NAME_ASSETS => assets_blocks.push(self.parse((ForAssets, child))?),
+                NODE_NAME_MENU => menu_blocks.push(self.parse((ForMenu, child))?),
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),

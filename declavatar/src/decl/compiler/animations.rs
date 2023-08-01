@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
@@ -56,10 +56,10 @@ impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
         for child in children {
             let child_name = child.name().value();
             let element = match child_name {
-                NODE_NAME_GROUP => AnimationElement::Group(self.compile((ForGroup, child))?),
-                NODE_NAME_SWITCH => AnimationElement::Switch(self.compile((ForSwitch, child))?),
-                NODE_NAME_PUPPET => AnimationElement::Puppet(self.compile((ForPuppet, child))?),
-                NODE_NAME_LAYER => AnimationElement::Layer(self.compile((ForLayer, child))?),
+                NODE_NAME_GROUP => AnimationElement::Group(self.parse((ForGroup, child))?),
+                NODE_NAME_SWITCH => AnimationElement::Switch(self.parse((ForSwitch, child))?),
+                NODE_NAME_PUPPET => AnimationElement::Puppet(self.parse((ForPuppet, child))?),
+                NODE_NAME_LAYER => AnimationElement::Layer(self.parse((ForLayer, child))?),
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
@@ -115,10 +115,10 @@ impl Compile<(ForGroup, &KdlNode)> for DeclCompiler {
                             DeclErrorKind::DuplicateNodeFound,
                         ));
                     }
-                    default_block = Some(self.compile((ForGroupBlock, child, 0))?);
+                    default_block = Some(self.parse((ForGroupBlock, child, 0))?);
                 }
                 NODE_NAME_OPTION => {
-                    options.push(self.compile((ForGroupBlock, child, option_order))?);
+                    options.push(self.parse((ForGroupBlock, child, option_order))?);
                     option_order += 1;
                 }
                 _ => {
@@ -406,7 +406,7 @@ impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
                     parameter = Some(child_entries.get_argument(0, "parameter")?);
                 }
                 NODE_NAME_KEYFRAME => {
-                    keyframes.push(self.compile((ForPuppetKeyframe, child))?);
+                    keyframes.push(self.parse((ForPuppetKeyframe, child))?);
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -504,7 +504,7 @@ impl Compile<(ForLayer, &KdlNode)> for DeclCompiler {
             let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
             match child_name {
                 NODE_NAME_STATE => {
-                    states.push(self.compile((ForLayerState, child))?);
+                    states.push(self.parse((ForLayerState, child))?);
                 }
                 NODE_NAME_DEFAULT => {
                     ensure_nochild!(child, grandchildren);
@@ -549,7 +549,7 @@ impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
                     animation = Some(LayerAnimation::Clip(key));
                 }
                 NODE_NAME_BLENDTREE => {
-                    animation = Some(self.compile((ForLayerBlendTree, child))?);
+                    animation = Some(self.parse((ForLayerBlendTree, child))?);
                 }
                 NODE_NAME_SPEED => {
                     ensure_nochild!(child, grandchildren);
@@ -563,7 +563,7 @@ impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
                     time = Some(param);
                 }
                 NODE_NAME_TRANSITION => {
-                    transitions.push(self.compile((ForLayerTransition, child))?);
+                    transitions.push(self.parse((ForLayerTransition, child))?);
                 }
                 _ => {
                     return Err(DeclError::new(
@@ -651,7 +651,7 @@ impl Compile<(ForLayerTransition, &KdlNode)> for DeclCompiler {
             match child_name {
                 NODE_NAME_WHEN => {
                     for grandchild in grandchildren {
-                        conditions.push(self.compile((ForLayerCondition, grandchild))?);
+                        conditions.push(self.parse((ForLayerCondition, grandchild))?);
                     }
                 }
                 NODE_NAME_DURATION => {

@@ -22,7 +22,7 @@ impl Compile<(Vec<DeclDrivers>, &CompiledAnimations)> for AvatarCompiler {
             let mut drivers = vec![];
 
             for drive in decl_driver.drives {
-                let Some(driver) = self.compile((drive, compiled_anims))? else {
+                let Some(driver) = self.parse((drive, compiled_anims))? else {
                     continue;
                 };
                 drivers.push(driver);
@@ -71,7 +71,7 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         parameters,
                         parameter.as_str(),
                         ParameterType::INT_TYPE,
-                        true,
+                        false,
                     ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
@@ -86,19 +86,24 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                     Driver::SetInt(parameter.clone(), option.order as u8)
                 }
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, false))? {
                         return Ok(None);
                     };
                     Driver::SetInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((
+                        parameters,
+                        name.as_str(),
+                        ParameterType::FLOAT_TYPE,
+                        false,
+                    ))? {
                         return Ok(None);
                     };
                     Driver::SetFloat(name, value)
                 }
                 DeclDriveTarget::BoolParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, false))? {
                         return Ok(None);
                     };
                     Driver::SetBool(name, value)
@@ -106,13 +111,18 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
             },
             DeclDrive::Add(dt) => match dt {
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
+                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, false))? {
                         return Ok(None);
                     };
                     Driver::AddInt(name, value)
                 }
                 DeclDriveTarget::FloatParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                    if !self.ensure((
+                        parameters,
+                        name.as_str(),
+                        ParameterType::FLOAT_TYPE,
+                        false,
+                    ))? {
                         return Ok(None);
                     };
                     Driver::AddFloat(name, value)
@@ -141,7 +151,7 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         parameters,
                         parameter.as_str(),
                         ParameterType::INT_TYPE,
-                        true,
+                        false,
                     ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"

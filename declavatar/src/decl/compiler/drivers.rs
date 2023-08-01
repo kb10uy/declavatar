@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{deconstruct_node, DeclCompiler, DeclError, DeclErrorKind, NodeEntries, Result},
         data::{Drive, DriveTarget, DriverGroup, Drivers},
@@ -26,7 +26,7 @@ impl Compile<(ForDrivers, &KdlNode)> for DeclCompiler {
         for child in children {
             let child_name = child.name().value();
             let group = match child_name {
-                NODE_NAME_GROUP => self.compile((ForDriverGroup, child))?,
+                NODE_NAME_GROUP => self.parse((ForDriverGroup, child))?,
                 _ => {
                     return Err(DeclError::new(
                         child.name().span(),
@@ -56,7 +56,7 @@ impl Compile<(ForDriverGroup, &KdlNode)> for DeclCompiler {
             let child_name = child.name().value();
             let drive = match child_name {
                 NODE_NAME_SET | NODE_NAME_ADD | NODE_NAME_RANDOM | NODE_NAME_COPY => {
-                    self.compile((ForDrive, child))?
+                    self.parse((ForDrive, child))?
                 }
                 _ => {
                     return Err(DeclError::new(

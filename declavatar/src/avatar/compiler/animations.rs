@@ -9,7 +9,7 @@ use crate::{
         },
         error::Result,
     },
-    compiler::{Compile, Compiler, Validate},
+    compiler::{Compile, Compiler},
     decl::data::{
         AnimationElement as DeclAnimationElement, AnimationGroup as DeclAnimationGroup,
         AnimationSwitch as DeclAnimationSwitch, Animations as DeclAnimations,
@@ -36,16 +36,16 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
                 DeclAnimationElement::Group(group) => {
-                    self.compile((group, compiled_deps))?
+                    self.parse((group, compiled_deps))?
                 }
                 DeclAnimationElement::Switch(switch) => {
-                    self.compile((switch, compiled_deps))?
+                    self.parse((switch, compiled_deps))?
                 }
                 DeclAnimationElement::Puppet(puppet) => {
-                    self.compile((puppet, compiled_deps))?
+                    self.parse((puppet, compiled_deps))?
                 }
                 DeclAnimationElement::Layer(layer) => {
-                    self.compile((layer, compiled_deps))?
+                    self.parse((layer, compiled_deps))?
                 }
             }) else {
                 continue;
@@ -78,7 +78,7 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
             &compiled_deps.parameters,
             group.parameter.as_str(),
             ParameterType::INT_TYPE,
-            true,
+            false,
         ))? {
             return Ok(None);
         };
@@ -102,7 +102,7 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
 
         for decl_option in group.options {
             let cancel_default = decl_option.cancel_default.unwrap_or(false);
-            let Some(mut option) = self.compile((decl_option, compiled_deps, default_mesh, true))? else {
+            let Some(mut option) = self.parse((decl_option, compiled_deps, default_mesh, true))? else {
                 continue;
             };
 
@@ -338,16 +338,12 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                             self.error(format!("material change for '{slot}' must have material"));
                             continue;
                         };
-                        if !self.validate((assets, &asset_key, DeclAssetType::Material))? {
+                        if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
                             continue;
                         }
 
                         if let Some(cancel_asset_key) = &cancel_to {
-                            if !self.validate((
-                                assets,
-                                cancel_asset_key,
-                                DeclAssetType::Material,
-                            ))? {
+                            if !self.ensure((assets, cancel_asset_key, DeclAssetType::Material))? {
                                 continue;
                             }
                         }
@@ -393,7 +389,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
             parameters,
             switch.parameter.as_str(),
             ParameterType::BOOL_TYPE,
-            true,
+            false,
         ))? {
             return Ok(None);
         };
@@ -434,7 +430,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         self.error(format!("material change for '{slot}' must have material"));
                         continue;
                     };
-                    if !self.validate((assets, &asset_key, DeclAssetType::Material))? {
+                    if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
                         continue;
                     }
 
@@ -486,7 +482,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                         self.error(format!("material change for '{slot}' must have material"));
                         continue;
                     };
-                    if !self.validate((assets, &asset_key, DeclAssetType::Material))? {
+                    if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
                         continue;
                     }
 
@@ -535,7 +531,7 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
             parameters,
             puppet.parameter.as_str(),
             ParameterType::FLOAT_TYPE,
-            true,
+            false,
         ))? {
             return Ok(None);
         };
@@ -576,7 +572,7 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
                             self.error(format!("material change for '{slot}' must have material"));
                             continue;
                         };
-                        if !self.validate((assets, &asset_key, DeclAssetType::Material))? {
+                        if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
                             continue;
                         }
 
@@ -624,7 +620,7 @@ impl Compile<(DeclLayer, &CompiledDependencies)> for AvatarCompiler {
         // if it compiles, states will be registered same order
         let state_names: Vec<_> = layer.states.iter().map(|s| s.name.clone()).collect();
         for state in layer.states {
-            let Some(state) = self.compile((state, &state_names, compiled_deps))? else {
+            let Some(state) = self.parse((state, &state_names, compiled_deps))? else {
                 continue;
             };
             compiled_states.push(state);
@@ -662,7 +658,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
 
         let animation = match state.animation {
             DeclLayerAnimation::Clip(anim) => {
-                if !self.validate((assets, &anim, DeclAssetType::Animation))? {
+                if !self.ensure((assets, &anim, DeclAssetType::Animation))? {
                     return Ok(None);
                 }
                 LayerAnimation::Clip(anim.key)
@@ -708,7 +704,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
 
                 let mut fields = vec![];
                 for decl_field in bt.fields {
-                    if !self.validate((assets, &decl_field.clip, DeclAssetType::Animation))? {
+                    if !self.ensure((assets, &decl_field.clip, DeclAssetType::Animation))? {
                         return Ok(None);
                     }
                     fields.push(LayerBlendTreeField {
@@ -736,7 +732,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
             for decl_condition in decl_transition.conditions {
                 let condition = match decl_condition {
                     DeclLayerCondition::Be(param) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::BOOL_TYPE,
@@ -748,7 +744,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::Not(param) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::BOOL_TYPE,
@@ -760,7 +756,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::EqInt(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
@@ -772,7 +768,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::NeqInt(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
@@ -784,7 +780,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::GtInt(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
@@ -796,7 +792,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::LeInt(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
@@ -808,7 +804,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::GtFloat(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::FLOAT_TYPE,
@@ -820,7 +816,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         }
                     }
                     DeclLayerCondition::LeFloat(param, value) => {
-                        if self.validate((
+                        if self.ensure((
                             parameters,
                             param.as_str(),
                             ParameterType::FLOAT_TYPE,

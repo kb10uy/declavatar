@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{Parameter, ParameterScope, ParameterType, Parameters},
@@ -29,7 +29,7 @@ impl Compile<(ForParameters, &KdlNode)> for DeclCompiler {
             let child_name = child.name().value();
             let parameter = match child_name {
                 NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => {
-                    self.compile((ForParameter, child))?
+                    self.parse((ForParameter, child))?
                 }
                 _ => {
                     return Err(DeclError::new(

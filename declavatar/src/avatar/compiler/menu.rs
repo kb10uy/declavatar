@@ -31,19 +31,19 @@ impl Compile<(Vec<DeclMenu>, &CompiledAnimations)> for AvatarCompiler {
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    let (submenu, next_id) = self.compile((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    let (submenu, next_id) = self.parse((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
                     next_group_id = next_id;
                     Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
-                    let inner = self.compile((bc.target, bc.name,parameters, animation_groups))?;
+                    let inner = self.parse((bc.target, bc.name,parameters, animation_groups))?;
                     if bc.toggle {
                         inner.map(MenuItem::Toggle)
                     } else {
                         inner.map(MenuItem::Button)
                     }
                 },
-                DeclMenuElement::Puppet(p) => self.compile((p, parameters))?,
+                DeclMenuElement::Puppet(p) => self.parse((p, parameters))?,
             }) else {
                 continue;
             };
@@ -90,19 +90,19 @@ impl
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    let (submenu, next_id) = self.compile((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    let (submenu, next_id) = self.parse((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
                     next_group_id = next_id;
                     Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
-                    let inner = self.compile((bc.target, bc.name,parameters, animation_groups))?;
+                    let inner = self.parse((bc.target, bc.name,parameters, animation_groups))?;
                     if bc.toggle {
                         inner.map(MenuItem::Toggle)
                     } else {
                         inner.map(MenuItem::Button)
                     }
                 },
-                DeclMenuElement::Puppet(p) => self.compile((p, parameters))?,
+                DeclMenuElement::Puppet(p) => self.parse((p, parameters))?,
             }) else {
                 continue;
             };

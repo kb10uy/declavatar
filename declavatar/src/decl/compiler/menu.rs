@@ -1,5 +1,5 @@
 use crate::{
-    compiler::Compile,
+    compiler::{Compile, Compiler},
     decl::{
         compiler::{deconstruct_node, DeclCompiler},
         data::{
@@ -40,15 +40,15 @@ impl Compile<(ForMenu, &KdlNode)> for DeclCompiler {
             let child_name = child.name().value();
             let element = match child_name {
                 NODE_NAME_SUBMENU => {
-                    let submenu = self.compile((ForSubMenu, child))?;
+                    let submenu = self.parse((ForSubMenu, child))?;
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = self.compile((ForBooleanControl, child))?;
+                    let boolean = self.parse((ForBooleanControl, child))?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
-                    let puppet = self.compile((ForPuppet, child))?;
+                    let puppet = self.parse((ForPuppet, child))?;
                     MenuElement::Puppet(puppet)
                 }
                 _ => {
@@ -78,15 +78,15 @@ impl Compile<(ForSubMenu, &KdlNode)> for DeclCompiler {
             let child_name = child.name().value();
             let element = match child_name {
                 NODE_NAME_SUBMENU => {
-                    let submenu = self.compile((ForSubMenu, child))?;
+                    let submenu = self.parse((ForSubMenu, child))?;
                     MenuElement::SubMenu(submenu)
                 }
                 NODE_NAME_BUTTON | NODE_NAME_TOGGLE => {
-                    let boolean = self.compile((ForBooleanControl, child))?;
+                    let boolean = self.parse((ForBooleanControl, child))?;
                     MenuElement::Boolean(boolean)
                 }
                 NODE_NAME_RADIAL | NODE_NAME_TWO_AXIS | NODE_NAME_FOUR_AXIS => {
-                    let puppet = self.compile((ForPuppet, child))?;
+                    let puppet = self.parse((ForPuppet, child))?;
                     MenuElement::Puppet(puppet)
                 }
                 _ => {
