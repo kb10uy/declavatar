@@ -407,6 +407,12 @@ namespace KusakaFactory.Declavatar
                 {
                     case LayerAnimation.Clip clip:
                         state.WithAnimation(_externals.AnimationClips[clip.AssetKey]);
+                        if (agState.Time != null)
+                        {
+                            var speedParameter = layer.FloatParameter(agState.Time);
+                            state.MotionTime(speedParameter);
+                        }
+                        // TODO: Speed parameters
                         break;
                     case LayerAnimation.BlendTree blendTree:
                         var tree = new BlendTree();
