@@ -65,10 +65,15 @@ impl Compile<DeclAvatar> for AvatarCompiler {
     }
 }
 
-impl Validate<(&Vec<Parameter>, &str, ParameterType, bool)> for AvatarCompiler {
+impl Validate<(&Vec<Parameter>, &str, ParameterType, ParameterScope)> for AvatarCompiler {
     fn validate(
         &mut self,
-        (parameters, name, ty, should_exposed): (&Vec<Parameter>, &str, ParameterType, bool),
+        (parameters, name, ty, scope_requirement): (
+            &Vec<Parameter>,
+            &str,
+            ParameterType,
+            ParameterScope,
+        ),
     ) -> Result<bool> {
         let parameter = match parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
@@ -77,8 +82,8 @@ impl Validate<(&Vec<Parameter>, &str, ParameterType, bool)> for AvatarCompiler {
                 return Ok(false);
             }
         };
-        if parameter.scope == ParameterScope::Internal && should_exposed {
-            self.error(format!("parameter '{name}' must not internal"));
+        if !parameter.scope.suitable_for(scope_requirement) {
+            self.error(format!("parameter scope requirement failure; '{name}' must be {scope_requirement:?}"));
             return Ok(false);
         }
         match (&parameter.value_type, ty) {

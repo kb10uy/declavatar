@@ -3,7 +3,7 @@ use crate::{
         compiler::{AvatarCompiler, CompiledAnimations},
         data::{
             AnimationGroup, AnimationGroupContent, BiAxis, MenuBoolean, MenuFourAxis, MenuGroup,
-            MenuItem, MenuRadial, MenuTwoAxis, Parameter, ParameterType, UniAxis,
+            MenuItem, MenuRadial, MenuTwoAxis, Parameter, ParameterScope, ParameterType, UniAxis,
         },
         error::Result,
     },
@@ -31,18 +31,24 @@ impl Compile<(Vec<DeclMenu>, &CompiledAnimations)> for AvatarCompiler {
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    let (submenu, next_id) = self.parse((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    let (submenu, next_id) = self.parse((
+                        sm.elements,
+                        next_group_id,
+                        sm.name,
+                        parameters,
+                        animation_groups,
+                    ))?;
                     next_group_id = next_id;
                     Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
-                    let inner = self.parse((bc.target, bc.name,parameters, animation_groups))?;
+                    let inner = self.parse((bc.target, bc.name, parameters, animation_groups))?;
                     if bc.toggle {
                         inner.map(MenuItem::Toggle)
                     } else {
                         inner.map(MenuItem::Button)
                     }
-                },
+                }
                 DeclMenuElement::Puppet(p) => self.parse((p, parameters))?,
             }) else {
                 continue;
@@ -90,18 +96,24 @@ impl
         for menu_element in menu_elements {
             let Some(menu_item) = (match menu_element {
                 DeclMenuElement::SubMenu(sm) => {
-                    let (submenu, next_id) = self.parse((sm.elements, next_group_id, sm.name, parameters, animation_groups))?;
+                    let (submenu, next_id) = self.parse((
+                        sm.elements,
+                        next_group_id,
+                        sm.name,
+                        parameters,
+                        animation_groups,
+                    ))?;
                     next_group_id = next_id;
                     Some(MenuItem::SubMenu(submenu))
                 }
                 DeclMenuElement::Boolean(bc) => {
-                    let inner = self.parse((bc.target, bc.name,parameters, animation_groups))?;
+                    let inner = self.parse((bc.target, bc.name, parameters, animation_groups))?;
                     if bc.toggle {
                         inner.map(MenuItem::Toggle)
                     } else {
                         inner.map(MenuItem::Button)
                     }
-                },
+                }
                 DeclMenuElement::Puppet(p) => self.parse((p, parameters))?,
             }) else {
                 continue;
@@ -153,15 +165,24 @@ impl
                     self.error(format!("animation group '{group_name}' not found"));
                     return Ok(None);
                 };
-                let AnimationGroup { content: AnimationGroupContent::Group { parameter, options, .. }, .. } = group else {
-                    self.error(format!("animation group '{group_name}' is not selection group"));
+                let AnimationGroup {
+                    content:
+                        AnimationGroupContent::Group {
+                            parameter, options, ..
+                        },
+                    ..
+                } = group
+                else {
+                    self.error(format!(
+                        "animation group '{group_name}' is not selection group"
+                    ));
                     return Ok(None);
                 };
                 if !self.ensure((
                     parameters,
                     parameter.as_str(),
                     ParameterType::INT_TYPE,
-                    true,
+                    ParameterScope::MUST_EXPOSE,
                 ))? {
                     self.error(format!(
                         "animation group '{group_name}' should refer int parameter"
@@ -171,7 +192,9 @@ impl
 
                 let option_name = option.unwrap_or_else(|| group_name.clone());
                 let Some(option) = options.iter().find(|o| o.name == option_name) else {
-                    self.error(format!("option '{option_name}' not found in '{group_name}'"));
+                    self.error(format!(
+                        "option '{option_name}' not found in '{group_name}'"
+                    ));
                     return Ok(None);
                 };
                 (group_name, ParameterType::Int(option.order as u8))
@@ -184,15 +207,21 @@ impl
                     self.error(format!("animation switch '{switch_name}' not found"));
                     return Ok(None);
                 };
-                let AnimationGroup { content: AnimationGroupContent::Switch { parameter, .. }, .. } = switch else {
-                    self.error(format!("animation group '{switch_name}' is not switch group"));
+                let AnimationGroup {
+                    content: AnimationGroupContent::Switch { parameter, .. },
+                    ..
+                } = switch
+                else {
+                    self.error(format!(
+                        "animation group '{switch_name}' is not switch group"
+                    ));
                     return Ok(None);
                 };
                 if !self.ensure((
                     parameters,
                     parameter.as_str(),
                     ParameterType::BOOL_TYPE,
-                    true,
+                    ParameterScope::MUST_EXPOSE,
                 ))? {
                     self.error(format!(
                         "animation group '{switch_name}' should refer bool parameter"
@@ -206,13 +235,23 @@ impl
                 )
             }
             DeclBooleanControlTarget::IntParameter { name, value } => {
-                if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    name.as_str(),
+                    ParameterType::INT_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Int(value))
             }
             DeclBooleanControlTarget::BoolParameter { name, value } => {
-                if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    name.as_str(),
+                    ParameterType::BOOL_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
                 (name, ParameterType::Bool(value))
@@ -236,7 +275,12 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
     ) -> Result<Option<MenuItem>> {
         match decl_puppet.axes {
             DeclPuppetAxes::Radial(param) => {
-                if !self.ensure((parameters, param.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    param.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
 
@@ -253,7 +297,7 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                     parameters,
                     horizontal.0.as_str(),
                     ParameterType::FLOAT_TYPE,
-                    true,
+                    ParameterScope::MUST_EXPOSE,
                 ))? {
                     return Ok(None);
                 };
@@ -261,7 +305,7 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                     parameters,
                     vertical.0.as_str(),
                     ParameterType::FLOAT_TYPE,
-                    true,
+                    ParameterScope::MUST_EXPOSE,
                 ))? {
                     return Ok(None);
                 };
@@ -286,21 +330,36 @@ impl Compile<(DeclPuppet, &Vec<Parameter>)> for AvatarCompiler {
                 up,
                 down,
             } => {
-                if !self.ensure((parameters, left.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    left.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
                 if !self.ensure((
                     parameters,
                     right.0.as_str(),
                     ParameterType::FLOAT_TYPE,
-                    true,
+                    ParameterScope::MUST_EXPOSE,
                 ))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, up.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    up.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
-                if !self.ensure((parameters, down.0.as_str(), ParameterType::FLOAT_TYPE, true))? {
+                if !self.ensure((
+                    parameters,
+                    down.0.as_str(),
+                    ParameterType::FLOAT_TYPE,
+                    ParameterScope::MUST_EXPOSE,
+                ))? {
                     return Ok(None);
                 };
 

@@ -47,6 +47,24 @@ pub enum ParameterScope {
     Synced(bool),
 }
 
+impl ParameterScope {
+    pub const MAYBE_INTERNAL: ParameterScope = ParameterScope::Internal;
+    pub const MUST_EXPOSE: ParameterScope = ParameterScope::Local(false);
+    pub const MUST_SYNC: ParameterScope = ParameterScope::Synced(false);
+
+    pub const fn suitable_for(self, requirement: ParameterScope) -> bool {
+        matches!(
+            (requirement, self),
+            (ParameterScope::Internal, _)
+                | (
+                    ParameterScope::Local(_),
+                    ParameterScope::Local(_) | ParameterScope::Synced(_)
+                )
+                | (ParameterScope::Synced(_), ParameterScope::Synced(_))
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Asset {
     pub asset_type: AssetType,

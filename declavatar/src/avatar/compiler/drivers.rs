@@ -1,7 +1,10 @@
 use crate::{
     avatar::{
         compiler::{AvatarCompiler, CompiledAnimations},
-        data::{AnimationGroup, AnimationGroupContent, Driver, DriverGroup, ParameterType},
+        data::{
+            AnimationGroup, AnimationGroupContent, Driver, DriverGroup, ParameterScope,
+            ParameterType,
+        },
         error::Result,
     },
     compiler::{Compile, Compiler},
@@ -59,19 +62,29 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         self.error("option must be specified".into());
                         return Ok(None);
                     };
-                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
+                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name)
+                    else {
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    let AnimationGroup { content: AnimationGroupContent::Group { parameter, options, .. }, .. } = group else {
-                        self.error(format!("animation group '{group_name}' is not selection group"));
+                    let AnimationGroup {
+                        content:
+                            AnimationGroupContent::Group {
+                                parameter, options, ..
+                            },
+                        ..
+                    } = group
+                    else {
+                        self.error(format!(
+                            "animation group '{group_name}' is not selection group"
+                        ));
                         return Ok(None);
                     };
                     if !self.ensure((
                         parameters,
                         parameter.as_str(),
                         ParameterType::INT_TYPE,
-                        false,
+                        ParameterScope::MAYBE_INTERNAL,
                     ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"
@@ -79,14 +92,21 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         return Ok(None);
                     };
                     let Some(option) = options.iter().find(|o| o.name == option_name) else {
-                        self.error(format!("option '{option_name}' not found in '{group_name}'"));
+                        self.error(format!(
+                            "option '{option_name}' not found in '{group_name}'"
+                        ));
                         return Ok(None);
                     };
 
                     Driver::SetInt(parameter.clone(), option.order as u8)
                 }
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, false))? {
+                    if !self.ensure((
+                        parameters,
+                        name.as_str(),
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    ))? {
                         return Ok(None);
                     };
                     Driver::SetInt(name, value)
@@ -96,14 +116,19 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         parameters,
                         name.as_str(),
                         ParameterType::FLOAT_TYPE,
-                        false,
+                        ParameterScope::MAYBE_INTERNAL,
                     ))? {
                         return Ok(None);
                     };
                     Driver::SetFloat(name, value)
                 }
                 DeclDriveTarget::BoolParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::BOOL_TYPE, false))? {
+                    if !self.ensure((
+                        parameters,
+                        name.as_str(),
+                        ParameterType::BOOL_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    ))? {
                         return Ok(None);
                     };
                     Driver::SetBool(name, value)
@@ -111,7 +136,12 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
             },
             DeclDrive::Add(dt) => match dt {
                 DeclDriveTarget::IntParameter { name, value } => {
-                    if !self.ensure((parameters, name.as_str(), ParameterType::INT_TYPE, false))? {
+                    if !self.ensure((
+                        parameters,
+                        name.as_str(),
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    ))? {
                         return Ok(None);
                     };
                     Driver::AddInt(name, value)
@@ -121,7 +151,7 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                         parameters,
                         name.as_str(),
                         ParameterType::FLOAT_TYPE,
-                        false,
+                        ParameterScope::MAYBE_INTERNAL,
                     ))? {
                         return Ok(None);
                     };
@@ -139,19 +169,29 @@ impl Compile<(DeclDrive, &CompiledAnimations)> for AvatarCompiler {
                 range,
             } => match (group, parameter, chance, range) {
                 (Some(group_name), None, None, (None, None)) => {
-                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name) else {
+                    let Some(group) = animation_groups.iter().find(|ag| ag.name == group_name)
+                    else {
                         self.error(format!("animation group '{group_name}' not found"));
                         return Ok(None);
                     };
-                    let AnimationGroup { content: AnimationGroupContent::Group { parameter, options, .. }, .. } = group else {
-                        self.error(format!("animation group '{group_name}' is not selection group"));
+                    let AnimationGroup {
+                        content:
+                            AnimationGroupContent::Group {
+                                parameter, options, ..
+                            },
+                        ..
+                    } = group
+                    else {
+                        self.error(format!(
+                            "animation group '{group_name}' is not selection group"
+                        ));
                         return Ok(None);
                     };
                     if !self.ensure((
                         parameters,
                         parameter.as_str(),
                         ParameterType::INT_TYPE,
-                        false,
+                        ParameterScope::MAYBE_INTERNAL,
                     ))? {
                         self.error(format!(
                             "animation group '{group_name}' should refer int parameter"

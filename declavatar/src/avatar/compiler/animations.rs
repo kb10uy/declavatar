@@ -4,8 +4,8 @@ use crate::{
         data::{
             AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation, LayerBlendTree,
             LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
-            MaterialTarget, ObjectTarget, ParameterType, Preventions, PuppetKeyframe, ShapeTarget,
-            Target,
+            MaterialTarget, ObjectTarget, ParameterScope, ParameterType, Preventions,
+            PuppetKeyframe, ShapeTarget, Target,
         },
         error::Result,
     },
@@ -35,18 +35,10 @@ impl Compile<(Vec<DeclAnimations>, &CompiledDependencies)> for AvatarCompiler {
         let decl_animations = animations_blocks.into_iter().flat_map(|ab| ab.elements);
         for decl_animation in decl_animations {
             let Some(animation_group) = (match decl_animation {
-                DeclAnimationElement::Group(group) => {
-                    self.parse((group, compiled_deps))?
-                }
-                DeclAnimationElement::Switch(switch) => {
-                    self.parse((switch, compiled_deps))?
-                }
-                DeclAnimationElement::Puppet(puppet) => {
-                    self.parse((puppet, compiled_deps))?
-                }
-                DeclAnimationElement::Layer(layer) => {
-                    self.parse((layer, compiled_deps))?
-                }
+                DeclAnimationElement::Group(group) => self.parse((group, compiled_deps))?,
+                DeclAnimationElement::Switch(switch) => self.parse((switch, compiled_deps))?,
+                DeclAnimationElement::Puppet(puppet) => self.parse((puppet, compiled_deps))?,
+                DeclAnimationElement::Layer(layer) => self.parse((layer, compiled_deps))?,
             }) else {
                 continue;
             };
@@ -78,7 +70,7 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
             &compiled_deps.parameters,
             group.parameter.as_str(),
             ParameterType::INT_TYPE,
-            false,
+            ParameterScope::MAYBE_INTERNAL,
         ))? {
             return Ok(None);
         };
@@ -102,7 +94,8 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
 
         for decl_option in group.options {
             let cancel_default = decl_option.cancel_default.unwrap_or(false);
-            let Some(mut option) = self.parse((decl_option, compiled_deps, default_mesh, true))? else {
+            let Some(mut option) = self.parse((decl_option, compiled_deps, default_mesh, true))?
+            else {
                 continue;
             };
 
@@ -112,7 +105,9 @@ impl Compile<(DeclAnimationGroup, &CompiledDependencies)> for AvatarCompiler {
                     continue;
                 }
                 let Some(disabled_target) = target.clone_as_disabled() else {
-                    self.error(format!("disabled target cannot be generated automatically; {target:?}"));
+                    self.error(format!(
+                        "disabled target cannot be generated automatically; {target:?}"
+                    ));
                     return Ok(None);
                 };
                 default_targets.push(disabled_target);
@@ -167,7 +162,8 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                 mesh,
                 shape,
                 value,
-            }) = target else {
+            }) = target
+            else {
                 unreachable!("must be indeterminate");
             };
 
@@ -309,7 +305,9 @@ impl Compile<(DeclGroupBlock, &CompiledDependencies, Option<&str>, bool)> for Av
                         cancel_to,
                     } => {
                         let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                            self.error(format!("shape '{shape}' in group '{name}' has no specified mesh"));
+                            self.error(format!(
+                                "shape '{shape}' in group '{name}' has no specified mesh"
+                            ));
                             continue;
                         };
                         Target::Shape(ShapeTarget {
@@ -389,7 +387,7 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
             parameters,
             switch.parameter.as_str(),
             ParameterType::BOOL_TYPE,
-            false,
+            ParameterScope::MAYBE_INTERNAL,
         ))? {
             return Ok(None);
         };
@@ -435,7 +433,10 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                     }
 
                     let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!("material change slot '{slot}' in switch '{}' has no specified mesh", switch.name));
+                        self.error(format!(
+                            "material change slot '{slot}' in switch '{}' has no specified mesh",
+                            switch.name
+                        ));
                         continue;
                     };
 
@@ -487,7 +488,10 @@ impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
                     }
 
                     let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!("material change slot '{slot}' in switch '{}' has no specified mesh", switch.name));
+                        self.error(format!(
+                            "material change slot '{slot}' in switch '{}' has no specified mesh",
+                            switch.name
+                        ));
                         continue;
                     };
 
@@ -531,7 +535,7 @@ impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
             parameters,
             puppet.parameter.as_str(),
             ParameterType::FLOAT_TYPE,
-            false,
+            ParameterScope::MAYBE_INTERNAL,
         ))? {
             return Ok(None);
         };
@@ -722,7 +726,10 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
 
         let mut transitions = vec![];
         for decl_transition in state.transitions {
-            let Some(target) = state_names.iter().position(|n| &decl_transition.target == n) else {
+            let Some(target) = state_names
+                .iter()
+                .position(|n| &decl_transition.target == n)
+            else {
                 self.error(format!("state {} not found", decl_transition.target));
                 continue;
             };
@@ -736,7 +743,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::BOOL_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::Be(param)
                         } else {
@@ -748,7 +755,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::BOOL_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::Not(param)
                         } else {
@@ -760,7 +767,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::EqInt(param, value)
                         } else {
@@ -772,7 +779,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::NeqInt(param, value)
                         } else {
@@ -784,7 +791,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::GtInt(param, value)
                         } else {
@@ -796,7 +803,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::INT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::LeInt(param, value)
                         } else {
@@ -808,7 +815,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::FLOAT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::GtFloat(param, value)
                         } else {
@@ -820,7 +827,7 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                             parameters,
                             param.as_str(),
                             ParameterType::FLOAT_TYPE,
-                            false,
+                            ParameterScope::MAYBE_INTERNAL,
                         ))? {
                             LayerCondition::LeFloat(param, value)
                         } else {
