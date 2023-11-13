@@ -3,9 +3,9 @@ use crate::{
         compiler::{AvatarCompiler, CompiledDependencies},
         data::{
             AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation, LayerBlendTree,
-            LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
-            MaterialTarget, ObjectTarget, ParameterScope, ParameterType, Preventions,
-            PuppetKeyframe, ShapeTarget, Target,
+            LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState,
+            LayerTransition, MaterialTarget, ObjectTarget, ParameterScope, ParameterType,
+            Preventions, PuppetKeyframe, ShapeTarget, Target,
         },
         error::Result,
     },
@@ -705,6 +705,16 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                         vec![x, y]
                     }
                 };
+                for param_name in &params {
+                    if !self.ensure((
+                        &compiled_deps.parameters,
+                        param_name.as_str(),
+                        ParameterType::FLOAT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    ))? {
+                        return Ok(None);
+                    };
+                }
 
                 let mut fields = vec![];
                 for decl_field in bt.fields {
@@ -843,6 +853,27 @@ impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCo
                 duration,
                 conditions,
             });
+        }
+
+        if let Some(speed_param) = state.speed.1.as_deref() {
+            if !self.ensure((
+                &compiled_deps.parameters,
+                speed_param,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            ))? {
+                return Ok(None);
+            };
+        }
+        if let Some(time_param) = state.time.as_deref() {
+            if !self.ensure((
+                &compiled_deps.parameters,
+                time_param,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            ))? {
+                return Ok(None);
+            };
         }
 
         Ok(Some(LayerState {
