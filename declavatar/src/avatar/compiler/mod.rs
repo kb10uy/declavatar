@@ -83,7 +83,9 @@ impl Validate<(&Vec<Parameter>, &str, ParameterType, ParameterScope)> for Avatar
             }
         };
         if !parameter.scope.suitable_for(scope_requirement) {
-            self.error(format!("parameter scope requirement failure; '{name}' must be {scope_requirement:?}"));
+            self.error(format!(
+                "parameter scope requirement failure; '{name}' must be {scope_requirement:?}"
+            ));
             return Ok(false);
         }
         match (&parameter.value_type, ty) {

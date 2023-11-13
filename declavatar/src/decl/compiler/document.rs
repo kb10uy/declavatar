@@ -34,7 +34,10 @@ impl Compile<KdlDocument> for DeclCompiler {
 
         // Detect version
         let Some(version_node) = nodes.get(0) else {
-            return Err(DeclError::new(&nul_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
+            return Err(DeclError::new(
+                &nul_span,
+                DeclErrorKind::NodeNotFound(NODE_NAME_VERSION),
+            ));
         };
         let (_, entries, _) = deconstruct_node(version_node, Some(NODE_NAME_VERSION), Some(false))?;
         let version_text = entries.get_argument(0, "version")?;
@@ -68,7 +71,10 @@ impl Compile<KdlDocument> for DeclCompiler {
         }
 
         let Some(avatar) = avatar else {
-            return Err(DeclError::new(&nul_span, DeclErrorKind::NodeNotFound(NODE_NAME_VERSION)));
+            return Err(DeclError::new(
+                &nul_span,
+                DeclErrorKind::NodeNotFound(NODE_NAME_VERSION),
+            ));
         };
         Ok(Document { version, avatar })
     }
