@@ -6,7 +6,7 @@ using UnityEditor.Experimental.AssetImporters;
 namespace KusakaFactory.Declavatar
 {
     [ScriptedImporter(1, "kdl")]
-    public sealed class DeclavatarImporter : ScriptedImporter
+    public sealed class DeclarationImporter : ScriptedImporter
     {
         public override void OnImportAsset(AssetImportContext ctx)
         {

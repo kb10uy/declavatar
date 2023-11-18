@@ -1,7 +1,7 @@
 {
-    "name": "DeclavatarEditor",
+    "name": "KusakaFactory.Declavatar.Editor",
     "references": [
-        "GUID:21dee7794a6343ccbdcd48b92f941953"
+        "KusakaFactory.Declavatar.Core"
     ],
     "includePlatforms": [
         "Editor"

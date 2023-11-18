@@ -602,40 +602,5 @@ namespace KusakaFactory.Declavatar
                 default: throw new ArgumentException("invalid target type");
             }
         }
-
-        public static VRCExpressionParameters.Parameter ConstructParameter(this Parameter definition)
-        {
-            if (definition.Scope.Type == "Internal") return null;
-
-            var parameter = new VRCExpressionParameters.Parameter();
-            parameter.name = definition.Name;
-            parameter.saved = definition.Scope.Save ?? false;
-            parameter.networkSynced = definition.Scope.Type == "Synced";
-            parameter.valueType = definition.ValueType.ConvertToVRCParameterType();
-            parameter.defaultValue = definition.ValueType.ConvertToVRCParameterValue();
-            return parameter;
-        }
-
-        public static VRCExpressionParameters.ValueType ConvertToVRCParameterType(this ParameterType value)
-        {
-            switch (value.Type)
-            {
-                case "Int": return VRCExpressionParameters.ValueType.Int;
-                case "Float": return VRCExpressionParameters.ValueType.Float;
-                case "Bool": return VRCExpressionParameters.ValueType.Bool;
-                default: throw new ArgumentException("invalid parameter type");
-            }
-        }
-
-        public static float ConvertToVRCParameterValue(this ParameterType value)
-        {
-            switch (value.Type)
-            {
-                case "Int": return (float)(long)value.Default;
-                case "Float": return (float)(double)value.Default;
-                case "Bool": return (bool)value.Default ? 1.0f : 0.0f;
-                default: throw new ArgumentException("invalid parameter type");
-            }
-        }
     }
 }

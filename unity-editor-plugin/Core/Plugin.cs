@@ -20,17 +20,17 @@ namespace KusakaFactory.Declavatar
         [DllImport(LIBRARY_NAME)]
         public static extern StatusCode DeclavatarFree(IntPtr da);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarReset(DeclavatarHandle da);
+        public static extern StatusCode DeclavatarReset(NativeHandle da);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarCompile(DeclavatarHandle da, ref byte source, uint sourceLength);
+        public static extern StatusCode DeclavatarCompile(NativeHandle da, ref byte source, uint sourceLength);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarGetAvatarJson(DeclavatarHandle da, ref IntPtr json, ref uint jsonLength);
+        public static extern StatusCode DeclavatarGetAvatarJson(NativeHandle da, ref IntPtr json, ref uint jsonLength);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarGetErrorsCount(DeclavatarHandle da, ref uint errors);
+        public static extern StatusCode DeclavatarGetErrorsCount(NativeHandle da, ref uint errors);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarGetError(DeclavatarHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
+        public static extern StatusCode DeclavatarGetError(NativeHandle da, uint index, ref uint errorKind, ref IntPtr message, ref uint messageLength);
         [DllImport(LIBRARY_NAME)]
-        public static extern StatusCode DeclavatarPushExampleErrors(DeclavatarHandle da);
+        public static extern StatusCode DeclavatarPushExampleErrors(NativeHandle da);
     }
 
     internal enum StatusCode : uint
@@ -51,11 +51,11 @@ namespace KusakaFactory.Declavatar
         SemanticInfo = 3,
     }
 
-    internal sealed class DeclavatarHandle : SafeHandle
+    internal sealed class NativeHandle : SafeHandle
     {
         public override bool IsInvalid => handle == IntPtr.Zero;
 
-        private DeclavatarHandle(IntPtr newHandle) : base(IntPtr.Zero, true)
+        private NativeHandle(IntPtr newHandle) : base(IntPtr.Zero, true)
         {
             SetHandle(newHandle);
         }
@@ -65,22 +65,22 @@ namespace KusakaFactory.Declavatar
             return Native.DeclavatarFree(handle) == (uint)StatusCode.Success;
         }
 
-        public static DeclavatarHandle Create()
+        public static NativeHandle Create()
         {
             var newHandle = Native.DeclavatarInit();
-            return new DeclavatarHandle(newHandle);
+            return new NativeHandle(newHandle);
         }
     }
 
-    internal sealed class DeclavatarPlugin : IDisposable
+    internal sealed class Plugin : IDisposable
     {
-        private DeclavatarHandle _handle = null;
+        private NativeHandle _handle = null;
         private bool _disposed = false;
         private StatusCode _lastCompileResult = StatusCode.NotCompiled;
 
-        public DeclavatarPlugin()
+        public Plugin()
         {
-            _handle = DeclavatarHandle.Create();
+            _handle = NativeHandle.Create();
             if (_handle.IsInvalid) throw new NullReferenceException("failed to create declavatar handle");
         }
 
