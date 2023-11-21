@@ -1,11 +1,5 @@
-# Declavatar
-Declarative Avatar Asset Composing Tool
+# Declavatar - declarative avatar asset composing tool
+
+AnimatorController や AnimationClip、 VRChat Expressions Menu/Parameters を KDL で記述して生成できるツールです。
 
 See also: [modular-declavatar](https://github.com/kb10uy/modular-declavatar)
-
-## Target
-* Parse [KDL](https://kdl.dev/) file and converts it into Unity assets below
-    - Animation
-    - Animator Controller
-    - VRChat Expressions Menu
-    - VRChat Expressions Parameter
