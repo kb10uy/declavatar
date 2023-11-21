@@ -1,7 +1,6 @@
 name: "Check Rust Codes"
 
 on:
-  - "push"
   - "pull_request"
 
 jobs:
