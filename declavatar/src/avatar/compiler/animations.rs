@@ -3,9 +3,9 @@ use crate::{
         compiler::{AvatarCompiler, CompiledDependencies},
         data::{
             AnimationGroup, AnimationGroupContent, GroupOption, LayerAnimation, LayerBlendTree,
-            LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState,
-            LayerTransition, MaterialTarget, ObjectTarget, ParameterScope, ParameterType,
-            Preventions, PuppetKeyframe, ShapeTarget, Target,
+            LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState, LayerTransition,
+            MaterialTarget, ObjectTarget, ParameterScope, ParameterType, Preventions,
+            PuppetKeyframe, ShapeTarget, Target,
         },
         error::Result,
     },
