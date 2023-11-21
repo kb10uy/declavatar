@@ -51,7 +51,7 @@ macro_rules! as_ref {
 #[no_mangle]
 pub extern "system" fn DeclavatarInit() -> *mut Declavatar {
     let boxed = Box::new(Declavatar::new());
-    Box::into_raw(boxed) as *mut Declavatar
+    Box::into_raw(boxed)
 }
 
 #[no_mangle]
