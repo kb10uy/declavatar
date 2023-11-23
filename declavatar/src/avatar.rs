@@ -2,6 +2,7 @@ pub mod data;
 pub mod error;
 
 mod compiler;
+mod transformer;
 
 use crate::{
     avatar::{
