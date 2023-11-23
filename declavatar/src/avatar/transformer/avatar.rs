@@ -33,8 +33,8 @@ pub fn compile_avatar(ctx: &mut Context, avatar: DeclAvatar) -> Compiled<Avatar>
         compile_animations_blocks(ctx, &compiled_sources, avatar.animations_blocks)?;
     let compiled_animations = CompiledAnimations::new(compiled_sources, animation_groups);
 
-    let driver_groups = compile_drivers_blocks(ctx, avatar.drivers_blocks)?;
-    let top_menu_group = compile_menu(ctx, avatar.menu_blocks)?;
+    let driver_groups = compile_drivers_blocks(ctx, &compiled_animations, avatar.drivers_blocks)?;
+    let top_menu_group = compile_menu(ctx, &compiled_animations, avatar.menu_blocks)?;
 
     let (parameters, assets, animation_groups) = compiled_animations.deconstruct();
     success(Avatar {

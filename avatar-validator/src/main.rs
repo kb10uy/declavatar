@@ -8,7 +8,7 @@ use std::{
 };
 
 use clap::Parser;
-use declavatar::{avatar::compile_avatar, decl::parse_document};
+use declavatar::{avatar::transform_avatar, decl::parse_document};
 use miette::{IntoDiagnostic, Result as MietteResult};
 
 fn main() -> MietteResult<()> {
@@ -19,11 +19,12 @@ fn main() -> MietteResult<()> {
     file.read_to_string(&mut source).into_diagnostic()?;
 
     let document = parse_document(&source)?;
-    let avatar = match compile_avatar(document.avatar)? {
-        Ok(avatar) => avatar,
-        Err(errors) => {
-            for error in errors {
-                println!("{error}");
+    let transformed = transform_avatar(document.avatar);
+    let avatar = match transformed.avatar {
+        Some(avatar) => avatar,
+        None => {
+            for (level, message) in transformed.logs {
+                println!("{level}: {message}");
             }
             return Ok(());
         }

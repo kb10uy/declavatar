@@ -6,23 +6,12 @@ mod drivers;
 mod menu;
 mod parameters;
 
-// Renamed for future change
-pub type Compiled<T> = Option<T>;
+pub(super) use self::avatar::compile_avatar;
 
-// Reserved as a function for future change
-#[inline]
-pub fn success<T>(t: T) -> Compiled<T> {
-    Some(t)
-}
-
-// Reserved as a function for future change
-#[inline]
-pub fn failure<T>() -> Compiled<T> {
-    None
-}
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug)]
-struct Context {
+pub(super) struct Context {
     logs: Vec<(LogLevel, LogKind)>,
     errornous: bool,
 }
@@ -35,29 +24,61 @@ impl Context {
         }
     }
 
-    pub fn log_info(&mut self, log: LogKind) {
+    pub(self) fn log_info(&mut self, log: LogKind) {
         self.logs.push((LogLevel::Information, log));
     }
 
-    pub fn log_warn(&mut self, log: LogKind) {
+    pub(self) fn log_warn(&mut self, log: LogKind) {
         self.logs.push((LogLevel::Warning, log));
     }
 
-    pub fn log_error(&mut self, log: LogKind) {
+    pub(self) fn log_error(&mut self, log: LogKind) {
         self.logs.push((LogLevel::Error, log));
         self.errornous = true;
     }
+
+    pub fn into_logs(self) -> Vec<(String, String)> {
+        self.logs
+            .into_iter()
+            .map(|(ll, lk)| (ll.to_string(), lk.to_string()))
+            .collect()
+    }
+}
+
+// Renamed for future change
+type Compiled<T> = Option<T>;
+
+// Reserved as a function for future change
+#[inline]
+fn success<T>(t: T) -> Compiled<T> {
+    Some(t)
+}
+
+// Reserved as a function for future change
+#[inline]
+fn failure<T>() -> Compiled<T> {
+    None
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LogLevel {
+enum LogLevel {
     Information,
     Warning,
     Error,
 }
 
+impl Display for LogLevel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            LogLevel::Information => write!(f, "Information"),
+            LogLevel::Warning => write!(f, "Warning"),
+            LogLevel::Error => write!(f, "Error"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LogKind {
+enum LogKind {
     InvalidAvatarName(String),
     InternalMustBeTransient(String),
     IncompatibleParameterDeclaration(String),
@@ -66,4 +87,18 @@ pub enum LogKind {
     DuplicateGroupName(String),
 
     ParameterNotFound(String),
+}
+
+impl Display for LogKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            LogKind::InvalidAvatarName(_) => todo!(),
+            LogKind::InternalMustBeTransient(_) => todo!(),
+            LogKind::IncompatibleParameterDeclaration(_) => todo!(),
+            LogKind::IndeterminateAsset(_) => todo!(),
+            LogKind::IncompatibleAssetDeclaration(_) => todo!(),
+            LogKind::DuplicateGroupName(_) => todo!(),
+            LogKind::ParameterNotFound(_) => todo!(),
+        }
+    }
 }

@@ -257,8 +257,10 @@ pub enum MenuItem {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MenuGroup {
     pub name: String,
-    pub id: usize,
     pub items: Vec<MenuItem>,
+
+    #[deprecated = "Modular Avatar doesn't need unique menu group ID"]
+    pub id: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
