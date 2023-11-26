@@ -116,38 +116,95 @@ impl Display for LogKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             LogKind::InvalidAvatarName(name) => write!(f, "invalid avatar name '{name}'"),
-            LogKind::InternalMustBeTransient(_) => todo!(),
-            LogKind::IncompatibleParameterDeclaration(_) => todo!(),
-            LogKind::IndeterminateAsset(_) => todo!(),
-            LogKind::IncompatibleAssetDeclaration(_) => todo!(),
-            LogKind::DuplicateGroupName(_) => todo!(),
+            LogKind::InternalMustBeTransient(param) => {
+                write!(f, "internal parameter '{param}' cannot be saved")
+            }
+            LogKind::IncompatibleParameterDeclaration(param) => {
+                write!(f, "parameter '{param}' has incompatible declarations")
+            }
+            LogKind::IndeterminateAsset(asset) => write!(f, "indeterminate asset '{asset}'"),
+            LogKind::IncompatibleAssetDeclaration(asset) => {
+                write!(f, "asset '{asset}' has incompatible declaration")
+            }
+            LogKind::DuplicateGroupName(group) => write!(f, "group name '{group}' is duplicate"),
 
-            LogKind::ParameterNotFound(_) => todo!(),
-            LogKind::ParameterTypeRequirement(_, _) => todo!(),
-            LogKind::ParameterScopeRequirement(_, _) => todo!(),
+            LogKind::ParameterNotFound(param) => write!(f, "parameter '{param}' not found"),
+            LogKind::ParameterTypeRequirement(param, ty) => {
+                write!(f, "parameter '{param}' must be {ty:?}")
+            }
+            LogKind::ParameterScopeRequirement(param, scope) => {
+                write!(f, "parameter '{param}' must be {scope:?}")
+            }
 
-            LogKind::AssetNotFound(_) => todo!(),
-            LogKind::AssetTypeRequirement(_, _) => todo!(),
+            LogKind::AssetNotFound(asset) => write!(f, "asset '{asset}' not found"),
+            LogKind::AssetTypeRequirement(asset, ty) => write!(f, "asset '{asset}' must be {ty:?}"),
 
-            LogKind::AnimationGroupNotFound(_) => todo!(),
-            LogKind::AnimationGroupMustBeGroup(_) => todo!(),
-            LogKind::AnimationGroupMustBeSwitch(_) => todo!(),
-            LogKind::AnimationGroupMustBePuppet(_) => todo!(),
-            LogKind::AnimationGroupOptionNotFound(_, _) => todo!(),
-            LogKind::AnimationGroupDisabledTargetFailure(_, _) => todo!(),
-            LogKind::AnimationGroupMaterialFailure(_) => todo!(),
-            LogKind::AnimationGroupIndeterminateShapeChange(_, _) => todo!(),
-            LogKind::AnimationGroupIndeterminateMaterialChange(_, _) => todo!(),
-            LogKind::AnimationGroupIndeterminateOption(_, _) => todo!(),
+            LogKind::AnimationGroupNotFound(group) => {
+                write!(f, "animation group '{group}' not found")
+            }
+            LogKind::AnimationGroupMustBeGroup(group) => {
+                write!(f, "group '{group}' must be group block")
+            }
+            LogKind::AnimationGroupMustBeSwitch(group) => {
+                write!(f, "group '{group}' must be switch block")
+            }
+            LogKind::AnimationGroupMustBePuppet(group) => {
+                write!(f, "group '{group}' must be puppet block")
+            }
+            LogKind::AnimationGroupOptionNotFound(group, option) => {
+                write!(f, "group '{group}', option '{option}' not found")
+            }
+            LogKind::AnimationGroupDisabledTargetFailure(group, target) => {
+                write!(
+                    f,
+                    "group name '{group}', target '{target}' has no auto-generated disabled target"
+                )
+            }
+            LogKind::AnimationGroupMaterialFailure(group) => {
+                write!(f, "group name '{group}', material target failure")
+            }
+            LogKind::AnimationGroupIndeterminateShapeChange(group, shape) => {
+                write!(
+                    f,
+                    "group name '{group}', '{shape}' does not have mesh target"
+                )
+            }
+            LogKind::AnimationGroupIndeterminateMaterialChange(group, material) => {
+                write!(
+                    f,
+                    "group name '{group}', '{material}' does not have mesh target"
+                )
+            }
+            LogKind::AnimationGroupIndeterminateOption(group, option) => {
+                write!(f, "group name '{group}', option '{option}' not found")
+            }
 
-            LogKind::DriverOptionNotSpecified(_) => todo!(),
-            LogKind::DriverInvalidAddTarget(_) => todo!(),
-            LogKind::DriverInvalidRandomSpecification(_) => todo!(),
-            LogKind::DriverInvalidCopyTarget(_) => todo!(),
-            LogKind::DriverCopyMismatch(_, _) => todo!(),
+            LogKind::DriverOptionNotSpecified(driver) => {
+                write!(f, "driver option '{driver}' not specified")
+            }
+            LogKind::DriverInvalidAddTarget(driver) => {
+                write!(f, "driver '{driver}' has invalid add target")
+            }
+            LogKind::DriverInvalidRandomSpecification(driver) => {
+                write!(
+                    f,
+                    "driver '{driver}' has invalid random target specification"
+                )
+            }
+            LogKind::DriverInvalidCopyTarget(driver) => {
+                write!(f, "driver option '{driver}' has invalid copy target")
+            }
+            LogKind::DriverCopyMismatch(driver, (from, to)) => {
+                write!(f, "driver option '{driver}' has copy target; parameters '{from}' and '{to}' have different type")
+            }
 
-            LogKind::LayerStateNotFound(_, _) => todo!(),
-            LogKind::LayerBlendTreeParameterNotFound(_, _) => todo!(),
+            LogKind::LayerStateNotFound(layer, state) => {
+                write!(f, "layer '{layer}', state '{state}' not found")
+            }
+            LogKind::LayerBlendTreeParameterNotFound(layer, state) => write!(
+                f,
+                "layer '{layer}', state '{state}' does not sufficient parameters"
+            ),
         }
     }
 }
