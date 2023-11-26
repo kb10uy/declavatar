@@ -1,8 +1,10 @@
 use crate::{
     avatar::{
         data::{
-            AnimationGroup, AnimationGroupContent, AssetType, GroupOption, MaterialTarget,
-            ObjectTarget, ParameterScope, ParameterType, Preventions, ShapeTarget, Target,
+            AnimationGroup, AnimationGroupContent, AssetType, GroupOption, LayerAnimation,
+            LayerBlendTree, LayerBlendTreeField, LayerBlendTreeType, LayerCondition, LayerState,
+            LayerTransition, MaterialTarget, ObjectTarget, ParameterScope, ParameterType,
+            Preventions, PuppetKeyframe, ShapeTarget, Target,
         },
         transformer::{
             dependencies::CompiledSources, failure, success, Compiled, Context, LogKind,
@@ -12,7 +14,9 @@ use crate::{
         AnimationElement as DeclAnimationElement, AnimationGroup as DeclAnimationGroup,
         AnimationSwitch as DeclAnimationSwitch, Animations as DeclAnimations,
         DriveTarget as DeclDriveTarget, GroupBlock as DeclGroupBlock, Layer as DeclLayer,
-        Puppet as DeclPuppet, Target as DeclTarget,
+        LayerAnimation as DeclLayerAnimation, LayerBlendTreeType as DeclLayerBlendTreeType,
+        LayerCondition as DeclLayerCondition, LayerState as DeclLayerState, Puppet as DeclPuppet,
+        Target as DeclTarget,
     },
 };
 
@@ -144,40 +148,110 @@ fn compile_group_option(
             unreachable!("must be indeterminate");
         };
 
-        if let Some(single_target) = compile_indeterminate_target(
+        compile_indeterminate_target(
             ctx,
             sources,
             &name,
             default_mesh,
             default_to_one,
             (label, mesh, shape, object, value),
-        ) {
-            vec![single_target]
-        } else {
-            vec![]
-        }
+        )
+        .into_iter()
+        .collect()
     } else {
-        let mut targets = vec![];
-        for decl_target in decl_group_block.targets {
-            let Some(target) = compile_animation_target(
-                ctx,
-                sources,
-                &name,
-                default_mesh,
-                default_to_one,
-                decl_target,
-            ) else {
-                continue;
-            };
-            targets.push(target);
-        }
-        targets
+        decl_group_block
+            .targets
+            .into_iter()
+            .filter_map(|ds| compile_animation_target(ctx, sources, &name, default_mesh, true, ds))
+            .collect()
     };
 
     success(GroupOption {
         name,
         order: decl_group_block.declared_order,
         targets,
+    })
+}
+
+fn compile_switch(
+    ctx: &mut Context,
+    sources: &CompiledSources,
+    decl_switch: DeclAnimationSwitch,
+) -> Compiled<AnimationGroup> {
+    sources.find_parameter(
+        ctx,
+        &decl_switch.parameter,
+        ParameterType::BOOL_TYPE,
+        ParameterScope::MAYBE_INTERNAL,
+    )?;
+
+    let default_mesh = decl_switch.default_mesh.as_deref();
+
+    let disabled: Vec<_> = decl_switch
+        .disabled
+        .into_iter()
+        .filter_map(|ds| {
+            compile_animation_target(ctx, sources, &decl_switch.name, default_mesh, false, ds)
+        })
+        .collect();
+    let enabled: Vec<_> = decl_switch
+        .enabled
+        .into_iter()
+        .filter_map(|ds| {
+            compile_animation_target(ctx, sources, &decl_switch.name, default_mesh, true, ds)
+        })
+        .collect();
+
+    success(AnimationGroup {
+        name: decl_switch.name,
+        content: AnimationGroupContent::Switch {
+            parameter: decl_switch.parameter,
+            preventions: Preventions {
+                mouth: decl_switch.preventions.mouth.unwrap_or(false),
+                eyelids: decl_switch.preventions.eyelids.unwrap_or(false),
+            },
+            disabled,
+            enabled,
+        },
+    })
+}
+
+fn compile_puppet(
+    ctx: &mut Context,
+    sources: &CompiledSources,
+    decl_puppet: DeclPuppet,
+) -> Compiled<AnimationGroup> {
+    sources.find_parameter(
+        ctx,
+        &decl_puppet.parameter,
+        ParameterType::FLOAT_TYPE,
+        ParameterScope::MAYBE_INTERNAL,
+    )?;
+
+    let default_mesh = decl_puppet.mesh.as_deref();
+
+    let mut keyframes = vec![];
+    for decl_keyframe in decl_puppet.keyframes {
+        let targets: Vec<_> = decl_keyframe
+            .targets
+            .into_iter()
+            .filter_map(|ds| {
+                compile_animation_target(ctx, sources, &decl_puppet.name, default_mesh, true, ds)
+            })
+            .collect();
+
+        keyframes.push(PuppetKeyframe {
+            position: decl_keyframe.position,
+            targets,
+        });
+    }
+
+    success(AnimationGroup {
+        name: decl_puppet.name,
+        content: AnimationGroupContent::Puppet {
+            parameter: decl_puppet.parameter,
+            keyframes,
+        },
     })
 }
 
@@ -258,7 +332,7 @@ fn compile_animation_target(
 
 fn compile_indeterminate_target(
     ctx: &mut Context,
-    sources: &CompiledSources,
+    _sources: &CompiledSources,
     group_name: &str,
     default_mesh: Option<&str>,
     default_to_one: bool,
@@ -397,543 +471,237 @@ fn compile_indeterminate_target(
     }
 }
 
-fn compile_switch(
-    ctx: &mut Context,
-    sources: &CompiledSources,
-    decl_switch: DeclAnimationSwitch,
-) -> Compiled<AnimationGroup> {
-    failure()
-}
-
-fn compile_puppet(
-    ctx: &mut Context,
-    sources: &CompiledSources,
-    decl_puppet: DeclPuppet,
-) -> Compiled<AnimationGroup> {
-    failure()
-}
-
 fn compile_raw_layer(
     ctx: &mut Context,
     sources: &CompiledSources,
     decl_layer: DeclLayer,
 ) -> Compiled<AnimationGroup> {
-    failure()
-}
+    // if it compiles, states will be registered same order
+    let state_names: Vec<_> = decl_layer.states.iter().map(|s| s.name.clone()).collect();
 
-/*
+    let compiled_states: Vec<_> = decl_layer
+        .states
+        .into_iter()
+        .filter_map(|ds| compile_raw_layer_state(ctx, sources, &decl_layer.name, &state_names, ds))
+        .collect();
 
-impl Compile<(DeclAnimationSwitch, &CompiledDependencies)> for AvatarCompiler {
-    type Output = Option<AnimationGroup>;
-
-    fn compile(
-        &mut self,
-        (switch, compiled_deps): (DeclAnimationSwitch, &CompiledDependencies),
-    ) -> Result<Option<AnimationGroup>> {
-        let parameters = &compiled_deps.parameters;
-        let assets = &compiled_deps.assets;
-
-        if !self.ensure((
-            parameters,
-            switch.parameter.as_str(),
-            ParameterType::BOOL_TYPE,
-            ParameterScope::MAYBE_INTERNAL,
-        ))? {
-            return Ok(None);
-        };
-
-        let mut disabled = vec![];
-        let mut enabled = vec![];
-        let default_mesh = switch.default_mesh.as_deref();
-        for target in switch.enabled {
-            match target {
-                DeclTarget::Shape {
-                    shape, mesh, value, ..
-                } => {
-                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!(
-                            "shape '{}' in group '{}' has no specified mesh",
-                            shape, switch.name,
-                        ));
-                        continue;
-                    };
-                    enabled.push(Target::Shape(ShapeTarget {
-                        mesh: mesh_name.to_string(),
-                        name: shape,
-                        value: value.unwrap_or(1.0),
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Object { object, value, .. } => {
-                    enabled.push(Target::Object(ObjectTarget {
-                        name: object,
-                        enabled: value.unwrap_or(true),
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Material {
-                    slot, value, mesh, ..
-                } => {
-                    let Some(asset_key) = value else {
-                        self.error(format!("material change for '{slot}' must have material"));
-                        continue;
-                    };
-                    if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
-                        continue;
-                    }
-
-                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!(
-                            "material change slot '{slot}' in switch '{}' has no specified mesh",
-                            switch.name
-                        ));
-                        continue;
-                    };
-
-                    enabled.push(Target::Material(MaterialTarget {
-                        mesh: mesh_name.to_string(),
-                        slot,
-                        asset_key: asset_key.key,
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
-            }
-        }
-        for target in switch.disabled {
-            match target {
-                DeclTarget::Shape {
-                    shape, mesh, value, ..
-                } => {
-                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!(
-                            "shape '{}' in group '{}' has no specified mesh",
-                            shape, switch.name,
-                        ));
-                        continue;
-                    };
-                    disabled.push(Target::Shape(ShapeTarget {
-                        mesh: mesh_name.to_string(),
-                        name: shape,
-                        value: value.unwrap_or(0.0),
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Object { object, value, .. } => {
-                    disabled.push(Target::Object(ObjectTarget {
-                        name: object,
-                        enabled: value.unwrap_or(false),
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Material {
-                    slot, value, mesh, ..
-                } => {
-                    let Some(asset_key) = value else {
-                        self.error(format!("material change for '{slot}' must have material"));
-                        continue;
-                    };
-                    if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
-                        continue;
-                    }
-
-                    let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                        self.error(format!(
-                            "material change slot '{slot}' in switch '{}' has no specified mesh",
-                            switch.name
-                        ));
-                        continue;
-                    };
-
-                    disabled.push(Target::Material(MaterialTarget {
-                        mesh: mesh_name.to_string(),
-                        slot,
-                        asset_key: asset_key.key,
-                        cancel_to: None,
-                    }));
-                }
-                DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
-            }
-        }
-
-        Ok(Some(AnimationGroup {
-            name: switch.name,
-            content: AnimationGroupContent::Switch {
-                parameter: switch.parameter,
-                preventions: Preventions {
-                    mouth: switch.preventions.mouth.unwrap_or(false),
-                    eyelids: switch.preventions.eyelids.unwrap_or(false),
-                },
-                disabled,
-                enabled,
-            },
-        }))
-    }
-}
-
-impl Compile<(DeclPuppet, &CompiledDependencies)> for AvatarCompiler {
-    type Output = Option<AnimationGroup>;
-
-    fn compile(
-        &mut self,
-        (puppet, compiled_deps): (DeclPuppet, &CompiledDependencies),
-    ) -> Result<Option<AnimationGroup>> {
-        let parameters = &compiled_deps.parameters;
-        let assets = &compiled_deps.assets;
-
-        if !self.ensure((
-            parameters,
-            puppet.parameter.as_str(),
-            ParameterType::FLOAT_TYPE,
-            ParameterScope::MAYBE_INTERNAL,
-        ))? {
-            return Ok(None);
-        };
-
-        let default_mesh = puppet.mesh.as_deref();
-
-        let mut keyframes = vec![];
-        for decl_keyframe in puppet.keyframes {
-            let mut targets = vec![];
-            for decl_target in decl_keyframe.targets {
-                let target = match decl_target {
-                    DeclTarget::Shape {
-                        shape, mesh, value, ..
-                    } => {
-                        let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                            self.error(format!(
-                                "shape '{}' in puppet '{}' has no specified mesh",
-                                shape, puppet.name,
-                            ));
-                            continue;
-                        };
-                        Target::Shape(ShapeTarget {
-                            mesh: mesh_name.to_string(),
-                            name: shape,
-                            value: value.unwrap_or(1.0),
-                            cancel_to: None,
-                        })
-                    }
-                    DeclTarget::Object { object, value, .. } => Target::Object(ObjectTarget {
-                        name: object,
-                        enabled: value.unwrap_or(true),
-                        cancel_to: None,
-                    }),
-                    DeclTarget::Material {
-                        slot, value, mesh, ..
-                    } => {
-                        let Some(asset_key) = value else {
-                            self.error(format!("material change for '{slot}' must have material"));
-                            continue;
-                        };
-                        if !self.ensure((assets, &asset_key, DeclAssetType::Material))? {
-                            continue;
-                        }
-
-                        let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                            self.error(format!("material change slot '{slot}' in puppet '{}' has no specified mesh", puppet.name));
-                            continue;
-                        };
-
-                        Target::Material(MaterialTarget {
-                            mesh: mesh_name.to_string(),
-                            slot,
-                            asset_key: asset_key.key,
-                            cancel_to: None,
-                        })
-                    }
-                    DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
-                };
-                targets.push(target);
-            }
-
-            keyframes.push(PuppetKeyframe {
-                position: decl_keyframe.position,
-                targets,
-            });
-        }
-
-        Ok(Some(AnimationGroup {
-            name: puppet.name,
-            content: AnimationGroupContent::Puppet {
-                parameter: puppet.parameter,
-                keyframes,
-            },
-        }))
-    }
-}
-
-impl Compile<(DeclLayer, &CompiledDependencies)> for AvatarCompiler {
-    type Output = Option<AnimationGroup>;
-
-    fn compile(
-        &mut self,
-        (layer, compiled_deps): (DeclLayer, &CompiledDependencies),
-    ) -> Result<Option<AnimationGroup>> {
-        let mut compiled_states = vec![];
-        // if it compiles, states will be registered same order
-        let state_names: Vec<_> = layer.states.iter().map(|s| s.name.clone()).collect();
-        for state in layer.states {
-            let Some(state) = self.parse((state, &state_names, compiled_deps))? else {
-                continue;
+    let default_index = match decl_layer.default_state {
+        Some(ds) => {
+            let Some(i) = compiled_states.iter().position(|s| s.name == ds) else {
+                ctx.log_error(LogKind::LayerStateNotFound(decl_layer.name, ds));
+                return failure();
             };
-            compiled_states.push(state);
+            i
         }
-        let default_index = match layer.default_state {
-            Some(ds) => {
-                let Some(i) = compiled_states.iter().position(|s| s.name == ds) else {
-                    self.error(format!("state {ds} not found in layer {}", layer.name));
-                    return Ok(None);
-                };
-                i
-            }
-            None => 0,
-        };
+        None => 0,
+    };
 
-        Ok(Some(AnimationGroup {
-            name: layer.name,
-            content: AnimationGroupContent::Layer {
-                default_index,
-                states: compiled_states,
-            },
-        }))
-    }
+    success(AnimationGroup {
+        name: decl_layer.name,
+        content: AnimationGroupContent::Layer {
+            default_index,
+            states: compiled_states,
+        },
+    })
 }
 
-impl Compile<(DeclLayerState, &Vec<String>, &CompiledDependencies)> for AvatarCompiler {
-    type Output = Option<LayerState>;
-
-    fn compile(
-        &mut self,
-        (state, state_names, compiled_deps): (DeclLayerState, &Vec<String>, &CompiledDependencies),
-    ) -> Result<Option<LayerState>> {
-        let assets = &compiled_deps.assets;
-        let parameters = &compiled_deps.parameters;
-
-        let animation = match state.animation {
-            DeclLayerAnimation::Clip(anim) => {
-                if !self.ensure((assets, &anim, DeclAssetType::Animation))? {
-                    return Ok(None);
+fn compile_raw_layer_state(
+    ctx: &mut Context,
+    sources: &CompiledSources,
+    layer_name: &str,
+    state_names: &[String],
+    decl_layer_state: DeclLayerState,
+) -> Compiled<LayerState> {
+    let animation = match decl_layer_state.animation {
+        DeclLayerAnimation::Clip(anim) => {
+            sources.find_asset(ctx, &anim.key, AssetType::Animation)?;
+            LayerAnimation::Clip(anim.key)
+        }
+        DeclLayerAnimation::BlendTree(bt) => {
+            let blend_type = match bt.ty {
+                Some(DeclLayerBlendTreeType::Linear) => LayerBlendTreeType::Linear,
+                Some(DeclLayerBlendTreeType::Simple2D) => LayerBlendTreeType::Simple2D,
+                Some(DeclLayerBlendTreeType::Freeform2D) => LayerBlendTreeType::Freeform2D,
+                Some(DeclLayerBlendTreeType::Cartesian2D) => LayerBlendTreeType::Cartesian2D,
+                None => {
+                    ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
+                        layer_name.to_string(),
+                        decl_layer_state.name,
+                    ));
+                    return failure();
                 }
-                LayerAnimation::Clip(anim.key)
-            }
-            DeclLayerAnimation::BlendTree(bt) => {
-                let blend_type = match bt.ty {
-                    Some(DeclLayerBlendTreeType::Linear) => LayerBlendTreeType::Linear,
-                    Some(DeclLayerBlendTreeType::Simple2D) => LayerBlendTreeType::Simple2D,
-                    Some(DeclLayerBlendTreeType::Freeform2D) => LayerBlendTreeType::Freeform2D,
-                    Some(DeclLayerBlendTreeType::Cartesian2D) => LayerBlendTreeType::Cartesian2D,
-                    None => {
-                        self.error(format!(
-                            "BlendTree type must be specified for State {}",
-                            state.name
+            };
+            let params = match blend_type {
+                LayerBlendTreeType::Linear => {
+                    let Some(x) = bt.x else {
+                        ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
+                            layer_name.to_string(),
+                            decl_layer_state.name,
                         ));
-                        return Ok(None);
-                    }
-                };
-                let params = match blend_type {
-                    LayerBlendTreeType::Linear => {
-                        let Some(x) = bt.x else {
-                            self.error(format!(
-                                "BlendTree parameter must be specified for {}",
-                                state.name
-                            ));
-                            return Ok(None);
-                        };
-                        vec![x]
-                    }
-                    LayerBlendTreeType::Simple2D
-                    | LayerBlendTreeType::Freeform2D
-                    | LayerBlendTreeType::Cartesian2D => {
-                        let (Some(x), Some(y)) = (bt.x, bt.y) else {
-                            self.error(format!(
-                                "BlendTree parameter must be specified for {}",
-                                state.name
-                            ));
-                            return Ok(None);
-                        };
-                        vec![x, y]
-                    }
-                };
-                for param_name in &params {
-                    if !self.ensure((
-                        &compiled_deps.parameters,
-                        param_name.as_str(),
+                        return failure();
+                    };
+                    vec![x]
+                }
+                LayerBlendTreeType::Simple2D
+                | LayerBlendTreeType::Freeform2D
+                | LayerBlendTreeType::Cartesian2D => {
+                    let (Some(x), Some(y)) = (bt.x, bt.y) else {
+                        ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
+                            layer_name.to_string(),
+                            decl_layer_state.name,
+                        ));
+                        return failure();
+                    };
+                    vec![x, y]
+                }
+            };
+            for param_name in &params {
+                sources.find_parameter(
+                    ctx,
+                    param_name,
+                    ParameterType::FLOAT_TYPE,
+                    ParameterScope::MAYBE_INTERNAL,
+                )?;
+            }
+
+            let mut fields = vec![];
+            for decl_field in bt.fields {
+                sources.find_asset(ctx, &decl_field.clip.key, AssetType::Animation)?;
+                fields.push(LayerBlendTreeField {
+                    clip: decl_field.clip.key,
+                    position: decl_field.position,
+                });
+            }
+            LayerAnimation::BlendTree(LayerBlendTree {
+                blend_type,
+                params,
+                fields,
+            })
+        }
+    };
+
+    let mut transitions = vec![];
+    for decl_transition in decl_layer_state.transitions {
+        let Some(target) = state_names
+            .iter()
+            .position(|n| &decl_transition.target == n)
+        else {
+            ctx.log_error(LogKind::LayerStateNotFound(
+                layer_name.to_string(),
+                decl_transition.target,
+            ));
+            return failure();
+        };
+        let duration = decl_transition.duration.unwrap_or(0.0);
+
+        let mut conditions = vec![];
+        for decl_condition in decl_transition.conditions {
+            let condition = match decl_condition {
+                DeclLayerCondition::Be(param) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::BOOL_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::Be(param)
+                }
+                DeclLayerCondition::Not(param) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::BOOL_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::Not(param)
+                }
+                DeclLayerCondition::EqInt(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::EqInt(param, value)
+                }
+                DeclLayerCondition::NeqInt(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::NeqInt(param, value)
+                }
+                DeclLayerCondition::GtInt(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::GtInt(param, value)
+                }
+                DeclLayerCondition::LeInt(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::INT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::LeInt(param, value)
+                }
+                DeclLayerCondition::GtFloat(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
                         ParameterType::FLOAT_TYPE,
                         ParameterScope::MAYBE_INTERNAL,
-                    ))? {
-                        return Ok(None);
-                    };
+                    )?;
+                    LayerCondition::GtFloat(param, value)
                 }
-
-                let mut fields = vec![];
-                for decl_field in bt.fields {
-                    if !self.ensure((assets, &decl_field.clip, DeclAssetType::Animation))? {
-                        return Ok(None);
-                    }
-                    fields.push(LayerBlendTreeField {
-                        clip: decl_field.clip.key,
-                        position: decl_field.position,
-                    });
+                DeclLayerCondition::LeFloat(param, value) => {
+                    sources.find_parameter(
+                        ctx,
+                        &param,
+                        ParameterType::FLOAT_TYPE,
+                        ParameterScope::MAYBE_INTERNAL,
+                    )?;
+                    LayerCondition::LeFloat(param, value)
                 }
-                LayerAnimation::BlendTree(LayerBlendTree {
-                    blend_type,
-                    params,
-                    fields,
-                })
-            }
-        };
-
-        let mut transitions = vec![];
-        for decl_transition in state.transitions {
-            let Some(target) = state_names
-                .iter()
-                .position(|n| &decl_transition.target == n)
-            else {
-                self.error(format!("state {} not found", decl_transition.target));
-                continue;
             };
-            let duration = decl_transition.duration.unwrap_or(0.0);
-
-            let mut conditions = vec![];
-            for decl_condition in decl_transition.conditions {
-                let condition = match decl_condition {
-                    DeclLayerCondition::Be(param) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::BOOL_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::Be(param)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::Not(param) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::BOOL_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::Not(param)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::EqInt(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::INT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::EqInt(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::NeqInt(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::INT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::NeqInt(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::GtInt(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::INT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::GtInt(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::LeInt(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::INT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::LeInt(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::GtFloat(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::FLOAT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::GtFloat(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                    DeclLayerCondition::LeFloat(param, value) => {
-                        if self.ensure((
-                            parameters,
-                            param.as_str(),
-                            ParameterType::FLOAT_TYPE,
-                            ParameterScope::MAYBE_INTERNAL,
-                        ))? {
-                            LayerCondition::LeFloat(param, value)
-                        } else {
-                            return Ok(None);
-                        }
-                    }
-                };
-                conditions.push(condition);
-            }
-
-            transitions.push(LayerTransition {
-                target,
-                duration,
-                conditions,
-            });
+            conditions.push(condition);
         }
 
-        if let Some(speed_param) = state.speed.1.as_deref() {
-            if !self.ensure((
-                &compiled_deps.parameters,
-                speed_param,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            ))? {
-                return Ok(None);
-            };
-        }
-        if let Some(time_param) = state.time.as_deref() {
-            if !self.ensure((
-                &compiled_deps.parameters,
-                time_param,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            ))? {
-                return Ok(None);
-            };
-        }
-
-        Ok(Some(LayerState {
-            name: state.name,
-            animation,
-            speed: state.speed,
-            time: state.time,
-            transitions,
-        }))
+        transitions.push(LayerTransition {
+            target,
+            duration,
+            conditions,
+        });
     }
-}
 
-*/
+    if let Some(speed_param) = decl_layer_state.speed.1.as_deref() {
+        sources.find_parameter(
+            ctx,
+            speed_param,
+            ParameterType::FLOAT_TYPE,
+            ParameterScope::MAYBE_INTERNAL,
+        )?;
+    }
+    if let Some(time_param) = decl_layer_state.time.as_deref() {
+        sources.find_parameter(
+            ctx,
+            time_param,
+            ParameterType::FLOAT_TYPE,
+            ParameterScope::MAYBE_INTERNAL,
+        )?;
+    }
+
+    success(LayerState {
+        name: decl_layer_state.name,
+        animation,
+        speed: decl_layer_state.speed,
+        time: decl_layer_state.time,
+        transitions,
+    })
+}

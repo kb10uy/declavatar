@@ -107,6 +107,9 @@ enum LogKind {
     DriverInvalidRandomSpecification(String),
     DriverInvalidCopyTarget(String),
     DriverCopyMismatch(String, (String, String)),
+
+    LayerStateNotFound(String, String),
+    LayerBlendTreeParameterNotFound(String, String),
 }
 
 impl Display for LogKind {
@@ -142,6 +145,9 @@ impl Display for LogKind {
             LogKind::DriverInvalidRandomSpecification(_) => todo!(),
             LogKind::DriverInvalidCopyTarget(_) => todo!(),
             LogKind::DriverCopyMismatch(_, _) => todo!(),
+
+            LogKind::LayerStateNotFound(_, _) => todo!(),
+            LogKind::LayerBlendTreeParameterNotFound(_, _) => todo!(),
         }
     }
 }
