@@ -53,7 +53,9 @@ fn compile_parameter(
 
     if let Some(defined) = declared.iter().find(|p| p.name == decl_parameter.name) {
         if defined.value_type != value_type || defined.scope != scope {
-            ctx.log_error(LogKind::IncompatibleParameterDeclaration(decl_parameter.name));
+            ctx.log_error(LogKind::IncompatibleParameterDeclaration(
+                decl_parameter.name,
+            ));
         }
         return failure();
     }
