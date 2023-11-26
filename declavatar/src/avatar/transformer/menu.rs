@@ -56,6 +56,7 @@ fn compile_menu_group(
         items.push(menu_item);
     }
 
+    #[allow(deprecated)]
     success(MenuGroup { name, items, id: 0 })
 }
 
