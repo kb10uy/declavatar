@@ -1,10 +1,7 @@
-use crate::{
-    compiler::{Compile, Compiler},
-    decl::{
-        compiler::{deconstruct_node, DeclCompiler},
-        data::{Parameter, ParameterScope, ParameterType, Parameters},
-        error::{DeclError, DeclErrorKind, Result},
-    },
+use crate::decl::{
+    compiler::deconstruct_node,
+    data::{Parameter, ParameterScope, ParameterType, Parameters},
+    error::{DeclError, DeclErrorKind, Result},
 };
 
 use kdl::KdlNode;
@@ -17,93 +14,77 @@ pub const SCOPE_INTERNAL: &str = "internal";
 pub const SCOPE_LOCAL: &str = "local";
 pub const SCOPE_SYNCED: &str = "synced";
 
-pub(super) struct ForParameters;
-impl Compile<(ForParameters, &KdlNode)> for DeclCompiler {
-    type Output = Parameters;
+pub fn compile_parameters(node: &KdlNode) -> Result<Parameters> {
+    let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_PARAMETERS), Some(true))?;
 
-    fn compile(&mut self, (_, node): (ForParameters, &KdlNode)) -> Result<Parameters> {
-        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_PARAMETERS), Some(true))?;
-
-        let mut parameters = vec![];
-        for child in children {
-            let child_name = child.name().value();
-            let parameter = match child_name {
-                NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => {
-                    self.parse((ForParameter, child))?
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
-            };
-            parameters.push(parameter);
-        }
-
-        Ok(Parameters { parameters })
+    let mut parameters = vec![];
+    for child in children {
+        let child_name = child.name().value();
+        let parameter = match child_name {
+            NODE_NAME_INT | NODE_NAME_FLOAT | NODE_NAME_BOOL => compile_parameter(child)?,
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        };
+        parameters.push(parameter);
     }
+
+    Ok(Parameters { parameters })
 }
 
-struct ForParameter;
-impl Compile<(ForParameter, &KdlNode)> for DeclCompiler {
-    type Output = Parameter;
+fn compile_parameter(node: &KdlNode) -> Result<Parameter> {
+    let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
 
-    fn compile(&mut self, (_, node): (ForParameter, &KdlNode)) -> Result<Parameter> {
-        let (name, entries, _) = deconstruct_node(node, None, Some(false))?;
+    let parameter_name = entries.get_argument(0, "name")?;
+    let save = entries.try_get_property("save")?;
+    let scope = match entries.try_get_property::<&str>("scope")? {
+        Some(SCOPE_INTERNAL) => Some(ParameterScope::Internal),
+        Some(SCOPE_LOCAL) => Some(ParameterScope::Local),
+        Some(SCOPE_SYNCED) => Some(ParameterScope::Synced),
+        None => None,
 
-        let parameter_name = entries.get_argument(0, "name")?;
-        let save = entries.try_get_property("save")?;
-        let scope = match entries.try_get_property::<&str>("scope")? {
-            Some(SCOPE_INTERNAL) => Some(ParameterScope::Internal),
-            Some(SCOPE_LOCAL) => Some(ParameterScope::Local),
-            Some(SCOPE_SYNCED) => Some(ParameterScope::Synced),
-            None => None,
+        Some(_) => {
+            return Err(DeclError::new(
+                node.span(),
+                DeclErrorKind::InvalidNodeDetected,
+            ))
+        }
+    };
+    let ty = match name {
+        NODE_NAME_INT => {
+            let default = entries.try_get_property("default")?.map(|x: i64| x as u8);
+            ParameterType::Int(default)
+        }
+        NODE_NAME_FLOAT => {
+            let default = entries.try_get_property("default")?;
+            ParameterType::Float(default)
+        }
+        NODE_NAME_BOOL => {
+            let default = entries.try_get_property("default")?;
+            ParameterType::Bool(default)
+        }
+        _ => unreachable!("parameter type already refined here"),
+    };
 
-            Some(_) => {
-                return Err(DeclError::new(
-                    node.span(),
-                    DeclErrorKind::InvalidNodeDetected,
-                ))
-            }
-        };
-        let ty = match name {
-            NODE_NAME_INT => {
-                let default = entries.try_get_property("default")?.map(|x: i64| x as u8);
-                ParameterType::Int(default)
-            }
-            NODE_NAME_FLOAT => {
-                let default = entries.try_get_property("default")?;
-                ParameterType::Float(default)
-            }
-            NODE_NAME_BOOL => {
-                let default = entries.try_get_property("default")?;
-                ParameterType::Bool(default)
-            }
-            _ => unreachable!("parameter type already refined here"),
-        };
-
-        Ok(Parameter {
-            ty,
-            save,
-            scope,
-            name: parameter_name,
-        })
-    }
+    Ok(Parameter {
+        ty,
+        save,
+        scope,
+        name: parameter_name,
+    })
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        compiler::Compile,
-        decl::{
-            data::{Parameter, ParameterScope, ParameterType},
-            DeclCompiler,
-        },
+        decl::data::{Parameter, ParameterScope, ParameterType},
         testing::parse_node,
     };
 
-    use super::ForParameters;
+    use super::compile_parameters;
 
     #[test]
     fn parameters_block_compiles() {
@@ -118,10 +99,7 @@ mod test {
         );
         let block_node = &block_doc.nodes()[0];
 
-        let mut compiler = DeclCompiler::new();
-        let block = compiler
-            .compile((ForParameters, block_node))
-            .expect("failed to compile parameters block");
+        let block = compile_parameters(block_node).expect("failed to compile parameters block");
         assert_eq!(block.parameters.len(), 3);
         assert_eq!(
             block.parameters[0],
@@ -162,10 +140,6 @@ mod test {
             "#,
         );
         let invalid_node1 = &invalid_doc1.nodes()[0];
-
-        let mut compiler = DeclCompiler::new();
-        compiler
-            .compile((ForParameters, invalid_node1))
-            .expect_err("compiles parameters block incorrectly");
+        compile_parameters(invalid_node1).expect_err("compiles parameters block incorrectly");
     }
 }

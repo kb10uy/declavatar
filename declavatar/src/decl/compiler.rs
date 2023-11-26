@@ -5,17 +5,14 @@ mod drivers;
 mod menu;
 mod parameters;
 
-use crate::{
-    compiler::ErrorStackCompiler,
-    decl::error::{DeclError, DeclErrorKind, Result},
-};
+pub use self::document::compile_document;
+
+use crate::decl::error::{DeclError, DeclErrorKind, Result};
 
 use std::collections::HashMap;
 
 use kdl::{KdlEntry, KdlNode, KdlValue};
 use miette::SourceSpan;
-
-pub type DeclCompiler = ErrorStackCompiler<DeclError>;
 
 pub fn deconstruct_node<'a>(
     node: &'a KdlNode,
