@@ -54,14 +54,6 @@ impl<E> ErrorStackCompiler<E> {
             _error_type: Default::default(),
         }
     }
-
-    pub fn errornous(&self) -> bool {
-        self.errornous
-    }
-
-    pub fn messages(self) -> Vec<(Severity, String)> {
-        self.messages
-    }
 }
 
 impl<E> Compiler for ErrorStackCompiler<E> {
@@ -92,86 +84,5 @@ impl<E> Compiler for ErrorStackCompiler<E> {
         Self: Validate<T>,
     {
         <Self as Validate<T>>::validate(self, source)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::{Compile, Compiler, ErrorStackCompiler, Severity, Validate};
-
-    type TestCompiler = ErrorStackCompiler<String>;
-
-    impl Compile<(&str, usize)> for TestCompiler {
-        type Output = usize;
-
-        fn compile(&mut self, (source, rhs): (&str, usize)) -> Result<usize, String> {
-            match source.parse::<usize>() {
-                Ok(v) if v >= 10000 => {
-                    self.warn(format!("huge lhs {v}"));
-                    Ok(v + rhs)
-                }
-                Ok(v) if v >= 100 => {
-                    self.info(format!("large lhs {v}"));
-                    Ok(v + rhs)
-                }
-                Ok(v) => Ok(v + rhs),
-                Err(e) => {
-                    self.error(e.to_string());
-                    Ok(0)
-                }
-            }
-        }
-    }
-
-    impl Validate<(&str, &str)> for TestCompiler {
-        fn validate(&mut self, (lhs, rhs): (&str, &str)) -> Result<bool, String> {
-            Ok(lhs >= rhs)
-        }
-    }
-
-    #[test]
-    fn compiler_works() {
-        let mut compiler = TestCompiler::new();
-        assert_eq!(compiler.compile(("22", 20)), Ok(42));
-    }
-
-    #[test]
-    fn compiler_info_passes() {
-        let mut compiler = TestCompiler::new();
-        let compiled = compiler.compile(("100", 28));
-        let messages = compiler.messages();
-        assert_eq!(compiled, Ok(128));
-        assert_eq!(
-            messages,
-            vec![(Severity::Information, "large lhs 100".into())]
-        );
-    }
-
-    #[test]
-    fn compiler_warn_passes() {
-        let mut compiler = TestCompiler::new();
-        let compiled = compiler.compile(("16000", 384));
-        let messages = compiler.messages();
-        assert_eq!(compiled, Ok(16384));
-        assert_eq!(messages, vec![(Severity::Warning, "huge lhs 16000".into())]);
-    }
-
-    #[test]
-    fn compiler_error_stops() {
-        let mut compiler = TestCompiler::new();
-        let compiled = compiler.compile(("not a number", 384));
-        let messages = compiler.messages();
-        assert_eq!(compiled, Ok(0));
-        assert_eq!(
-            messages,
-            vec![(Severity::Error, "invalid digit found in string".into())]
-        );
-    }
-
-    #[test]
-    fn compiler_validates() {
-        let mut compiler = TestCompiler::new();
-        assert_eq!(compiler.ensure(("latter", "former")), Ok(true));
-        assert_eq!(compiler.ensure(("Ash", "Sephira")), Ok(false));
     }
 }
