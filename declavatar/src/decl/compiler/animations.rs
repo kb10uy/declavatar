@@ -1,7 +1,6 @@
 use crate::{
-    compiler::{Compile, Compiler},
     decl::{
-        compiler::{deconstruct_node, DeclCompiler},
+        compiler::deconstruct_node,
         data::{
             AnimationElement, AnimationGroup, AnimationSwitch, Animations, DriveTarget, GroupBlock,
             Layer, LayerAnimation, LayerBlendTree, LayerBlendTreeField, LayerBlendTreeType,
@@ -45,403 +44,157 @@ const NODE_NAME_GT: &str = "gt";
 const NODE_NAME_LE: &str = "le";
 const NODE_NAME_DURATION: &str = "duration";
 
-pub(super) struct ForAnimations;
-impl Compile<(ForAnimations, &KdlNode)> for DeclCompiler {
-    type Output = Animations;
+pub fn compile_animations(node: &KdlNode) -> Result<Animations> {
+    let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_ANIMATIONS), Some(true))?;
 
-    fn compile(&mut self, (_, node): (ForAnimations, &KdlNode)) -> Result<Animations> {
-        let (_, _, children) = deconstruct_node(node, Some(NODE_NAME_ANIMATIONS), Some(true))?;
-
-        let mut elements = vec![];
-        for child in children {
-            let child_name = child.name().value();
-            let element = match child_name {
-                NODE_NAME_GROUP => AnimationElement::Group(self.parse((ForGroup, child))?),
-                NODE_NAME_SWITCH => AnimationElement::Switch(self.parse((ForSwitch, child))?),
-                NODE_NAME_PUPPET => AnimationElement::Puppet(self.parse((ForPuppet, child))?),
-                NODE_NAME_LAYER => AnimationElement::Layer(self.parse((ForLayer, child))?),
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
-            };
-            elements.push(element);
-        }
-
-        Ok(Animations { elements })
-    }
-}
-
-struct ForGroup;
-impl Compile<(ForGroup, &KdlNode)> for DeclCompiler {
-    type Output = AnimationGroup;
-
-    fn compile(&mut self, (_, node): (ForGroup, &KdlNode)) -> Result<AnimationGroup> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_GROUP), Some(true))?;
-
-        let name = entries.get_argument(0, "name")?;
-
-        let mut default_mesh = None;
-        let mut parameter = None;
-        let mut preventions = Preventions::default();
-        let mut default_block = None;
-        let mut options = vec![];
-
-        let mut option_order = 1;
-        for child in children {
-            let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
-
-            match child_name {
-                NODE_NAME_MESH => {
-                    default_mesh = child_entries.try_get_argument(0)?;
-                }
-                NODE_NAME_PARAMETER => {
-                    parameter = Some(child_entries.get_argument(0, "parameter")?);
-                }
-                NODE_NAME_PREVENT => {
-                    preventions.mouth = preventions
-                        .mouth
-                        .or(child_entries.try_get_property("mouth")?);
-                    preventions.eyelids = preventions
-                        .eyelids
-                        .or(child_entries.try_get_property("eyelids")?);
-                }
-                NODE_NAME_DEFAULT => {
-                    if default_block.is_some() {
-                        return Err(DeclError::new(
-                            child.name().span(),
-                            DeclErrorKind::DuplicateNodeFound,
-                        ));
-                    }
-                    default_block = Some(self.parse((ForGroupBlock, child, 0))?);
-                }
-                NODE_NAME_OPTION => {
-                    options.push(self.parse((ForGroupBlock, child, option_order))?);
-                    option_order += 1;
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
-            }
-        }
-
-        let parameter = parameter.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
-            )
-        })?;
-
-        Ok(AnimationGroup {
-            name,
-            default_mesh,
-            parameter,
-            preventions,
-            default_block,
-            options,
-        })
-    }
-}
-
-struct ForGroupBlock;
-impl Compile<(ForGroupBlock, &KdlNode, usize)> for DeclCompiler {
-    type Output = GroupBlock;
-
-    fn compile(
-        &mut self,
-        (_, node, order): (ForGroupBlock, &KdlNode, usize),
-    ) -> Result<GroupBlock> {
-        let (name, entries, children) = deconstruct_node(node, None, None)?;
-        let indeterminate = children.is_empty();
-
-        let mut targets = vec![];
-        let block_name;
-        let cancel_default = entries.try_get_property("cancel")?;
-        if indeterminate {
-            // indeterminate option
-            if name != NODE_NAME_OPTION {
+    let mut elements = vec![];
+    for child in children {
+        let child_name = child.name().value();
+        let element = match child_name {
+            NODE_NAME_GROUP => AnimationElement::Group(compile_group(child)?),
+            NODE_NAME_SWITCH => AnimationElement::Switch(compile_switch(child)?),
+            NODE_NAME_PUPPET => AnimationElement::Puppet(compile_puppet(child)?),
+            NODE_NAME_LAYER => AnimationElement::Layer(compile_layer(child)?),
+            _ => {
                 return Err(DeclError::new(
-                    node.name().span(),
+                    child.name().span(),
                     DeclErrorKind::InvalidNodeDetected,
                 ));
             }
-
-            let label: String = entries.get_argument(0, "label")?;
-            let mesh = entries.try_get_property("mesh")?;
-            let object = entries.try_get_property("object")?;
-            let shape = entries.try_get_property("shape")?;
-            let value = match entries.try_get_property::<&KdlValue>("value")? {
-                Some(v) => {
-                    if let Some(value) = v.as_f64() {
-                        Some(DriveTarget::FloatParameter {
-                            name: String::new(),
-                            value,
-                        })
-                    } else if let Some(value) = v.as_bool() {
-                        Some(DriveTarget::BoolParameter {
-                            name: String::new(),
-                            value,
-                        })
-                    } else {
-                        return Err(DeclError::new(
-                            node.name().span(),
-                            DeclErrorKind::IncorrectType("float or bool"),
-                        ));
-                    }
-                }
-                None => None,
-            };
-
-            block_name = Some(label.clone());
-            targets.push(Target::Indeterminate {
-                label,
-                object,
-                mesh,
-                shape,
-                value,
-            });
-        } else {
-            // determinate option
-            block_name = match name {
-                NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
-                NODE_NAME_DEFAULT => None,
-                _ => unreachable!("block type already refined here"),
-            };
-
-            for child in children {
-                let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
-                let target = match child_name {
-                    NODE_NAME_SHAPE => {
-                        let shape = child_entries.get_argument(0, "shape")?;
-                        let mesh = child_entries.try_get_property("mesh")?;
-                        let value = child_entries.try_get_property("value")?;
-                        let cancel_to = child_entries.try_get_property("cancel-to")?;
-                        Target::Shape {
-                            shape,
-                            mesh,
-                            value,
-                            cancel_to,
-                        }
-                    }
-                    NODE_NAME_OBJECT => {
-                        let object = child_entries.get_argument(0, "object")?;
-                        let value = child_entries.try_get_property("value")?;
-                        let cancel_to = child_entries.try_get_property("cancel-to")?;
-                        Target::Object {
-                            object,
-                            value,
-                            cancel_to,
-                        }
-                    }
-                    NODE_NAME_MATERIAL => {
-                        let slot: i64 = child_entries.get_argument(0, "slot")?;
-                        let mesh = child_entries.try_get_property("mesh")?;
-                        let value = child_entries.try_get_property("value")?;
-                        let cancel_to = child_entries.try_get_property("cancel-to")?;
-                        Target::Material {
-                            slot: slot as usize,
-                            value,
-                            mesh,
-                            cancel_to,
-                        }
-                    }
-                    _ => {
-                        return Err(DeclError::new(
-                            child.name().span(),
-                            DeclErrorKind::InvalidNodeDetected,
-                        ));
-                    }
-                };
-                targets.push(target);
-            }
-        }
-
-        Ok(GroupBlock {
-            name: block_name,
-            declared_order: order,
-            indeterminate,
-            cancel_default,
-            targets,
-        })
+        };
+        elements.push(element);
     }
+
+    Ok(Animations { elements })
 }
 
-struct ForSwitch;
-impl Compile<(ForSwitch, &KdlNode)> for DeclCompiler {
-    type Output = AnimationSwitch;
+fn compile_group(node: &KdlNode) -> Result<AnimationGroup> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_GROUP), Some(true))?;
 
-    fn compile(&mut self, (_, node): (ForSwitch, &KdlNode)) -> Result<AnimationSwitch> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_SWITCH), Some(true))?;
+    let name = entries.get_argument(0, "name")?;
 
-        let name = entries.get_argument(0, "name")?;
+    let mut default_mesh = None;
+    let mut parameter = None;
+    let mut preventions = Preventions::default();
+    let mut default_block = None;
+    let mut options = vec![];
 
-        let mut default_mesh = None;
-        let mut parameter = None;
-        let mut preventions = Preventions::default();
-        let mut enabled = vec![];
-        let mut disabled = vec![];
+    let mut option_order = 1;
+    for child in children {
+        let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
 
-        for child in children {
-            let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
-
-            match child_name {
-                NODE_NAME_MESH => {
-                    default_mesh = child_entries.try_get_argument(0)?;
-                }
-                NODE_NAME_PARAMETER => {
-                    parameter = Some(child_entries.get_argument(0, "parameter")?);
-                }
-                NODE_NAME_PREVENT => {
-                    preventions.mouth = preventions
-                        .mouth
-                        .or(child_entries.try_get_property("mouth")?);
-                    preventions.eyelids = preventions
-                        .eyelids
-                        .or(child_entries.try_get_property("eyelids")?);
-                }
-                NODE_NAME_OBJECT => {
-                    let object: String = child_entries.get_argument(0, "name")?;
-                    let enabled_value = child_entries.try_get_property("enabled")?;
-                    let disabled_value = child_entries.try_get_property("disabled")?;
-                    enabled.push(Target::Object {
-                        object: object.clone(),
-                        value: enabled_value,
-                        cancel_to: None,
-                    });
-                    disabled.push(Target::Object {
-                        object: object.clone(),
-                        value: disabled_value,
-                        cancel_to: None,
-                    });
-                }
-                NODE_NAME_SHAPE => {
-                    let shape: String = child_entries.get_argument(0, "name")?;
-                    let mesh: Option<String> = child_entries.try_get_property("mesh")?;
-                    let enabled_value = child_entries.try_get_property("enabled")?;
-                    let disabled_value = child_entries.try_get_property("disabled")?;
-                    enabled.push(Target::Shape {
-                        shape: shape.clone(),
-                        mesh: mesh.clone(),
-                        value: enabled_value,
-                        cancel_to: None,
-                    });
-                    disabled.push(Target::Shape {
-                        shape: shape.clone(),
-                        mesh: mesh.clone(),
-                        value: disabled_value,
-                        cancel_to: None,
-                    });
-                }
-                NODE_NAME_MATERIAL => {
-                    let slot: i64 = child_entries.get_argument(0, "slot")?;
-                    let mesh = child_entries.try_get_property("mesh")?;
-                    let enabled_value = child_entries.try_get_property("enabled")?;
-                    let disabled_value = child_entries.try_get_property("disabled")?;
-                    enabled.push(Target::Material {
-                        slot: slot as usize,
-                        value: enabled_value,
-                        mesh: mesh.clone(),
-                        cancel_to: None,
-                    });
-                    disabled.push(Target::Material {
-                        slot: slot as usize,
-                        value: disabled_value,
-                        mesh: mesh.clone(),
-                        cancel_to: None,
-                    });
-                }
-                _ => {
+        match child_name {
+            NODE_NAME_MESH => {
+                default_mesh = child_entries.try_get_argument(0)?;
+            }
+            NODE_NAME_PARAMETER => {
+                parameter = Some(child_entries.get_argument(0, "parameter")?);
+            }
+            NODE_NAME_PREVENT => {
+                preventions.mouth = preventions
+                    .mouth
+                    .or(child_entries.try_get_property("mouth")?);
+                preventions.eyelids = preventions
+                    .eyelids
+                    .or(child_entries.try_get_property("eyelids")?);
+            }
+            NODE_NAME_DEFAULT => {
+                if default_block.is_some() {
                     return Err(DeclError::new(
                         child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
+                        DeclErrorKind::DuplicateNodeFound,
+                    ));
+                }
+                default_block = Some(compile_group_block(child, 0)?);
+            }
+            NODE_NAME_OPTION => {
+                options.push(compile_group_block(child, option_order)?);
+                option_order += 1;
+            }
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        }
+    }
+
+    let parameter = parameter.ok_or_else(|| {
+        DeclError::new(
+            node.name().span(),
+            DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+        )
+    })?;
+
+    Ok(AnimationGroup {
+        name,
+        default_mesh,
+        parameter,
+        preventions,
+        default_block,
+        options,
+    })
+}
+
+fn compile_group_block(node: &KdlNode, order: usize) -> Result<GroupBlock> {
+    let (name, entries, children) = deconstruct_node(node, None, None)?;
+    let indeterminate = children.is_empty();
+
+    let mut targets = vec![];
+    let block_name;
+    let cancel_default = entries.try_get_property("cancel")?;
+    if indeterminate {
+        // indeterminate option
+        if name != NODE_NAME_OPTION {
+            return Err(DeclError::new(
+                node.name().span(),
+                DeclErrorKind::InvalidNodeDetected,
+            ));
+        }
+
+        let label: String = entries.get_argument(0, "label")?;
+        let mesh = entries.try_get_property("mesh")?;
+        let object = entries.try_get_property("object")?;
+        let shape = entries.try_get_property("shape")?;
+        let value = match entries.try_get_property::<&KdlValue>("value")? {
+            Some(v) => {
+                if let Some(value) = v.as_f64() {
+                    Some(DriveTarget::FloatParameter {
+                        name: String::new(),
+                        value,
+                    })
+                } else if let Some(value) = v.as_bool() {
+                    Some(DriveTarget::BoolParameter {
+                        name: String::new(),
+                        value,
+                    })
+                } else {
+                    return Err(DeclError::new(
+                        node.name().span(),
+                        DeclErrorKind::IncorrectType("float or bool"),
                     ));
                 }
             }
-        }
+            None => None,
+        };
 
-        let parameter = parameter.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
-            )
-        })?;
-
-        Ok(AnimationSwitch {
-            name,
-            parameter,
-            default_mesh,
-            preventions,
-            disabled,
-            enabled,
-        })
-    }
-}
-
-struct ForPuppet;
-impl Compile<(ForPuppet, &KdlNode)> for DeclCompiler {
-    type Output = Puppet;
-
-    fn compile(&mut self, (_, node): (ForPuppet, &KdlNode)) -> Result<Puppet> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_PUPPET), Some(true))?;
-
-        let name = entries.get_argument(0, "name")?;
-
-        let mut parameter = None;
-        let mut mesh = None;
-        let mut keyframes = vec![];
-
-        for child in children {
-            let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
-
-            match child_name {
-                NODE_NAME_MESH => {
-                    mesh = child_entries.try_get_argument(0)?;
-                }
-                NODE_NAME_PARAMETER => {
-                    parameter = Some(child_entries.get_argument(0, "parameter")?);
-                }
-                NODE_NAME_KEYFRAME => {
-                    keyframes.push(self.parse((ForPuppetKeyframe, child))?);
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
-            }
-        }
-
-        let parameter = parameter.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
-            )
-        })?;
-
-        Ok(Puppet {
-            name,
+        block_name = Some(label.clone());
+        targets.push(Target::Indeterminate {
+            label,
+            object,
             mesh,
-            parameter,
-            keyframes,
-        })
-    }
-}
+            shape,
+            value,
+        });
+    } else {
+        // determinate option
+        block_name = match name {
+            NODE_NAME_OPTION => Some(entries.get_argument(0, "name")?),
+            NODE_NAME_DEFAULT => None,
+            _ => unreachable!("block type already refined here"),
+        };
 
-struct ForPuppetKeyframe;
-impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
-    type Output = PuppetKeyframe;
-
-    fn compile(&mut self, (_, node): (ForPuppetKeyframe, &KdlNode)) -> Result<PuppetKeyframe> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_KEYFRAME), Some(true))?;
-        let position = entries.get_argument(0, "keyframe_position")?;
-
-        let mut targets = vec![];
         for child in children {
             let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
             let target = match child_name {
@@ -449,31 +202,34 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
                     let shape = child_entries.get_argument(0, "shape")?;
                     let mesh = child_entries.try_get_property("mesh")?;
                     let value = child_entries.try_get_property("value")?;
+                    let cancel_to = child_entries.try_get_property("cancel-to")?;
                     Target::Shape {
                         shape,
                         mesh,
                         value,
-                        cancel_to: None,
+                        cancel_to,
                     }
                 }
                 NODE_NAME_OBJECT => {
                     let object = child_entries.get_argument(0, "object")?;
                     let value = child_entries.try_get_property("value")?;
+                    let cancel_to = child_entries.try_get_property("cancel-to")?;
                     Target::Object {
                         object,
                         value,
-                        cancel_to: None,
+                        cancel_to,
                     }
                 }
                 NODE_NAME_MATERIAL => {
                     let slot: i64 = child_entries.get_argument(0, "slot")?;
                     let mesh = child_entries.try_get_property("mesh")?;
                     let value = child_entries.try_get_property("value")?;
+                    let cancel_to = child_entries.try_get_property("cancel-to")?;
                     Target::Material {
                         slot: slot as usize,
                         value,
                         mesh,
-                        cancel_to: None,
+                        cancel_to,
                     }
                 }
                 _ => {
@@ -485,254 +241,438 @@ impl Compile<(ForPuppetKeyframe, &KdlNode)> for DeclCompiler {
             };
             targets.push(target);
         }
-
-        Ok(PuppetKeyframe { position, targets })
     }
+
+    Ok(GroupBlock {
+        name: block_name,
+        declared_order: order,
+        indeterminate,
+        cancel_default,
+        targets,
+    })
 }
 
-struct ForLayer;
-impl Compile<(ForLayer, &KdlNode)> for DeclCompiler {
-    type Output = Layer;
+fn compile_switch(node: &KdlNode) -> Result<AnimationSwitch> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_SWITCH), Some(true))?;
 
-    fn compile(&mut self, (_, node): (ForLayer, &KdlNode)) -> Result<Layer> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_LAYER), Some(true))?;
-        let name = entries.get_argument(0, "name")?;
+    let name = entries.get_argument(0, "name")?;
 
-        let mut states = vec![];
-        let mut default_state = None;
-        for child in children {
-            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
-            match child_name {
-                NODE_NAME_STATE => {
-                    states.push(self.parse((ForLayerState, child))?);
-                }
-                NODE_NAME_DEFAULT => {
-                    ensure_nochild!(child, grandchildren);
-                    let state_name = child_entries.get_argument(0, "state")?;
-                    default_state = Some(state_name);
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
-            };
-        }
+    let mut default_mesh = None;
+    let mut parameter = None;
+    let mut preventions = Preventions::default();
+    let mut enabled = vec![];
+    let mut disabled = vec![];
 
-        Ok(Layer {
-            name,
-            default_state,
-            states,
-        })
-    }
-}
+    for child in children {
+        let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
 
-struct ForLayerState;
-impl Compile<(ForLayerState, &KdlNode)> for DeclCompiler {
-    type Output = LayerState;
-
-    fn compile(&mut self, (_, node): (ForLayerState, &KdlNode)) -> Result<LayerState> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_STATE), Some(true))?;
-        let name = entries.get_argument(0, "name")?;
-
-        let mut animation = None;
-        let mut speed = (None, None);
-        let mut time = None;
-        let mut transitions = vec![];
-        for child in children {
-            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
-            match child_name {
-                NODE_NAME_CLIP => {
-                    ensure_nochild!(child, grandchildren);
-                    let key = child_entries.get_argument(0, "animation")?;
-                    animation = Some(LayerAnimation::Clip(key));
-                }
-                NODE_NAME_BLENDTREE => {
-                    animation = Some(self.parse((ForLayerBlendTree, child))?);
-                }
-                NODE_NAME_SPEED => {
-                    ensure_nochild!(child, grandchildren);
-                    let base = child_entries.get_argument(0, "speed")?;
-                    let multiplier = child_entries.try_get_property("by")?;
-                    speed = (Some(base), multiplier);
-                }
-                NODE_NAME_TIME => {
-                    ensure_nochild!(child, grandchildren);
-                    let param = child_entries.get_argument(0, "param")?;
-                    time = Some(param);
-                }
-                NODE_NAME_TRANSITION => {
-                    transitions.push(self.parse((ForLayerTransition, child))?);
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
+        match child_name {
+            NODE_NAME_MESH => {
+                default_mesh = child_entries.try_get_argument(0)?;
             }
-        }
-
-        let animation = animation.ok_or_else(|| {
-            DeclError::new(
-                node.name().span(),
-                DeclErrorKind::NodeNotFound(NODE_NAME_CLIP),
-            )
-        })?;
-
-        Ok(LayerState {
-            name,
-            animation,
-            speed,
-            time,
-            transitions,
-        })
-    }
-}
-
-struct ForLayerBlendTree;
-impl Compile<(ForLayerBlendTree, &KdlNode)> for DeclCompiler {
-    type Output = LayerAnimation;
-
-    fn compile(&mut self, (_, node): (ForLayerBlendTree, &KdlNode)) -> Result<LayerAnimation> {
-        let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_BLENDTREE), Some(true))?;
-
-        let tree_type = match entries.try_get_property::<&str>("type")? {
-            None => None,
-            Some("1d") => Some(LayerBlendTreeType::Linear),
-            Some("2d-simple") => Some(LayerBlendTreeType::Simple2D),
-            Some("2d-freeform") => Some(LayerBlendTreeType::Freeform2D),
-            Some("2d-cartesian") => Some(LayerBlendTreeType::Cartesian2D),
-            Some(_) => {
+            NODE_NAME_PARAMETER => {
+                parameter = Some(child_entries.get_argument(0, "parameter")?);
+            }
+            NODE_NAME_PREVENT => {
+                preventions.mouth = preventions
+                    .mouth
+                    .or(child_entries.try_get_property("mouth")?);
+                preventions.eyelids = preventions
+                    .eyelids
+                    .or(child_entries.try_get_property("eyelids")?);
+            }
+            NODE_NAME_OBJECT => {
+                let object: String = child_entries.get_argument(0, "name")?;
+                let enabled_value = child_entries.try_get_property("enabled")?;
+                let disabled_value = child_entries.try_get_property("disabled")?;
+                enabled.push(Target::Object {
+                    object: object.clone(),
+                    value: enabled_value,
+                    cancel_to: None,
+                });
+                disabled.push(Target::Object {
+                    object: object.clone(),
+                    value: disabled_value,
+                    cancel_to: None,
+                });
+            }
+            NODE_NAME_SHAPE => {
+                let shape: String = child_entries.get_argument(0, "name")?;
+                let mesh: Option<String> = child_entries.try_get_property("mesh")?;
+                let enabled_value = child_entries.try_get_property("enabled")?;
+                let disabled_value = child_entries.try_get_property("disabled")?;
+                enabled.push(Target::Shape {
+                    shape: shape.clone(),
+                    mesh: mesh.clone(),
+                    value: enabled_value,
+                    cancel_to: None,
+                });
+                disabled.push(Target::Shape {
+                    shape: shape.clone(),
+                    mesh: mesh.clone(),
+                    value: disabled_value,
+                    cancel_to: None,
+                });
+            }
+            NODE_NAME_MATERIAL => {
+                let slot: i64 = child_entries.get_argument(0, "slot")?;
+                let mesh = child_entries.try_get_property("mesh")?;
+                let enabled_value = child_entries.try_get_property("enabled")?;
+                let disabled_value = child_entries.try_get_property("disabled")?;
+                enabled.push(Target::Material {
+                    slot: slot as usize,
+                    value: enabled_value,
+                    mesh: mesh.clone(),
+                    cancel_to: None,
+                });
+                disabled.push(Target::Material {
+                    slot: slot as usize,
+                    value: disabled_value,
+                    mesh: mesh.clone(),
+                    cancel_to: None,
+                });
+            }
+            _ => {
                 return Err(DeclError::new(
-                    node.name().span(),
-                    DeclErrorKind::InvalidAnnotation,
-                ))
-            }
-        };
-        let x = entries.try_get_property("x")?;
-        let y = entries.try_get_property("y")?;
-
-        let mut fields = vec![];
-        for child in children {
-            let (_, entries, _) = deconstruct_node(child, Some(NODE_NAME_FIELD), Some(false))?;
-            let clip = entries.get_argument(0, "motion")?;
-            let position = [
-                entries.get_argument(1, "position_x")?,
-                entries.try_get_argument(2)?.unwrap_or(0.0),
-            ];
-
-            fields.push(LayerBlendTreeField { clip, position })
-        }
-
-        Ok(LayerAnimation::BlendTree(LayerBlendTree {
-            ty: tree_type,
-            x,
-            y,
-            fields,
-        }))
-    }
-}
-
-struct ForLayerTransition;
-impl Compile<(ForLayerTransition, &KdlNode)> for DeclCompiler {
-    type Output = LayerTransition;
-
-    fn compile(&mut self, (_, node): (ForLayerTransition, &KdlNode)) -> Result<LayerTransition> {
-        let (_, entries, children) =
-            deconstruct_node(node, Some(NODE_NAME_TRANSITION), Some(true))?;
-
-        let target = entries.get_argument(0, "target")?;
-        let mut conditions = vec![];
-        let mut duration = None;
-        for child in children {
-            let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
-            match child_name {
-                NODE_NAME_WHEN => {
-                    for grandchild in grandchildren {
-                        conditions.push(self.parse((ForLayerCondition, grandchild))?);
-                    }
-                }
-                NODE_NAME_DURATION => {
-                    duration = Some(child_entries.get_argument(0, "duration")?);
-                }
-                _ => {
-                    return Err(DeclError::new(
-                        child.name().span(),
-                        DeclErrorKind::InvalidNodeDetected,
-                    ));
-                }
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
             }
         }
-
-        Ok(LayerTransition {
-            target,
-            conditions,
-            duration,
-        })
     }
+
+    let parameter = parameter.ok_or_else(|| {
+        DeclError::new(
+            node.name().span(),
+            DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+        )
+    })?;
+
+    Ok(AnimationSwitch {
+        name,
+        parameter,
+        default_mesh,
+        preventions,
+        disabled,
+        enabled,
+    })
 }
 
-struct ForLayerCondition;
-impl Compile<(ForLayerCondition, &KdlNode)> for DeclCompiler {
-    type Output = LayerCondition;
+fn compile_puppet(node: &KdlNode) -> Result<Puppet> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_PUPPET), Some(true))?;
 
-    fn compile(&mut self, (_, node): (ForLayerCondition, &KdlNode)) -> Result<LayerCondition> {
-        let (node_name, entries, _) = deconstruct_node(node, None, Some(false))?;
-        let condition = match node_name {
-            NODE_NAME_BE => LayerCondition::Be(entries.get_argument(0, "parameter")?),
-            NODE_NAME_NOT => LayerCondition::Not(entries.get_argument(0, "parameter")?),
-            NODE_NAME_EQ => LayerCondition::EqInt(
-                entries.get_argument(0, "parameter")?,
-                entries.get_argument(1, "value")?,
-            ),
-            NODE_NAME_NEQ => LayerCondition::NeqInt(
-                entries.get_argument(0, "parameter")?,
-                entries.get_argument(1, "value")?,
-            ),
-            NODE_NAME_GT => {
-                let parameter = entries.get_argument(0, "parameter")?;
-                let (int_value, float_value) = {
-                    let value: &KdlValue = entries.get_argument(1, "value")?;
-                    (value.as_i64(), value.as_f64())
-                };
-                if let Some(v) = int_value {
-                    LayerCondition::GtInt(parameter, v)
-                } else if let Some(v) = float_value {
-                    LayerCondition::GtFloat(parameter, v)
-                } else {
-                    return Err(DeclError::new(
-                        node.name().span(),
-                        DeclErrorKind::IncorrectType("int or float"),
-                    ));
+    let name = entries.get_argument(0, "name")?;
+
+    let mut parameter = None;
+    let mut mesh = None;
+    let mut keyframes = vec![];
+
+    for child in children {
+        let (child_name, child_entries, _) = deconstruct_node(child, None, None)?;
+
+        match child_name {
+            NODE_NAME_MESH => {
+                mesh = child_entries.try_get_argument(0)?;
+            }
+            NODE_NAME_PARAMETER => {
+                parameter = Some(child_entries.get_argument(0, "parameter")?);
+            }
+            NODE_NAME_KEYFRAME => {
+                keyframes.push(compile_puppet_keyframe(child)?);
+            }
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        }
+    }
+
+    let parameter = parameter.ok_or_else(|| {
+        DeclError::new(
+            node.name().span(),
+            DeclErrorKind::NodeNotFound(NODE_NAME_PARAMETER),
+        )
+    })?;
+
+    Ok(Puppet {
+        name,
+        mesh,
+        parameter,
+        keyframes,
+    })
+}
+
+fn compile_puppet_keyframe(node: &KdlNode) -> Result<PuppetKeyframe> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_KEYFRAME), Some(true))?;
+    let position = entries.get_argument(0, "keyframe_position")?;
+
+    let mut targets = vec![];
+    for child in children {
+        let (child_name, child_entries, _) = deconstruct_node(child, None, Some(false))?;
+        let target = match child_name {
+            NODE_NAME_SHAPE => {
+                let shape = child_entries.get_argument(0, "shape")?;
+                let mesh = child_entries.try_get_property("mesh")?;
+                let value = child_entries.try_get_property("value")?;
+                Target::Shape {
+                    shape,
+                    mesh,
+                    value,
+                    cancel_to: None,
                 }
             }
-            NODE_NAME_LE => {
-                let parameter = entries.get_argument(0, "parameter")?;
-                let (int_value, float_value) = {
-                    let value: &KdlValue = entries.get_argument(1, "value")?;
-                    (value.as_i64(), value.as_f64())
-                };
-                if let Some(v) = int_value {
-                    LayerCondition::LeInt(parameter, v)
-                } else if let Some(v) = float_value {
-                    LayerCondition::LeFloat(parameter, v)
-                } else {
-                    return Err(DeclError::new(
-                        node.name().span(),
-                        DeclErrorKind::IncorrectType("int or float"),
-                    ));
+            NODE_NAME_OBJECT => {
+                let object = child_entries.get_argument(0, "object")?;
+                let value = child_entries.try_get_property("value")?;
+                Target::Object {
+                    object,
+                    value,
+                    cancel_to: None,
+                }
+            }
+            NODE_NAME_MATERIAL => {
+                let slot: i64 = child_entries.get_argument(0, "slot")?;
+                let mesh = child_entries.try_get_property("mesh")?;
+                let value = child_entries.try_get_property("value")?;
+                Target::Material {
+                    slot: slot as usize,
+                    value,
+                    mesh,
+                    cancel_to: None,
                 }
             }
             _ => {
                 return Err(DeclError::new(
-                    node.name().span(),
+                    child.name().span(),
                     DeclErrorKind::InvalidNodeDetected,
                 ));
             }
         };
-
-        Ok(condition)
+        targets.push(target);
     }
+
+    Ok(PuppetKeyframe { position, targets })
+}
+
+fn compile_layer(node: &KdlNode) -> Result<Layer> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_LAYER), Some(true))?;
+    let name = entries.get_argument(0, "name")?;
+
+    let mut states = vec![];
+    let mut default_state = None;
+    for child in children {
+        let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+        match child_name {
+            NODE_NAME_STATE => {
+                states.push(compile_layer_state(child)?);
+            }
+            NODE_NAME_DEFAULT => {
+                ensure_nochild!(child, grandchildren);
+                let state_name = child_entries.get_argument(0, "state")?;
+                default_state = Some(state_name);
+            }
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        };
+    }
+
+    Ok(Layer {
+        name,
+        default_state,
+        states,
+    })
+}
+
+fn compile_layer_state(node: &KdlNode) -> Result<LayerState> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_STATE), Some(true))?;
+    let name = entries.get_argument(0, "name")?;
+
+    let mut animation = None;
+    let mut speed = (None, None);
+    let mut time = None;
+    let mut transitions = vec![];
+    for child in children {
+        let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+        match child_name {
+            NODE_NAME_CLIP => {
+                ensure_nochild!(child, grandchildren);
+                let key = child_entries.get_argument(0, "animation")?;
+                animation = Some(LayerAnimation::Clip(key));
+            }
+            NODE_NAME_BLENDTREE => {
+                animation = Some(compile_layer_blend_tree(child)?);
+            }
+            NODE_NAME_SPEED => {
+                ensure_nochild!(child, grandchildren);
+                let base = child_entries.get_argument(0, "speed")?;
+                let multiplier = child_entries.try_get_property("by")?;
+                speed = (Some(base), multiplier);
+            }
+            NODE_NAME_TIME => {
+                ensure_nochild!(child, grandchildren);
+                let param = child_entries.get_argument(0, "param")?;
+                time = Some(param);
+            }
+            NODE_NAME_TRANSITION => {
+                transitions.push(compile_layer_transition(child)?);
+            }
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        }
+    }
+
+    let animation = animation.ok_or_else(|| {
+        DeclError::new(
+            node.name().span(),
+            DeclErrorKind::NodeNotFound(NODE_NAME_CLIP),
+        )
+    })?;
+
+    Ok(LayerState {
+        name,
+        animation,
+        speed,
+        time,
+        transitions,
+    })
+}
+
+fn compile_layer_blend_tree(node: &KdlNode) -> Result<LayerAnimation> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_BLENDTREE), Some(true))?;
+
+    let tree_type = match entries.try_get_property::<&str>("type")? {
+        None => None,
+        Some("1d") => Some(LayerBlendTreeType::Linear),
+        Some("2d-simple") => Some(LayerBlendTreeType::Simple2D),
+        Some("2d-freeform") => Some(LayerBlendTreeType::Freeform2D),
+        Some("2d-cartesian") => Some(LayerBlendTreeType::Cartesian2D),
+        Some(_) => {
+            return Err(DeclError::new(
+                node.name().span(),
+                DeclErrorKind::InvalidAnnotation,
+            ))
+        }
+    };
+    let x = entries.try_get_property("x")?;
+    let y = entries.try_get_property("y")?;
+
+    let mut fields = vec![];
+    for child in children {
+        let (_, entries, _) = deconstruct_node(child, Some(NODE_NAME_FIELD), Some(false))?;
+        let clip = entries.get_argument(0, "motion")?;
+        let position = [
+            entries.get_argument(1, "position_x")?,
+            entries.try_get_argument(2)?.unwrap_or(0.0),
+        ];
+
+        fields.push(LayerBlendTreeField { clip, position })
+    }
+
+    Ok(LayerAnimation::BlendTree(LayerBlendTree {
+        ty: tree_type,
+        x,
+        y,
+        fields,
+    }))
+}
+
+fn compile_layer_transition(node: &KdlNode) -> Result<LayerTransition> {
+    let (_, entries, children) = deconstruct_node(node, Some(NODE_NAME_TRANSITION), Some(true))?;
+
+    let target = entries.get_argument(0, "target")?;
+    let mut conditions = vec![];
+    let mut duration = None;
+    for child in children {
+        let (child_name, child_entries, grandchildren) = deconstruct_node(child, None, None)?;
+        match child_name {
+            NODE_NAME_WHEN => {
+                for grandchild in grandchildren {
+                    conditions.push(compile_layer_condition(grandchild)?);
+                }
+            }
+            NODE_NAME_DURATION => {
+                duration = Some(child_entries.get_argument(0, "duration")?);
+            }
+            _ => {
+                return Err(DeclError::new(
+                    child.name().span(),
+                    DeclErrorKind::InvalidNodeDetected,
+                ));
+            }
+        }
+    }
+
+    Ok(LayerTransition {
+        target,
+        conditions,
+        duration,
+    })
+}
+
+fn compile_layer_condition(node: &KdlNode) -> Result<LayerCondition> {
+    let (node_name, entries, _) = deconstruct_node(node, None, Some(false))?;
+    let condition = match node_name {
+        NODE_NAME_BE => LayerCondition::Be(entries.get_argument(0, "parameter")?),
+        NODE_NAME_NOT => LayerCondition::Not(entries.get_argument(0, "parameter")?),
+        NODE_NAME_EQ => LayerCondition::EqInt(
+            entries.get_argument(0, "parameter")?,
+            entries.get_argument(1, "value")?,
+        ),
+        NODE_NAME_NEQ => LayerCondition::NeqInt(
+            entries.get_argument(0, "parameter")?,
+            entries.get_argument(1, "value")?,
+        ),
+        NODE_NAME_GT => {
+            let parameter = entries.get_argument(0, "parameter")?;
+            let (int_value, float_value) = {
+                let value: &KdlValue = entries.get_argument(1, "value")?;
+                (value.as_i64(), value.as_f64())
+            };
+            if let Some(v) = int_value {
+                LayerCondition::GtInt(parameter, v)
+            } else if let Some(v) = float_value {
+                LayerCondition::GtFloat(parameter, v)
+            } else {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::IncorrectType("int or float"),
+                ));
+            }
+        }
+        NODE_NAME_LE => {
+            let parameter = entries.get_argument(0, "parameter")?;
+            let (int_value, float_value) = {
+                let value: &KdlValue = entries.get_argument(1, "value")?;
+                (value.as_i64(), value.as_f64())
+            };
+            if let Some(v) = int_value {
+                LayerCondition::LeInt(parameter, v)
+            } else if let Some(v) = float_value {
+                LayerCondition::LeFloat(parameter, v)
+            } else {
+                return Err(DeclError::new(
+                    node.name().span(),
+                    DeclErrorKind::IncorrectType("int or float"),
+                ));
+            }
+        }
+        _ => {
+            return Err(DeclError::new(
+                node.name().span(),
+                DeclErrorKind::InvalidNodeDetected,
+            ));
+        }
+    };
+
+    Ok(condition)
 }
