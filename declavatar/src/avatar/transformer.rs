@@ -8,6 +8,8 @@ mod parameters;
 
 pub(super) use self::avatar::compile_avatar;
 
+use crate::avatar::data::{ParameterScope, ParameterType};
+
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug)]
@@ -77,7 +79,7 @@ impl Display for LogLevel {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 enum LogKind {
     InvalidAvatarName(String),
     InternalMustBeTransient(String),
@@ -87,6 +89,20 @@ enum LogKind {
     DuplicateGroupName(String),
 
     ParameterNotFound(String),
+    ParameterTypeRequirement(String, ParameterType),
+    ParameterScopeRequirement(String, ParameterScope),
+
+    AnimationGroupNotFound(String),
+    AnimationGroupMustBeGroup(String),
+    AnimationGroupMustBeSwitch(String),
+    AnimationGroupMustBePuppet(String),
+    AnimationGroupOptionNotFound(String, String),
+
+    DriverOptionNotSpecified(String),
+    DriverInvalidAddTarget(String),
+    DriverInvalidRandomSpecification(String),
+    DriverInvalidCopyTarget(String),
+    DriverCopyMismatch(String, (String, String)),
 }
 
 impl Display for LogKind {
@@ -98,7 +114,22 @@ impl Display for LogKind {
             LogKind::IndeterminateAsset(_) => todo!(),
             LogKind::IncompatibleAssetDeclaration(_) => todo!(),
             LogKind::DuplicateGroupName(_) => todo!(),
+
             LogKind::ParameterNotFound(_) => todo!(),
+            LogKind::ParameterTypeRequirement(_, _) => todo!(),
+            LogKind::ParameterScopeRequirement(_, _) => todo!(),
+
+            LogKind::AnimationGroupNotFound(_) => todo!(),
+            LogKind::AnimationGroupMustBeGroup(_) => todo!(),
+            LogKind::AnimationGroupMustBeSwitch(_) => todo!(),
+            LogKind::AnimationGroupMustBePuppet(_) => todo!(),
+            LogKind::AnimationGroupOptionNotFound(_, _) => todo!(),
+
+            LogKind::DriverOptionNotSpecified(_) => todo!(),
+            LogKind::DriverInvalidAddTarget(_) => todo!(),
+            LogKind::DriverInvalidRandomSpecification(_) => todo!(),
+            LogKind::DriverInvalidCopyTarget(_) => todo!(),
+            LogKind::DriverCopyMismatch(_, _) => todo!(),
         }
     }
 }

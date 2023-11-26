@@ -30,7 +30,16 @@ impl ParameterType {
     pub const FLOAT_TYPE: ParameterType = ParameterType::Float(0.0);
     pub const BOOL_TYPE: ParameterType = ParameterType::Bool(false);
 
-    pub const fn type_name(&self) -> &'static str {
+    pub fn matches(self, requirement: ParameterType) -> bool {
+        match (self, requirement) {
+            (ParameterType::Int(_), ParameterType::Int(_)) => true,
+            (ParameterType::Float(_), ParameterType::Float(_)) => true,
+            (ParameterType::Bool(_), ParameterType::Bool(_)) => true,
+            _ => false,
+        }
+    }
+
+    pub const fn type_name(self) -> &'static str {
         match self {
             ParameterType::Int(_) => "int",
             ParameterType::Float(_) => "float",
