@@ -1,7 +1,7 @@
 use miette::SourceSpan;
 
 use crate::{
-    avatar::{compile_avatar, data::Avatar},
+    avatar::{data::Avatar, transform_avatar, LogLevel},
     decl::parse_document,
 };
 
@@ -23,6 +23,7 @@ pub enum ErrorKind {
     SyntaxError = 1,
     SemanticError = 2,
     SemanticInfo = 3,
+    SemanticWarning = 4,
 }
 
 pub struct Declavatar {
@@ -81,17 +82,18 @@ impl Declavatar {
             }
         };
 
-        let avatar = match compile_avatar(avatar_decl.avatar) {
-            Ok(Ok(avatar)) => avatar,
-            Ok(Err(errors)) => {
-                for error in errors {
-                    self.errors
-                        .push((ErrorKind::SemanticError, error.to_string()));
+        let transformed = transform_avatar(avatar_decl.avatar);
+        let avatar = match transformed.avatar {
+            Some(avatar) => avatar,
+            None => {
+                for (level, message) in transformed.logs {
+                    let error_kind = match level {
+                        LogLevel::Information => ErrorKind::SemanticInfo,
+                        LogLevel::Warning => ErrorKind::SemanticWarning,
+                        LogLevel::Error => ErrorKind::SemanticError,
+                    };
+                    self.errors.push((error_kind, message));
                 }
-                return Err(StatusCode::CompileError);
-            }
-            Err(e) => {
-                self.errors.push((ErrorKind::CompilerError, e.to_string()));
                 return Err(StatusCode::CompileError);
             }
         };

@@ -39,12 +39,23 @@ impl Context {
         self.errornous = true;
     }
 
-    pub fn into_logs(self) -> Vec<(String, String)> {
+    pub(self) fn errornous(&self) -> bool {
+        self.errornous
+    }
+
+    pub fn into_logs(self) -> Vec<(LogLevel, String)> {
         self.logs
             .into_iter()
-            .map(|(ll, lk)| (ll.to_string(), lk.to_string()))
+            .map(|(ll, lk)| (ll, lk.to_string()))
             .collect()
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LogLevel {
+    Information,
+    Warning,
+    Error,
 }
 
 // Renamed for future change
@@ -60,23 +71,6 @@ fn success<T>(t: T) -> Compiled<T> {
 #[inline]
 fn failure<T>() -> Compiled<T> {
     None
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum LogLevel {
-    Information,
-    Warning,
-    Error,
-}
-
-impl Display for LogLevel {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match self {
-            LogLevel::Information => write!(f, "Information"),
-            LogLevel::Warning => write!(f, "Warning"),
-            LogLevel::Error => write!(f, "Error"),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

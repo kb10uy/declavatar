@@ -24,7 +24,7 @@ fn main() -> MietteResult<()> {
         Some(avatar) => avatar,
         None => {
             for (level, message) in transformed.logs {
-                println!("{level}: {message}");
+                println!("{level:?}: {message}");
             }
             return Ok(());
         }

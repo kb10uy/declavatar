@@ -36,6 +36,10 @@ pub fn compile_avatar(ctx: &mut Context, avatar: DeclAvatar) -> Compiled<Avatar>
     let driver_groups = compile_drivers_blocks(ctx, &compiled_animations, avatar.drivers_blocks)?;
     let top_menu_group = compile_menu(ctx, &compiled_animations, avatar.menu_blocks)?;
 
+    if ctx.errornous() {
+        return failure();
+    }
+
     let (parameters, assets, animation_groups) = compiled_animations.deconstruct();
     success(Avatar {
         name,
