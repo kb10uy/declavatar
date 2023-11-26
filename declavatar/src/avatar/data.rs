@@ -31,12 +31,12 @@ impl ParameterType {
     pub const BOOL_TYPE: ParameterType = ParameterType::Bool(false);
 
     pub fn matches(self, requirement: ParameterType) -> bool {
-        match (self, requirement) {
-            (ParameterType::Int(_), ParameterType::Int(_)) => true,
-            (ParameterType::Float(_), ParameterType::Float(_)) => true,
-            (ParameterType::Bool(_), ParameterType::Bool(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, requirement),
+            (ParameterType::Int(_), ParameterType::Int(_))
+                | (ParameterType::Float(_), ParameterType::Float(_))
+                | (ParameterType::Bool(_), ParameterType::Bool(_))
+        )
     }
 
     pub const fn type_name(self) -> &'static str {

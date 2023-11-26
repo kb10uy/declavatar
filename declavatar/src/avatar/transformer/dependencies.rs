@@ -1,7 +1,7 @@
 use crate::avatar::{
     data::{
-        AnimationGroup, AnimationGroupContent, Asset, GroupOption, Parameter, ParameterScope,
-        ParameterType,
+        AnimationGroup, AnimationGroupContent, Asset, AssetType, GroupOption, Parameter,
+        ParameterScope, ParameterType,
     },
     transformer::{failure, success, Compiled, Context, LogKind},
 };
@@ -49,6 +49,21 @@ impl CompiledSources {
             return failure();
         }
         success(parameter)
+    }
+
+    pub fn find_asset(&self, ctx: &mut Context, name: &str, ty: AssetType) -> Compiled<&Asset> {
+        let asset = match self.assets.iter().find(|p| p.key == name) {
+            Some(p) => p,
+            None => {
+                ctx.log_error(LogKind::AssetNotFound(name.to_string()));
+                return failure();
+            }
+        };
+        if asset.asset_type != ty {
+            ctx.log_error(LogKind::AssetTypeRequirement(name.to_string(), ty));
+            return failure();
+        }
+        success(asset)
     }
 }
 

@@ -8,7 +8,7 @@ mod parameters;
 
 pub(super) use self::avatar::compile_avatar;
 
-use crate::avatar::data::{ParameterScope, ParameterType};
+use crate::avatar::data::{AssetType, ParameterScope, ParameterType};
 
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
@@ -18,6 +18,7 @@ pub(super) struct Context {
     errornous: bool,
 }
 
+#[allow(dead_code)]
 impl Context {
     pub fn new() -> Context {
         Context {
@@ -73,6 +74,7 @@ fn failure<T>() -> Compiled<T> {
     None
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum LogKind {
     InvalidAvatarName(String),
@@ -86,11 +88,19 @@ enum LogKind {
     ParameterTypeRequirement(String, ParameterType),
     ParameterScopeRequirement(String, ParameterScope),
 
+    AssetNotFound(String),
+    AssetTypeRequirement(String, AssetType),
+
     AnimationGroupNotFound(String),
     AnimationGroupMustBeGroup(String),
     AnimationGroupMustBeSwitch(String),
     AnimationGroupMustBePuppet(String),
     AnimationGroupOptionNotFound(String, String),
+    AnimationGroupDisabledTargetFailure(String, String),
+    AnimationGroupMaterialFailure(usize),
+    AnimationGroupIndeterminateShapeChange(String, String),
+    AnimationGroupIndeterminateMaterialChange(String, usize),
+    AnimationGroupIndeterminateOption(String, String),
 
     DriverOptionNotSpecified(String),
     DriverInvalidAddTarget(String),
@@ -102,7 +112,7 @@ enum LogKind {
 impl Display for LogKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            LogKind::InvalidAvatarName(_) => todo!(),
+            LogKind::InvalidAvatarName(name) => write!(f, "invalid avatar name '{name}'"),
             LogKind::InternalMustBeTransient(_) => todo!(),
             LogKind::IncompatibleParameterDeclaration(_) => todo!(),
             LogKind::IndeterminateAsset(_) => todo!(),
@@ -113,11 +123,19 @@ impl Display for LogKind {
             LogKind::ParameterTypeRequirement(_, _) => todo!(),
             LogKind::ParameterScopeRequirement(_, _) => todo!(),
 
+            LogKind::AssetNotFound(_) => todo!(),
+            LogKind::AssetTypeRequirement(_, _) => todo!(),
+
             LogKind::AnimationGroupNotFound(_) => todo!(),
             LogKind::AnimationGroupMustBeGroup(_) => todo!(),
             LogKind::AnimationGroupMustBeSwitch(_) => todo!(),
             LogKind::AnimationGroupMustBePuppet(_) => todo!(),
             LogKind::AnimationGroupOptionNotFound(_, _) => todo!(),
+            LogKind::AnimationGroupDisabledTargetFailure(_, _) => todo!(),
+            LogKind::AnimationGroupMaterialFailure(_) => todo!(),
+            LogKind::AnimationGroupIndeterminateShapeChange(_, _) => todo!(),
+            LogKind::AnimationGroupIndeterminateMaterialChange(_, _) => todo!(),
+            LogKind::AnimationGroupIndeterminateOption(_, _) => todo!(),
 
             LogKind::DriverOptionNotSpecified(_) => todo!(),
             LogKind::DriverInvalidAddTarget(_) => todo!(),
