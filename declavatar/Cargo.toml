@@ -11,7 +11,7 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 kdl = "4.6.0"
-ketos = "0.12.0"
+ketos = { version = "0.12.0", features = ["derive"] }
 miette = "5.10.0"
 semver = "1.0.20"
 serde = { version = "1.0.193", features = ["derive"] }

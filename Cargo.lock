@@ -260,6 +260,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "declavalidate"
+version = "0.1.0"
+
+[[package]]
 name = "declavatar"
 version = "0.9.0"
 dependencies = [
@@ -465,9 +469,21 @@ dependencies = [
  "byteorder",
  "dirs 2.0.2",
  "gumdrop",
+ "ketos_derive",
  "linefeed",
  "num",
  "rand 0.7.3",
+]
+
+[[package]]
+name = "ketos_derive"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e88a0f21221e388d7bbe70098bac1708c749d71e9e4e22fead33449aa1a0b2d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

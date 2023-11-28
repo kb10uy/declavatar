@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["declavatar", "avatar-validator"]
+members = ["declavatar", "avatar-validator", "declavalidate"]
 
 [profile.release]
 lto = "fat"
