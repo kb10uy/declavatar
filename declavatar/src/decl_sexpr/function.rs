@@ -16,6 +16,7 @@ pub struct DeclavatarModuleLoader;
 
 impl DeclavatarModuleLoader {
     fn define_module(scope: &Scope) -> Module {
+        avatar::register_avatar_function(scope);
         parameters::register_parameters_function(scope);
         assets::register_parameters_function(scope);
 

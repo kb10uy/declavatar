@@ -1,6 +1,13 @@
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclAvatar {
+    pub name: String,
+    pub parameters_blocks: Vec<DeclParameters>,
+    pub assets_blocks: Vec<DeclAssets>,
+}
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclParameters {
     pub parameters: Vec<DeclParameter>,
 }

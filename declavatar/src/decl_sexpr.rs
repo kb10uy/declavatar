@@ -17,14 +17,21 @@ pub fn run_test() {
         .run_code(
             r#"
             (use da :self)
-            (da/parameters
-                (da/bool "hoge")
-                (da/int "fuga" :save true :scope 'internal)
-                (da/float "piyo" :default 0.5)
+            (da/avatar "example"
+                (da/parameters
+                    (da/bool "hoge")
+                    (da/int "fuga" :save true :scope 'internal)
+                    (da/float "piyo" :default 0.5)
+                )
+
+                (da/assets
+                    (da/animation "Animation")
+                    (da/material "Material")
+                )
             )
         "#,
             None,
         )
         .expect("should");
-    println!("{value:?}");
+    println!("{value:?}")
 }
