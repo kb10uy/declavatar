@@ -26,3 +26,14 @@ pub enum DeclParameterScope {
     Local,
     Synced,
 }
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclAssets {
+    pub assets: Vec<DeclAsset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub enum DeclAsset {
+    Material(String),
+    Animation(String),
+}

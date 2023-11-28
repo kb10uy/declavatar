@@ -1,25 +1,34 @@
-(avatar "sleeping-flower"
-    (parameters
-        (bool "SF_Outer")
-        (bool "GW_Slipper")
+(declare-avatar "sleeping-flower"
+    (declare-parameters
+        (declare-bool "SF_Outer")
+        (declare-bool "GW_Slipper")
     )
 
-    (animations
-        (switch "アウター"
-            (parameter "SF_Outer")
-            (object "SF_Outer" :disabled false :enabled true)
+    (da/parameters
+        (da/bool "SF_Outer")
+        (da/bool "GW_Slipper")
+    )
+
+    (declare-assets
+        ("")
+    )
+
+    (declare-animations
+        (declare-switch "アウター"
+            (use-parameter "SF_Outer")
+            (switch-object "SF_Outer" :disabled false :enabled true)
         )
 
-        (switch "スリッパ"
-            (parameter "GW_Slipper")
-            (object "GW_Slipper" :disabled false :enabled true)
+        (declare-switch "スリッパ"
+            (use-parameter "GW_Slipper")
+            (switch-object "GW_Slipper" :disabled false :enabled true)
         )
     )
 
-    (menu
-        (submenu "服"
-            (toggle "アウター" :switch "SF_Outer")
-            (toggle "スリッパ" :switch "GW_Slipper")
+    (declare-menu
+        (declare-submenu "服"
+            (declare-toggle "アウター" :switch "SF_Outer")
+            (declare-toggle "スリッパ" :switch "GW_Slipper")
         )
     )
 )

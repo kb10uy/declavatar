@@ -1,11 +1,58 @@
 mod avatar;
+mod assets;
 mod parameters;
 
 use std::{any::Any, collections::HashMap};
 
-use ketos::{Arity, Error, ExecError, FromValueRef, Name, NameStore, Scope, Value};
+use ketos::{
+    Arity, CompileError, Context, Error, ExecError, FromValueRef, Module, ModuleBuilder,
+    ModuleLoader, Name, NameStore, Scope, Value,
+};
 
 type KetosResult<T> = Result<T, Error>;
+
+#[derive(Debug)]
+pub struct DeclavatarModuleLoader;
+
+impl DeclavatarModuleLoader {
+    fn define_module(scope: &Scope) -> Module {
+        parameters::register_parameters_function(scope);
+        assets::register_parameters_function(scope);
+
+        ModuleBuilder::new("da", scope.clone()).finish()
+    }
+}
+
+impl ModuleLoader for DeclavatarModuleLoader {
+    fn load_module(&self, name: Name, ctx: Context) -> KetosResult<Module> {
+        let load_da = ctx.scope().with_name(name, |n| n == "da");
+
+        if load_da {
+            Ok(DeclavatarModuleLoader::define_module(ctx.scope()))
+        } else {
+            Err(Error::CompileError(CompileError::ModuleError(name)))
+        }
+    }
+}
+
+fn register_function<
+    F: Any + for<'a> Fn(&'a NameStore, Name, SeparateArguments<'a>) -> KetosResult<Value>,
+>(
+    scope: &Scope,
+    name: &'static str,
+    f: F,
+    args_arity: Arity,
+    allowed_keywords: &'static [&'static str],
+) {
+    scope.add_value_with_name(name, |name| {
+        Value::new_foreign_fn(name, move |ctx, args| {
+            let name_store = ctx.scope().borrow_names();
+            let args =
+                SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
+            f(&name_store, name, args)
+        })
+    });
+}
 
 struct SeparateArguments<'a> {
     args: Vec<&'a mut Value>,
@@ -128,27 +175,4 @@ impl<'a> SeparateArguments<'a> {
 
         Ok((args, kwargs))
     }
-}
-
-fn register_function<
-    F: Any + for<'a> Fn(&'a NameStore, Name, SeparateArguments<'a>) -> KetosResult<Value>,
->(
-    scope: &Scope,
-    name: &'static str,
-    f: F,
-    args_arity: Arity,
-    allowed_keywords: &'static [&'static str],
-) {
-    scope.add_value_with_name(name, |name| {
-        Value::new_foreign_fn(name, move |ctx, args| {
-            let name_store = ctx.scope().borrow_names();
-            let args =
-                SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
-            f(&name_store, name, args)
-        })
-    });
-}
-
-pub fn register_decl_functions(scope: &Scope) {
-    parameters::register_parameters_function(scope);
 }

@@ -11,21 +11,21 @@ pub fn register_parameters_function(scope: &Scope) {
     register_function(scope, "parameters", declare_parameters, Arity::Min(0), &[]);
     register_function(
         scope,
-        "declare-bool",
+        "bool",
         declare_bool,
         Arity::Exact(1),
         PARAMETER_KEYWORDS,
     );
     register_function(
         scope,
-        "declare-int",
+        "int",
         declare_int,
         Arity::Exact(1),
         PARAMETER_KEYWORDS,
     );
     register_function(
         scope,
-        "declare-float",
+        "float",
         declare_float,
         Arity::Exact(1),
         PARAMETER_KEYWORDS,
