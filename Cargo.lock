@@ -262,6 +262,14 @@ dependencies = [
 [[package]]
 name = "declavalidate"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "declavatar",
+ "miette",
+ "serde_json",
+ "static_vcruntime",
+]
 
 [[package]]
 name = "declavatar"
