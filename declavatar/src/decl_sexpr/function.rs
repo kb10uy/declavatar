@@ -1,6 +1,9 @@
-mod avatar;
 mod assets;
+mod avatar;
+mod menu;
 mod parameters;
+
+use crate::decl_sexpr::{data::StaticTypeName, error::DeclError};
 
 use std::{any::Any, collections::HashMap};
 
@@ -19,6 +22,7 @@ impl DeclavatarModuleLoader {
         avatar::register_avatar_function(scope);
         parameters::register_parameters_function(scope);
         assets::register_parameters_function(scope);
+        menu::register_menu_function(scope);
 
         ModuleBuilder::new("da", scope.clone()).finish()
     }
@@ -111,20 +115,6 @@ impl<'a> SeparateArguments<'a> {
         Ok(&self.args[index..])
     }
 
-    /*
-    fn get_arg_mut(&'a mut self, function_name: Name, index: usize) -> KetosResult<&'a mut Value> {
-        if self.args.len() <= index {
-            return Err(Error::ExecError(ExecError::ArityError {
-                name: Some(function_name),
-                expected: Arity::Min((index + 1) as u32),
-                found: self.args.len() as u32,
-            }));
-        }
-
-        Ok(&mut self.args[index])
-    }
-    */
-
     fn exact_kwarg<T: FromValueRef<'a>>(&'a self, keyword: &str) -> KetosResult<Option<T>> {
         let Some(value) = self.kwargs.get(keyword) else {
             return Ok(None);
@@ -132,6 +122,17 @@ impl<'a> SeparateArguments<'a> {
 
         let value = T::from_value_ref(value)?;
         Ok(Some(value))
+    }
+
+    fn exact_kwarg_expect<T: FromValueRef<'a>>(&'a self, keyword: &str) -> KetosResult<T> {
+        let Some(value) = self.kwargs.get(keyword) else {
+            return Err(Error::Custom(
+                DeclError::KeywordExpected(keyword.to_string()).into(),
+            ));
+        };
+
+        let value = T::from_value_ref(value)?;
+        Ok(value)
     }
 
     fn separate_args(
@@ -175,5 +176,28 @@ impl<'a> SeparateArguments<'a> {
         }
 
         Ok((args, kwargs))
+    }
+}
+
+trait KetosValueExt {
+    fn downcast_foreign_ref<'a, T: FromValueRef<'a> + StaticTypeName>(&'a self) -> KetosResult<T>;
+}
+
+impl KetosValueExt for Value {
+    fn downcast_foreign_ref<'a, T: FromValueRef<'a> + StaticTypeName>(&'a self) -> KetosResult<T> {
+        let expected_type_name = T::TYPE_NAME;
+        let found_type_name = self.type_name();
+        if found_type_name != expected_type_name {
+            return Err(Error::Custom(
+                DeclError::UnexpectedTypeValue(
+                    found_type_name.to_string(),
+                    expected_type_name.to_string(),
+                )
+                .into(),
+            ));
+        }
+
+        let value = T::from_value_ref(self)?;
+        Ok(value)
     }
 }

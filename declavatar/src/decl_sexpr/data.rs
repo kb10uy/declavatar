@@ -1,46 +1,21 @@
-use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
+pub mod asset;
+pub mod avatar;
+pub mod menu;
+pub mod parameter;
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub struct DeclAvatar {
-    pub name: String,
-    pub parameters_blocks: Vec<DeclParameters>,
-    pub assets_blocks: Vec<DeclAssets>,
+pub trait StaticTypeName {
+    const TYPE_NAME: &'static str;
 }
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub struct DeclParameters {
-    pub parameters: Vec<DeclParameter>,
-}
+#[macro_export]
+macro_rules! static_type_name_impl {
+    ($t:ident) => {
+        impl $crate::decl_sexpr::data::StaticTypeName for $t {
+            const TYPE_NAME: &'static str = stringify!($t);
+        }
 
-#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub struct DeclParameter {
-    pub ty: DeclParameterType,
-    pub scope: Option<DeclParameterScope>,
-    pub save: Option<bool>,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum DeclParameterType {
-    Int(Option<u8>),
-    Float(Option<f64>),
-    Bool(Option<bool>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeclParameterScope {
-    Internal,
-    Local,
-    Synced,
-}
-
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub struct DeclAssets {
-    pub assets: Vec<DeclAsset>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub enum DeclAsset {
-    Material(String),
-    Animation(String),
+        impl $crate::decl_sexpr::data::StaticTypeName for &$t {
+            const TYPE_NAME: &'static str = stringify!($t);
+        }
+    };
 }

@@ -14,24 +14,7 @@ pub fn run_test() {
         Interpreter::with_loader(Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader)));
 
     let value = interp
-        .run_code(
-            r#"
-            (use da :self)
-            (da/avatar "example"
-                (da/parameters
-                    (da/bool "hoge")
-                    (da/int "fuga" :save true :scope 'internal)
-                    (da/float "piyo" :default 0.5)
-                )
-
-                (da/assets
-                    (da/animation "Animation")
-                    (da/material "Material")
-                )
-            )
-        "#,
-            None,
-        )
+        .run_code(include_str!("../../examples/sexpr-all.decl.lisp") ,None)
         .expect("should");
     println!("{value:?}")
 }

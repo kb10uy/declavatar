@@ -1,10 +1,12 @@
 use crate::decl_sexpr::{
-    data::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
+    data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
     error::DeclError,
     function::{register_function, SeparateArguments},
 };
 
-use ketos::{Arity, Error, FromValueRef, Name, NameStore, Scope, Value};
+use ketos::{Arity, Error, Name, NameStore, Scope, Value};
+
+use super::KetosValueExt;
 
 pub fn register_parameters_function(scope: &Scope) {
     const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope"];
@@ -39,12 +41,7 @@ fn declare_parameters(
 ) -> Result<Value, Error> {
     let mut parameters = vec![];
     for param_value in args.args_after(function_name, 0)? {
-        if param_value.type_name() != stringify!(DeclParameter) {
-            return Err(Error::Custom(
-                DeclError::UnexpectedTypeValue(param_value.type_name().to_string()).into(),
-            ));
-        }
-        let parameter: &DeclParameter = FromValueRef::from_value_ref(param_value)?;
+        let parameter: &DeclParameter = param_value.downcast_foreign_ref()?;
         parameters.push(parameter.clone());
     }
     Ok(DeclParameters { parameters }.into())

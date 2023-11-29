@@ -1,10 +1,11 @@
 use crate::decl_sexpr::{
-    data::{DeclAsset, DeclAssets},
-    error::DeclError,
+    data::asset::{DeclAsset, DeclAssets},
     function::{register_function, SeparateArguments},
 };
 
-use ketos::{Arity, Error, FromValueRef, Name, NameStore, Scope, Value};
+use ketos::{Arity, Error, Name, NameStore, Scope, Value};
+
+use super::KetosValueExt;
 
 pub fn register_parameters_function(scope: &Scope) {
     register_function(scope, "assets", declare_assets, Arity::Min(0), &[]);
@@ -19,12 +20,7 @@ fn declare_assets(
 ) -> Result<Value, Error> {
     let mut assets = vec![];
     for asset_value in args.args_after(function_name, 0)? {
-        if asset_value.type_name() != stringify!(DeclAsset) {
-            return Err(Error::Custom(
-                DeclError::UnexpectedTypeValue(asset_value.type_name().to_string()).into(),
-            ));
-        }
-        let parameter: &DeclAsset = FromValueRef::from_value_ref(asset_value)?;
+        let parameter: &DeclAsset = asset_value.downcast_foreign_ref()?;
         assets.push(parameter.clone());
     }
     Ok(DeclAssets { assets }.into())
