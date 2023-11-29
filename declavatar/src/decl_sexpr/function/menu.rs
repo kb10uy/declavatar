@@ -19,14 +19,14 @@ pub fn register_menu_function(scope: &Scope) {
         scope,
         "two-axis",
         declare_two_axis,
-        Arity::Exact(0),
+        Arity::Exact(1),
         &["horizontal", "vertical"],
     );
     register_function(
         scope,
         "four-axis",
         declare_four_axis,
-        Arity::Exact(0),
+        Arity::Exact(1),
         &["up", "down", "left", "right"],
     );
 }

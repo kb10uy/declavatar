@@ -19,20 +19,18 @@
         (da/button "hoge" '(da/select-option "group-name" "option-name"))
         (da/toggle "fuga" '(da/drive-switch "switch-name"))
         (da/radial "piyo" '(da/drive-puppet "puppet-name"))
-        #|
         (da/submenu "foo"
             (da/two-axis "bar"
                 :horizontal '(da/drive-puppet "horizontal")
                 :vertical '(da/drive-puppet "vertical")
             )
-            (da/two-axis "baz"
+            (da/four-axis "baz"
                 :up '(da/drive-puppet "up")
                 :down '(da/drive-puppet "down")
                 :left '(da/drive-puppet "left")
                 :right '(da/drive-puppet "right")
             )
         )
-        |#
     )
     #|
     (da/fx-controller

@@ -13,8 +13,13 @@ pub fn run_test() {
     let interp =
         Interpreter::with_loader(Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader)));
 
-    let value = interp
-        .run_code(include_str!("../../examples/sexpr-all.decl.lisp"), None)
-        .expect("should");
-    println!("{value:?}")
+    let result = interp.run_code(include_str!("../../examples/sexpr-all.decl.lisp"), None);
+    match result {
+        Ok(v) => {
+            println!("{v:?}");
+        }
+        Err(e) => {
+            println!("Error: {e}");
+        }
+    }
 }
