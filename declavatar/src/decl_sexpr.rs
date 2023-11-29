@@ -14,7 +14,7 @@ pub fn run_test() {
         Interpreter::with_loader(Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader)));
 
     let value = interp
-        .run_code(include_str!("../../examples/sexpr-all.decl.lisp") ,None)
+        .run_code(include_str!("../../examples/sexpr-all.decl.lisp"), None)
         .expect("should");
     println!("{value:?}")
 }
