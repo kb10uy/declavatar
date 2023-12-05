@@ -4,12 +4,10 @@ use crate::decl_sexpr::{
         StaticTypeName,
     },
     error::DeclError,
-    function::{register_function, SeparateArguments},
+    function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
-
-use super::KetosValueExt;
 
 pub fn register_avatar_function(scope: &Scope) {
     register_function(scope, "avatar", declare_avatar, Arity::Min(1), &[]);
@@ -19,7 +17,7 @@ fn declare_avatar(
     _name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
-) -> Result<Value, Error> {
+) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut avatar = DeclAvatar {

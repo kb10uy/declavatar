@@ -1,12 +1,10 @@
 use crate::decl_sexpr::{
     data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
     error::DeclError,
-    function::{register_function, SeparateArguments},
+    function::{register_function, KetosValueExt, SeparateArguments},
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
-
-use super::KetosValueExt;
 
 pub fn register_parameters_function(scope: &Scope) {
     const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope"];

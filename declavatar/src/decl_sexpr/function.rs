@@ -1,7 +1,8 @@
-mod assets;
+mod asset;
 mod avatar;
+mod driver;
 mod menu;
-mod parameters;
+mod parameter;
 
 use crate::decl_sexpr::{data::StaticTypeName, error::DeclError};
 
@@ -20,8 +21,9 @@ pub struct DeclavatarModuleLoader;
 impl DeclavatarModuleLoader {
     fn define_module(scope: &Scope) -> Module {
         avatar::register_avatar_function(scope);
-        parameters::register_parameters_function(scope);
-        assets::register_parameters_function(scope);
+        parameter::register_parameters_function(scope);
+        asset::register_assets_function(scope);
+        driver::register_drivers_function(scope);
         menu::register_menu_function(scope);
 
         ModuleBuilder::new("da", scope.clone()).finish()
@@ -102,6 +104,14 @@ impl<'a> SeparateArguments<'a> {
         let raw_value = self.get_arg(function_name, index)?;
         let value = T::from_value_ref(raw_value)?;
         Ok(value)
+    }
+
+    fn try_exact_arg<T: FromValueRef<'a>>(&'a self, index: usize) -> KetosResult<Option<T>> {
+        let Some(raw_value) = self.args.get(index) else {
+            return Ok(None);
+        };
+        let value = T::from_value_ref(raw_value)?;
+        Ok(Some(value))
     }
 
     fn args_after(&'a self, function_name: Name, index: usize) -> KetosResult<&'a [&'a mut Value]> {

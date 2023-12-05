@@ -2,6 +2,8 @@ use crate::static_type_name_impl;
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
+use super::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch};
+
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclMenuElement {
     SubMenu(DeclSubMenu),
@@ -21,6 +23,14 @@ static_type_name_impl!(DeclSubMenu);
 pub struct DeclBooleanControl {
     pub name: String,
     pub hold: bool,
+    pub boolean_type: DeclBooleanTarget,
+}
+
+#[derive(Debug, Clone)]
+pub enum DeclBooleanTarget {
+    Group(DeclDriveGroup),
+    Switch(DeclDriveSwitch),
+    Puppet(DeclDrivePuppet),
 }
 
 #[derive(Debug, Clone)]
@@ -30,8 +40,21 @@ pub struct DeclPuppetControl {
 }
 
 #[derive(Debug, Clone)]
+pub enum DeclPuppetTarget {
+    Puppet(DeclDrivePuppet),
+}
+
+#[derive(Debug, Clone)]
 pub enum DeclPuppetType {
-    Radial(),
-    TwoAxis(),
-    FourAxis(),
+    Radial(DeclPuppetTarget),
+    TwoAxis {
+        horizontal: DeclPuppetTarget,
+        vertical: DeclPuppetTarget,
+    },
+    FourAxis {
+        up: DeclPuppetTarget,
+        down: DeclPuppetTarget,
+        left: DeclPuppetTarget,
+        right: DeclPuppetTarget,
+    },
 }

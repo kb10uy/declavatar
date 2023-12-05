@@ -1,5 +1,6 @@
 pub mod asset;
 pub mod avatar;
+pub mod driver;
 pub mod menu;
 pub mod parameter;
 
