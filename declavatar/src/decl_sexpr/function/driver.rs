@@ -5,7 +5,7 @@ use crate::decl_sexpr::{
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
 
-pub fn register_drivers_function(scope: &Scope) {
+pub fn register_driver_function(scope: &Scope) {
     register_function(
         scope,
         "drive-group",
@@ -73,3 +73,9 @@ fn declare_drive_puppet(
     }
     .into())
 }
+
+fn declare_set_shape(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+)

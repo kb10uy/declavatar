@@ -3,6 +3,13 @@ use crate::static_type_name_impl;
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub enum DeclParameterDrive {
+    Group(DeclDriveGroup),
+    Switch(DeclDriveSwitch),
+    Puppet(DeclDrivePuppet),
+}
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclDriveGroup {
     pub group: String,
     pub option: String,

@@ -6,7 +6,7 @@ use crate::decl_sexpr::{
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
-pub fn register_parameters_function(scope: &Scope) {
+pub fn register_parameter_function(scope: &Scope) {
     const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope"];
     register_function(scope, "parameters", declare_parameters, Arity::Min(0), &[]);
     register_function(

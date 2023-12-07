@@ -14,13 +14,7 @@ pub fn register_layer_function(scope: &Scope) {
         Arity::Min(1),
         &["driven-by", "default-mesh"],
     );
-    register_function(
-        scope,
-        "option",
-        declare_group_layer,
-        Arity::Min(1),
-        &["value"],
-    );
+    register_function(scope, "option", declare_option, Arity::Min(1), &["value"]);
 }
 
 fn declare_group_layer(
@@ -38,7 +32,13 @@ fn declare_group_layer(
         options.push(option.clone());
     }
 
-    Ok(DeclGroupLayer {}.into())
+    Ok(DeclGroupLayer {
+        name: name.to_string(),
+        driven_by: driven_by.to_string(),
+        default_mesh: default_mesh.map(|dm| dm.to_string()),
+        options,
+    }
+    .into())
 }
 
 fn declare_option(
@@ -46,13 +46,10 @@ fn declare_option(
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
-    let kind: &Value = args.exact_arg(function_name, 0)?;
-    let value: Option<usize> = args.exact_kwarg("value")?;
-
-    let kind = match kind {
+    let kind = match args.exact_arg::<&Value>(function_name, 0)? {
         Value::Float(keyframe) => DeclGroupOptionKind::Keyframe(*keyframe),
         Value::Keyword(name) => match name_store.get(*name) {
-            "default" => DeclGroupOptionKind::Selection(None),
+            "default" => DeclGroupOptionKind::Selection(None, None),
             "disabled" => DeclGroupOptionKind::Boolean(false),
             "enabled" => DeclGroupOptionKind::Boolean(true),
             _ => {
@@ -61,8 +58,11 @@ fn declare_option(
                 ));
             }
         },
-        Value::String(option) => DeclGroupOptionKind::Selection(Some(option.to_string())),
-        _ => {
+        Value::String(option) => {
+            let value: Option<usize> = args.exact_kwarg("value")?;
+            DeclGroupOptionKind::Selection(Some(option.to_string()), value)
+        }
+        kind => {
             return Err(Error::ExecError(ExecError::TypeError {
                 expected: "'default, 'disabled, 'enabled, string, or float",
                 found: kind.type_name(),

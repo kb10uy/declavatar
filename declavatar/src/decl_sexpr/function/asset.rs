@@ -5,7 +5,7 @@ use crate::decl_sexpr::{
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
 
-pub fn register_assets_function(scope: &Scope) {
+pub fn register_asset_function(scope: &Scope) {
     register_function(scope, "assets", declare_assets, Arity::Min(0), &[]);
     register_function(scope, "material", declare_material, Arity::Exact(1), &[]);
     register_function(scope, "animation", declare_animation, Arity::Exact(1), &[]);
