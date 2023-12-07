@@ -1,7 +1,7 @@
-use crate::decl_sexpr::{
+use crate::decl_v2::{
     data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
     error::DeclError,
-    function::{register_function, KetosValueExt, SeparateArguments},
+    sexpr::{register_function, KetosValueExt, SeparateArguments},
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};

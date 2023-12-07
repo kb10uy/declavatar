@@ -6,7 +6,7 @@ mod layer;
 mod menu;
 mod parameter;
 
-use crate::decl_sexpr::{data::StaticTypeName, error::DeclError};
+use crate::decl_v2::{data::StaticTypeName, error::DeclError};
 
 use std::{any::Any, collections::HashMap};
 

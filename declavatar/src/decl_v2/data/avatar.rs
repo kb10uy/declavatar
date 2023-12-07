@@ -1,5 +1,5 @@
 use crate::{
-    decl_sexpr::data::{
+    decl_v2::data::{
         asset::DeclAssets, controller::DeclFxController, menu::DeclSubMenu,
         parameter::DeclParameters,
     },

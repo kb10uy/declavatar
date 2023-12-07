@@ -1,6 +1,6 @@
-use crate::decl_sexpr::{
+use crate::decl_v2::{
     data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive},
-    function::{register_function, KetosResult, SeparateArguments},
+    sexpr::{register_function, KetosResult, SeparateArguments},
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};

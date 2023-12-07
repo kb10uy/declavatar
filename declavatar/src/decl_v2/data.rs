@@ -13,11 +13,11 @@ pub trait StaticTypeName {
 #[macro_export]
 macro_rules! static_type_name_impl {
     ($t:ident) => {
-        impl $crate::decl_sexpr::data::StaticTypeName for $t {
+        impl $crate::decl_v2::data::StaticTypeName for $t {
             const TYPE_NAME: &'static str = stringify!($t);
         }
 
-        impl $crate::decl_sexpr::data::StaticTypeName for &$t {
+        impl $crate::decl_v2::data::StaticTypeName for &$t {
             const TYPE_NAME: &'static str = stringify!($t);
         }
     };

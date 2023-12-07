@@ -1,10 +1,10 @@
 mod data;
 mod error;
-mod function;
+mod sexpr;
 
 use ketos::{BuiltinModuleLoader, Interpreter, ModuleLoader};
 
-use crate::decl_sexpr::function::DeclavatarModuleLoader;
+use crate::decl_v2::sexpr::DeclavatarModuleLoader;
 
 #[derive(Debug, Clone)]
 pub struct Avatar {}

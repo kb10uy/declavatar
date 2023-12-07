@@ -1,10 +1,10 @@
-use crate::decl_sexpr::{
+use crate::decl_v2::{
     data::{
         asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, menu::DeclSubMenu,
         parameter::DeclParameters, StaticTypeName,
     },
     error::DeclError,
-    function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};

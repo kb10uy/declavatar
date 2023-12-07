@@ -1,3 +1,3 @@
 fn main() {
-    declavatar::decl_sexpr::run_test();
+    declavatar::decl_v2::run_test();
 }

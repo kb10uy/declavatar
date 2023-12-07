@@ -1,4 +1,4 @@
-use crate::{decl_sexpr::data::driver::DeclParameterDrive, static_type_name_impl};
+use crate::{decl_v2::data::driver::DeclParameterDrive, static_type_name_impl};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 

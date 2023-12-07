@@ -1,4 +1,4 @@
-use crate::decl_sexpr::{
+use crate::decl_v2::{
     data::{
         driver::DeclParameterDrive,
         menu::{
@@ -7,7 +7,7 @@ use crate::decl_sexpr::{
         },
     },
     error::DeclError,
-    function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
