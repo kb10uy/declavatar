@@ -1,5 +1,11 @@
 use crate::decl_sexpr::{
-    data::layer::{DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget},
+    data::{
+        layer::{
+            DeclControllerLayer, DeclGroupLayer, DeclGroupMaterialTarget, DeclGroupObjectTarget,
+            DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget, DeclGroupShapeTarget,
+        },
+        StaticTypeName,
+    },
     error::DeclError,
     function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
@@ -15,6 +21,27 @@ pub fn register_layer_function(scope: &Scope) {
         &["driven-by", "default-mesh"],
     );
     register_function(scope, "option", declare_option, Arity::Min(1), &["value"]);
+    register_function(
+        scope,
+        "set-shape",
+        declare_set_shape,
+        Arity::Exact(1),
+        &["value", "mesh"],
+    );
+    register_function(
+        scope,
+        "set-object",
+        declare_set_object,
+        Arity::Exact(1),
+        &["value"],
+    );
+    register_function(
+        scope,
+        "set-material",
+        declare_set_material,
+        Arity::Exact(2),
+        &["mesh"],
+    );
 }
 
 fn declare_group_layer(
@@ -27,17 +54,17 @@ fn declare_group_layer(
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
 
     let mut options = vec![];
-    for param_value in args.args_after(function_name, 0)? {
+    for param_value in args.args_after(function_name, 1)? {
         let option: &DeclGroupOption = param_value.downcast_foreign_ref()?;
         options.push(option.clone());
     }
 
-    Ok(DeclGroupLayer {
+    Ok(DeclControllerLayer::Group(DeclGroupLayer {
         name: name.to_string(),
         driven_by: driven_by.to_string(),
         default_mesh: default_mesh.map(|dm| dm.to_string()),
         options,
-    }
+    })
     .into())
 }
 
@@ -72,10 +99,84 @@ fn declare_option(
     };
 
     let mut targets = vec![];
-    for param_value in args.args_after(function_name, 0)? {
-        let target: &DeclGroupOptionTarget = param_value.downcast_foreign_ref()?;
+    for target_value in args.args_after(function_name, 1)? {
+        let target = match target_value.type_name() {
+            DeclGroupShapeTarget::TYPE_NAME => DeclGroupOptionTarget::Shape(
+                target_value
+                    .downcast_foreign_ref::<&DeclGroupShapeTarget>()?
+                    .clone(),
+            ),
+            DeclGroupObjectTarget::TYPE_NAME => DeclGroupOptionTarget::Object(
+                target_value
+                    .downcast_foreign_ref::<&DeclGroupObjectTarget>()?
+                    .clone(),
+            ),
+            DeclGroupMaterialTarget::TYPE_NAME => DeclGroupOptionTarget::Material(
+                target_value
+                    .downcast_foreign_ref::<&DeclGroupMaterialTarget>()?
+                    .clone(),
+            ),
+            _ => {
+                return Err(Error::Custom(
+                    DeclError::UnexpectedTypeValue(
+                        target_value.type_name().to_string(),
+                        "target".to_string(),
+                    )
+                    .into(),
+                ))
+            }
+        };
         targets.push(target.clone());
     }
 
     Ok(DeclGroupOption { kind, targets }.into())
+}
+
+fn declare_set_shape(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let shape: &str = args.exact_arg(function_name, 0)?;
+    let value: Option<f64> = args.exact_kwarg("value")?;
+    let mesh: Option<&str> = args.exact_kwarg("mesh")?;
+
+    Ok(DeclGroupShapeTarget {
+        shape: shape.to_string(),
+        value,
+        mesh: mesh.map(|m| m.to_string()),
+    }
+    .into())
+}
+
+fn declare_set_object(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let object: &str = args.exact_arg(function_name, 0)?;
+    let value: Option<bool> = args.exact_kwarg("value")?;
+
+    Ok(DeclGroupObjectTarget {
+        object: object.to_string(),
+        value,
+    }
+    .into())
+}
+
+fn declare_set_material(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let index: usize = args.exact_arg(function_name, 0)?;
+    let value: &str = args.exact_arg(function_name, 1)?;
+    let mesh: Option<&str> = args.exact_kwarg("mesh")?;
+
+    Ok(DeclGroupMaterialTarget {
+        index,
+        value: value.to_string(),
+        mesh: mesh.map(|m| m.to_string()),
+    }
+    .into())
 }

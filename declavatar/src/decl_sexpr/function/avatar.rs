@@ -1,7 +1,7 @@
 use crate::decl_sexpr::{
     data::{
         asset::DeclAssets, avatar::DeclAvatar, menu::DeclSubMenu, parameter::DeclParameters,
-        StaticTypeName,
+        StaticTypeName, controller::DeclFxController,
     },
     error::DeclError,
     function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
@@ -24,6 +24,7 @@ fn declare_avatar(
         name: name.to_string(),
         parameters_blocks: vec![],
         assets_blocks: vec![],
+        fx_controllers: vec![],
         menu_blocks: vec![],
     };
     for child_block in args.args_after(function_name, 1)? {
@@ -36,6 +37,10 @@ fn declare_avatar(
                 let value_ref: &DeclAssets = child_block.downcast_foreign_ref()?;
                 avatar.assets_blocks.push(value_ref.clone());
             }
+            DeclFxController::TYPE_NAME => {
+                let value_ref: &DeclFxController = child_block.downcast_foreign_ref()?;
+                avatar.fx_controllers.push(value_ref.clone());
+            }
             DeclSubMenu::TYPE_NAME => {
                 let value_ref: &DeclSubMenu = child_block.downcast_foreign_ref()?;
                 avatar.menu_blocks.push(value_ref.clone());
@@ -44,7 +49,7 @@ fn declare_avatar(
                 return Err(Error::Custom(
                     DeclError::UnexpectedTypeValue(
                         child_block.type_name().to_string(),
-                        "menu element".to_string(),
+                        "avatar element".to_string(),
                     )
                     .into(),
                 ))

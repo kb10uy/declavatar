@@ -1,5 +1,6 @@
 mod asset;
 mod avatar;
+mod controller;
 mod driver;
 mod layer;
 mod menu;
@@ -24,6 +25,7 @@ impl DeclavatarModuleLoader {
         avatar::register_avatar_function(scope);
         parameter::register_parameter_function(scope);
         asset::register_asset_function(scope);
+        controller::register_controller_function(scope);
         layer::register_layer_function(scope);
         driver::register_driver_function(scope);
         menu::register_menu_function(scope);

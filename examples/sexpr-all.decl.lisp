@@ -37,7 +37,7 @@
         (da/group-layer "表情右手"
             :driven-by "GestureRight"
             :default-mesh "Face"
-            (da/group-option "handopen" :on-param 2
+            (da/option "handopen" :value 2
                 (da/set-shape "eyebrow_笑顔" :value 1.0)
                 (da/set-shape "eye_にっこり" :value 1.0)
                 (da/set-shape "mouth_にっこり" :value 1.0)

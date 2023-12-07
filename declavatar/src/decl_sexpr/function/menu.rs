@@ -1,11 +1,10 @@
 use crate::decl_sexpr::{
     data::{
-        driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch},
+        driver::DeclParameterDrive,
         menu::{
-            DeclBooleanControl, DeclBooleanTarget, DeclMenuElement, DeclPuppetControl,
-            DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
+            DeclBooleanControl, DeclMenuElement, DeclPuppetControl, DeclPuppetTarget,
+            DeclPuppetType, DeclSubMenu,
         },
-        StaticTypeName,
     },
     error::DeclError,
     function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
@@ -79,12 +78,12 @@ fn declare_button(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let drive_target: &Value = args.exact_arg(function_name, 1)?;
+    let parameter_drive: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
 
     Ok(DeclMenuElement::Boolean(DeclBooleanControl {
         name: name.to_string(),
         hold: false,
-        boolean_type: take_boolean_target(drive_target)?,
+        parameter_drive: parameter_drive.clone(),
     })
     .into())
 }
@@ -95,12 +94,12 @@ fn declare_toggle(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let drive_target: &Value = args.exact_arg(function_name, 1)?;
+    let parameter_drive: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
 
     Ok(DeclMenuElement::Boolean(DeclBooleanControl {
         name: name.to_string(),
         hold: true,
-        boolean_type: take_boolean_target(drive_target)?,
+        parameter_drive: parameter_drive.clone(),
     })
     .into())
 }
@@ -111,7 +110,7 @@ fn declare_radial(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let target: &Value = args.exact_arg(function_name, 1)?;
+    let target: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
@@ -126,8 +125,8 @@ fn declare_two_axis(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let horizontal: &Value = args.exact_kwarg_expect("horizontal")?;
-    let vertical: &Value = args.exact_kwarg_expect("vertical")?;
+    let horizontal: &DeclParameterDrive = args.exact_kwarg_expect("horizontal")?;
+    let vertical: &DeclParameterDrive = args.exact_kwarg_expect("vertical")?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
@@ -145,10 +144,10 @@ fn declare_four_axis(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let up: &Value = args.exact_kwarg_expect("up")?;
-    let down: &Value = args.exact_kwarg_expect("down")?;
-    let left: &Value = args.exact_kwarg_expect("left")?;
-    let right: &Value = args.exact_kwarg_expect("right")?;
+    let up: &DeclParameterDrive = args.exact_kwarg_expect("up")?;
+    let down: &DeclParameterDrive = args.exact_kwarg_expect("down")?;
+    let left: &DeclParameterDrive = args.exact_kwarg_expect("left")?;
+    let right: &DeclParameterDrive = args.exact_kwarg_expect("right")?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
@@ -162,40 +161,13 @@ fn declare_four_axis(
     .into())
 }
 
-fn take_boolean_target(drive_target: &Value) -> KetosResult<DeclBooleanTarget> {
-    match drive_target.type_name() {
-        DeclDriveGroup::TYPE_NAME => {
-            let value_ref: &DeclDriveGroup = drive_target.downcast_foreign_ref()?;
-            Ok(DeclBooleanTarget::Group(value_ref.clone()))
-        }
-        DeclDriveSwitch::TYPE_NAME => {
-            let value_ref: &DeclDriveSwitch = drive_target.downcast_foreign_ref()?;
-            Ok(DeclBooleanTarget::Switch(value_ref.clone()))
-        }
-        DeclDrivePuppet::TYPE_NAME => {
-            let value_ref: &DeclDrivePuppet = drive_target.downcast_foreign_ref()?;
-            Ok(DeclBooleanTarget::Puppet(value_ref.clone()))
-        }
+fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPuppetTarget> {
+    match drive_target {
+        DeclParameterDrive::Puppet(puppet) => Ok(DeclPuppetTarget::Puppet(puppet.clone())),
         _ => Err(Error::Custom(
             DeclError::UnexpectedTypeValue(
-                drive_target.type_name().to_string(),
-                "drive target".to_string(),
-            )
-            .into(),
-        )),
-    }
-}
-
-fn take_puppet_target(drive_target: &Value) -> KetosResult<DeclPuppetTarget> {
-    match drive_target.type_name() {
-        DeclDrivePuppet::TYPE_NAME => {
-            let value_ref: &DeclDrivePuppet = drive_target.downcast_foreign_ref()?;
-            Ok(DeclPuppetTarget::Puppet(value_ref.clone()))
-        }
-        _ => Err(Error::Custom(
-            DeclError::UnexpectedTypeValue(
-                drive_target.type_name().to_string(),
-                "drive target".to_string(),
+                "invalid drive target".to_string(),
+                "puppet drive target".to_string(),
             )
             .into(),
         )),

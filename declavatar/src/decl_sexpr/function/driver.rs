@@ -1,5 +1,5 @@
 use crate::decl_sexpr::{
-    data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch},
+    data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive},
     function::{register_function, KetosResult, SeparateArguments},
 };
 
@@ -37,10 +37,10 @@ fn declare_drive_group(
     let group: &str = args.exact_arg(function_name, 0)?;
     let option: &str = args.exact_arg(function_name, 1)?;
 
-    Ok(DeclDriveGroup {
+    Ok(DeclParameterDrive::Group(DeclDriveGroup {
         group: group.to_string(),
         option: option.to_string(),
-    }
+    })
     .into())
 }
 
@@ -52,10 +52,10 @@ fn declare_drive_switch(
     let switch: &str = args.exact_arg(function_name, 0)?;
     let value: Option<bool> = args.try_exact_arg(1)?;
 
-    Ok(DeclDriveSwitch {
+    Ok(DeclParameterDrive::Switch(DeclDriveSwitch {
         switch: switch.to_string(),
         value,
-    }
+    })
     .into())
 }
 
@@ -67,15 +67,9 @@ fn declare_drive_puppet(
     let puppet: &str = args.exact_arg(function_name, 0)?;
     let value: Option<f64> = args.try_exact_arg(1)?;
 
-    Ok(DeclDrivePuppet {
+    Ok(DeclParameterDrive::Puppet(DeclDrivePuppet {
         puppet: puppet.to_string(),
         value,
-    }
+    })
     .into())
 }
-
-fn declare_set_shape(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-)

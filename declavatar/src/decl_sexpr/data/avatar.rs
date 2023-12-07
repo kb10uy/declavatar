@@ -1,5 +1,8 @@
 use crate::{
-    decl_sexpr::data::{asset::DeclAssets, menu::DeclSubMenu, parameter::DeclParameters},
+    decl_sexpr::data::{
+        asset::DeclAssets, controller::DeclFxController, menu::DeclSubMenu,
+        parameter::DeclParameters,
+    },
     static_type_name_impl,
 };
 
@@ -10,6 +13,7 @@ pub struct DeclAvatar {
     pub name: String,
     pub parameters_blocks: Vec<DeclParameters>,
     pub assets_blocks: Vec<DeclAssets>,
+    pub fx_controllers: Vec<DeclFxController>,
     pub menu_blocks: Vec<DeclSubMenu>,
 }
 static_type_name_impl!(DeclAvatar);
