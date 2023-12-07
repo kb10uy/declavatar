@@ -1,7 +1,7 @@
 use crate::decl_sexpr::{
     data::{
-        asset::DeclAssets, avatar::DeclAvatar, menu::DeclSubMenu, parameter::DeclParameters,
-        StaticTypeName, controller::DeclFxController,
+        asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, menu::DeclSubMenu,
+        parameter::DeclParameters, StaticTypeName,
     },
     error::DeclError,
     function::{register_function, KetosResult, KetosValueExt, SeparateArguments},
