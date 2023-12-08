@@ -26,7 +26,11 @@ fn main() -> Result<()> {
             let text = read_to_string(file)?;
             match load_declaration(&text, format) {
                 Ok(a) => {
-                    println!("{a:?}");
+                    if args.indented {
+                        println!("{a:#?}");
+                    } else {
+                        println!("{a:?}");
+                    }
                 }
                 Err(e) => {
                     eprintln!("Error: {e}");
