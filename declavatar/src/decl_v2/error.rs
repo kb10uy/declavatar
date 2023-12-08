@@ -6,6 +6,9 @@ use crate::decl_v2::data::layer::DeclGroupOptionKind;
 
 #[derive(Debug, ThisError)]
 pub enum DeclError {
+    #[error("specified format is currently unsupported")]
+    UnsupportedFormat,
+
     #[error("internal error: {0}")]
     InternalError(Box<dyn StdError>),
 

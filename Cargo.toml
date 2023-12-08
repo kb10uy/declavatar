@@ -1,6 +1,20 @@
 [workspace]
 resolver = "2"
-members = ["declavatar", "avatar-validator", "declavalidate"]
+members = ["declavatar", "declavalidate"]
+
+[workspace.dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.4.8", features = ["derive"] }
+kdl = "4.6.0"
+ketos = { version = "0.12.0", features = ["derive"] }
+miette = "5.10.0"
+semver = "1.0.20"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+static_vcruntime = { version = "2.0.0" }
+thiserror = "1.0.50"
+
+declavatar = { path = "./declavatar" }
 
 [profile.release]
 lto = "fat"

@@ -2,18 +2,18 @@ pub mod data;
 pub mod error;
 mod sexpr;
 
-use crate::decl_v2::sexpr::load_avatar_sexpr;
+use crate::decl_v2::{data::avatar::DeclAvatar, error::DeclError, sexpr::load_avatar_sexpr};
 
-#[derive(Debug, Clone)]
-pub struct Avatar {}
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DeclarationFormat {
+    Sexpr,
+    Lua,
+}
 
-pub fn run_test() {
-    match load_avatar_sexpr(include_str!("../../examples/sexpr-all.decl.lisp")) {
-        Ok(v) => {
-            println!("{v:?}");
-        }
-        Err(e) => {
-            println!("Error: {e}");
-        }
+pub fn load_declaration(text: &str, format: DeclarationFormat) -> Result<DeclAvatar, DeclError> {
+    match format {
+        DeclarationFormat::Sexpr => load_avatar_sexpr(text),
+        _ => Err(DeclError::UnsupportedFormat),
     }
 }
