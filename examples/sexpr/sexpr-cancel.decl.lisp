@@ -1,5 +1,6 @@
 (use da :self)
 
+; 下まつ毛を消しつつ、デフォルトの目のときだけジト目にしたいものとする。
 (define (default-face-set enabled)
     `(
         ,(da/set-shape "eyelids_ジト目" :value (if enabled 0.5 0.0))
