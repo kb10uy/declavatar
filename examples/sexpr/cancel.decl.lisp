@@ -8,7 +8,7 @@
     )
 )
 
-(da/avatar "on-block"
+(da/avatar "cancel"
     (da/parameters
         (da/int "Eyelids")
     )
