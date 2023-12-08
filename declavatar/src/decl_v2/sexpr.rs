@@ -122,7 +122,7 @@ impl<'a> SeparateArguments<'a> {
     }
 
     fn args_after(&'a self, function_name: Name, index: usize) -> KetosResult<&'a [&'a mut Value]> {
-        if self.args.len() <= index {
+        if self.args.len() < index {
             return Err(Error::ExecError(ExecError::ArityError {
                 name: Some(function_name),
                 expected: Arity::Min((index + 1) as u32),

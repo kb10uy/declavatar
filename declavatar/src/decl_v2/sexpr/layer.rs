@@ -195,7 +195,7 @@ fn declare_option(
 ) -> KetosResult<Value> {
     let kind = match args.exact_arg::<&Value>(function_name, 0)? {
         Value::Float(keyframe) => DeclGroupOptionKind::Keyframe(*keyframe),
-        Value::Keyword(name) => match name_store.get(*name) {
+        Value::Name(name) => match name_store.get(*name) {
             "default" => DeclGroupOptionKind::Selection(None, None),
             "disabled" => DeclGroupOptionKind::Boolean(false),
             "enabled" => DeclGroupOptionKind::Boolean(true),
