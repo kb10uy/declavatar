@@ -5,6 +5,8 @@ use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclControllerLayer {
     Group(DeclGroupLayer),
+    Switch(DeclSwitchLayer),
+    Puppet(DeclPuppetLayer),
 }
 static_type_name_impl!(DeclControllerLayer);
 
@@ -13,6 +15,7 @@ pub struct DeclGroupLayer {
     pub name: String,
     pub driven_by: String,
     pub default_mesh: Option<String>,
+    pub default: Option<DeclGroupOption>,
     pub options: Vec<DeclGroupOption>,
 }
 static_type_name_impl!(DeclGroupLayer);
@@ -62,3 +65,22 @@ pub struct DeclGroupMaterialTarget {
     pub mesh: Option<String>,
 }
 static_type_name_impl!(DeclGroupMaterialTarget);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclSwitchLayer {
+    pub name: String,
+    pub driven_by: String,
+    pub default_mesh: Option<String>,
+    pub disabled: DeclGroupOption,
+    pub enabled: DeclGroupOption,
+}
+static_type_name_impl!(DeclSwitchLayer);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclPuppetLayer {
+    pub name: String,
+    pub driven_by: String,
+    pub default_mesh: Option<String>,
+    pub keyframes: Vec<DeclGroupOption>,
+}
+static_type_name_impl!(DeclPuppetLayer);

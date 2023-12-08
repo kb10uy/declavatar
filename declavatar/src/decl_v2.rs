@@ -1,5 +1,5 @@
-mod data;
-mod error;
+pub mod data;
+pub mod error;
 mod sexpr;
 
 use crate::decl_v2::sexpr::load_avatar_sexpr;

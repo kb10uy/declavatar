@@ -2,6 +2,8 @@ use std::error::Error as StdError;
 
 use thiserror::Error as ThisError;
 
+use crate::decl_v2::data::layer::DeclGroupOptionKind;
+
 #[derive(Debug, ThisError)]
 pub enum DeclError {
     #[error("internal error: {0}")]
@@ -24,4 +26,10 @@ pub enum DeclSexprError {
 
     #[error("invalid scope name: {0}")]
     InvalidScope(String),
+
+    #[error("duplicate named option block")]
+    DuplicateNamedOption,
+
+    #[error("invalid option kind: {0:?}")]
+    InvalidGroupOption(DeclGroupOptionKind),
 }
