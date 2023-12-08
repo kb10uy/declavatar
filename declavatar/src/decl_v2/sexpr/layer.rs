@@ -6,7 +6,7 @@ use crate::decl_v2::{
         },
         StaticTypeName,
     },
-    error::DeclError,
+    error::DeclSexprError,
     sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
@@ -81,7 +81,7 @@ fn declare_option(
             "enabled" => DeclGroupOptionKind::Boolean(true),
             _ => {
                 return Err(Error::Custom(
-                    DeclError::KeywordExpected("default, disabled, enabled".into()).into(),
+                    DeclSexprError::KeywordExpected("default, disabled, enabled".into()).into(),
                 ));
             }
         },
@@ -118,7 +118,7 @@ fn declare_option(
             ),
             _ => {
                 return Err(Error::Custom(
-                    DeclError::UnexpectedTypeValue(
+                    DeclSexprError::UnexpectedTypeValue(
                         target_value.type_name().to_string(),
                         "target".to_string(),
                     )

@@ -1,6 +1,6 @@
 use crate::decl_v2::{
     data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
-    error::DeclError,
+    error::DeclSexprError,
     sexpr::{register_function, KetosValueExt, SeparateArguments},
 };
 
@@ -104,13 +104,15 @@ fn declare_float(
 
 fn expect_scope(name_store: &NameStore, value: &Value) -> Result<DeclParameterScope, Error> {
     let Value::Name(name) = value else {
-        return Err(Error::Custom(DeclError::MustBeScope.into()));
+        return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
     };
 
     match name_store.get(*name) {
         "synced" => Ok(DeclParameterScope::Synced),
         "local" => Ok(DeclParameterScope::Local),
         "internal" => Ok(DeclParameterScope::Internal),
-        n => Err(Error::Custom(DeclError::InvalidScope(n.to_string()).into())),
+        n => Err(Error::Custom(
+            DeclSexprError::InvalidScope(n.to_string()).into(),
+        )),
     }
 }

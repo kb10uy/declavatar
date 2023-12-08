@@ -3,7 +3,7 @@ use crate::decl_v2::{
         asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, menu::DeclSubMenu,
         parameter::DeclParameters, StaticTypeName,
     },
-    error::DeclError,
+    error::DeclSexprError,
     sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
@@ -47,7 +47,7 @@ fn declare_avatar(
             }
             _ => {
                 return Err(Error::Custom(
-                    DeclError::UnexpectedTypeValue(
+                    DeclSexprError::UnexpectedTypeValue(
                         child_block.type_name().to_string(),
                         "avatar element".to_string(),
                     )

@@ -2,19 +2,13 @@ mod data;
 mod error;
 mod sexpr;
 
-use ketos::{BuiltinModuleLoader, Interpreter, ModuleLoader};
-
-use crate::decl_v2::sexpr::DeclavatarModuleLoader;
+use crate::decl_v2::sexpr::load_avatar_sexpr;
 
 #[derive(Debug, Clone)]
 pub struct Avatar {}
 
 pub fn run_test() {
-    let interp =
-        Interpreter::with_loader(Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader)));
-
-    let result = interp.run_code(include_str!("../../examples/sexpr-all.decl.lisp"), None);
-    match result {
+    match load_avatar_sexpr(include_str!("../../examples/sexpr-all.decl.lisp")) {
         Ok(v) => {
             println!("{v:?}");
         }

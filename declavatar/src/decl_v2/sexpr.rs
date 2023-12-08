@@ -6,13 +6,16 @@ mod layer;
 mod menu;
 mod parameter;
 
-use crate::decl_v2::{data::StaticTypeName, error::DeclError};
+use crate::decl_v2::{
+    data::{avatar::DeclAvatar, StaticTypeName},
+    error::{DeclError, DeclSexprError},
+};
 
 use std::{any::Any, collections::HashMap};
 
 use ketos::{
-    Arity, CompileError, Context, Error, ExecError, FromValueRef, Module, ModuleBuilder,
-    ModuleLoader, Name, NameStore, Scope, Value,
+    Arity, BuiltinModuleLoader, CompileError, Context, Error, ExecError, FromValueRef, Interpreter,
+    Module, ModuleBuilder, ModuleLoader, Name, NameStore, Scope, Value,
 };
 
 type KetosResult<T> = Result<T, Error>;
@@ -141,7 +144,7 @@ impl<'a> SeparateArguments<'a> {
     fn exact_kwarg_expect<T: FromValueRef<'a>>(&'a self, keyword: &str) -> KetosResult<T> {
         let Some(value) = self.kwargs.get(keyword) else {
             return Err(Error::Custom(
-                DeclError::KeywordExpected(keyword.to_string()).into(),
+                DeclSexprError::KeywordExpected(keyword.to_string()).into(),
             ));
         };
 
@@ -203,7 +206,7 @@ impl KetosValueExt for Value {
         let found_type_name = self.type_name();
         if found_type_name != expected_type_name {
             return Err(Error::Custom(
-                DeclError::UnexpectedTypeValue(
+                DeclSexprError::UnexpectedTypeValue(
                     found_type_name.to_string(),
                     expected_type_name.to_string(),
                 )
@@ -213,5 +216,19 @@ impl KetosValueExt for Value {
 
         let value = T::from_value_ref(self)?;
         Ok(value)
+    }
+}
+
+pub fn load_avatar_sexpr(text: &str) -> Result<DeclAvatar, DeclError> {
+    let loader = Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader));
+    let interpreter = Interpreter::with_loader(loader);
+
+    let result = match interpreter.run_code(text, None) {
+        Ok(value) => value,
+        Err(kerr) => return Err(DeclError::InternalError(kerr.into())),
+    };
+    match result.downcast_foreign_ref::<&DeclAvatar>() {
+        Ok(avatar) => Ok(avatar.clone()),
+        Err(e) => Err(DeclError::DelclarationNotReturned(Some(e.into()))),
     }
 }

@@ -6,7 +6,7 @@ use crate::decl_v2::{
             DeclPuppetType, DeclSubMenu,
         },
     },
-    error::DeclError,
+    error::DeclSexprError,
     sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
 };
 
@@ -165,7 +165,7 @@ fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPupp
     match drive_target {
         DeclParameterDrive::Puppet(puppet) => Ok(DeclPuppetTarget::Puppet(puppet.clone())),
         _ => Err(Error::Custom(
-            DeclError::UnexpectedTypeValue(
+            DeclSexprError::UnexpectedTypeValue(
                 "invalid drive target".to_string(),
                 "puppet drive target".to_string(),
             )
