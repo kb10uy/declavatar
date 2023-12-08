@@ -17,6 +17,7 @@
         (da/group-layer "まぶた"
             :driven-by "Eyelids"
             :default-mesh "Face"
+            ; 一般的な Lisp の apply を使うことで default-face-set で構成された set-shape を引数に渡すことができる。
             (apply da/option 'default
                 (default-face-set true)
             )
