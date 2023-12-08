@@ -25,6 +25,7 @@ pub fn compile_fx_controller_blocks(
             }
             DeclControllerLayer::Switch(decl_switch_layer) => todo!(),
             DeclControllerLayer::Puppet(decl_puppet_layer) => todo!(),
+            DeclControllerLayer::Raw(decl_raw_layer) => todo!(),
         };
         let Some(layer) = layer else {
             continue;

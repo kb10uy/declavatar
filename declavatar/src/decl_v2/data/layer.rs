@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{decl_v2::data::driver::DeclParameterDrive, static_type_name_impl};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
@@ -7,6 +9,7 @@ pub enum DeclControllerLayer {
     Group(DeclGroupLayer),
     Switch(DeclSwitchLayer),
     Puppet(DeclPuppetLayer),
+    Raw(DeclRawLayer),
 }
 static_type_name_impl!(DeclControllerLayer);
 
@@ -84,3 +87,71 @@ pub struct DeclPuppetLayer {
     pub keyframes: Vec<DeclGroupOption>,
 }
 static_type_name_impl!(DeclPuppetLayer);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclRawLayer {
+    pub name: String,
+    pub default: Option<String>,
+    pub states: Vec<DeclRawLayerState>,
+}
+static_type_name_impl!(DeclRawLayer);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclRawLayerState {
+    pub name: String,
+    pub animation: DeclRawLayerAnimation,
+    pub transitions: Vec<DeclRawLayerTransition>,
+}
+static_type_name_impl!(DeclRawLayerState);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub enum DeclRawLayerAnimation {
+    Clip {
+        name: String,
+        speed: (Option<f64>, Option<String>),
+        time: Option<String>,
+    },
+    BlendTree {
+        tree_type: DeclRawLayerBlendTreeType,
+        fields: Vec<DeclRawLayerBlendTreeField>,
+    },
+}
+static_type_name_impl!(DeclRawLayerAnimation);
+
+#[derive(Debug, Clone)]
+pub enum DeclRawLayerBlendTreeType {
+    Linear(String),
+    Simple2D(String, String),
+    Freeform2D(String, String),
+    Cartesian2D(String, String),
+}
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclRawLayerBlendTreeField {
+    pub name: String,
+    pub values: [f64; 2],
+}
+static_type_name_impl!(DeclRawLayerBlendTreeField);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclRawLayerTransition {
+    pub target: String,
+    pub duration: Option<f64>,
+    pub and_terms: Vec<DeclRawLayerTransitionCondition>,
+}
+static_type_name_impl!(DeclRawLayerTransition);
+
+#[derive(Debug, Clone)]
+pub enum DeclRawLayerTransitionCondition {
+    Bool(String, bool),
+    Int(String, DeclRawLayerTransitionOrdering, u8),
+    Float(String, DeclRawLayerTransitionOrdering, f64),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeclRawLayerTransitionOrdering {
+    Equal,
+    NotEqual,
+    Greater,
+    Lesser,
+}
