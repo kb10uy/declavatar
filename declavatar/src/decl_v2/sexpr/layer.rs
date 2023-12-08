@@ -167,7 +167,7 @@ fn declare_puppet_layer(
         let option: &DeclGroupOption = param_value.downcast_foreign_ref()?;
 
         match option.kind {
-            DeclGroupOptionKind::Keyframe(k) => {
+            DeclGroupOptionKind::Keyframe(_) => {
                 keyframes.push(option.clone());
             }
             DeclGroupOptionKind::Selection(_, _) => {}
