@@ -115,7 +115,7 @@ fn declare_radial(
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
-        puppet_type: DeclPuppetType::Radial(target.clone()),
+        puppet_type: Box::new(DeclPuppetType::Radial(target.clone())),
     })
     .into())
 }
@@ -131,10 +131,10 @@ fn declare_two_axis(
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
-        puppet_type: DeclPuppetType::TwoAxis {
+        puppet_type: Box::new(DeclPuppetType::TwoAxis {
             horizontal: horizontal.clone(),
             vertical: vertical.clone(),
-        },
+        }),
     })
     .into())
 }
@@ -152,12 +152,12 @@ fn declare_four_axis(
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
-        puppet_type: DeclPuppetType::FourAxis {
+        puppet_type: Box::new(DeclPuppetType::FourAxis {
             up: up.clone(),
             down: down.clone(),
             left: left.clone(),
             right: right.clone(),
-        },
+        }),
     })
     .into())
 }

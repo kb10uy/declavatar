@@ -31,7 +31,7 @@ pub struct DeclBooleanControl {
 #[derive(Debug, Clone)]
 pub struct DeclPuppetControl {
     pub name: String,
-    pub puppet_type: DeclPuppetType,
+    pub puppet_type: Box<DeclPuppetType>,
 }
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]

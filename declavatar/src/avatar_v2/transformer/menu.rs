@@ -141,7 +141,8 @@ fn compile_puppet(
     animations: &CompiledAnimations,
     control: DeclPuppetControl,
 ) -> Compiled<MenuItem> {
-    match control.puppet_type {
+    let puppet_type = *control.puppet_type;
+    match puppet_type {
         DeclPuppetType::Radial(pt) => success(MenuItem::Radial(MenuRadial {
             name: control.name,
             parameter: take_puppet_parameter(ctx, animations, pt.target)?,
