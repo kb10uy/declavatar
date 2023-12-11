@@ -2,7 +2,12 @@ use crate::{
     avatar_v2::{
         data::layer::Layer,
         logging::{LogKind, LoggingContext},
-        transformer::{layer::compile_group_layer, success, Compiled, CompiledSources},
+        transformer::{
+            layer::{
+                compile_group_layer, compile_puppet_layer, compile_raw_layer, compile_switch_layer,
+            },
+            success, Compiled, CompiledSources,
+        },
     },
     decl_v2::data::{controller::DeclFxController, layer::DeclControllerLayer},
 };
@@ -23,16 +28,22 @@ pub fn compile_fx_controller_blocks(
             DeclControllerLayer::Group(decl_group_layer) => {
                 compile_group_layer(ctx, sources, decl_group_layer)
             }
-            DeclControllerLayer::Switch(decl_switch_layer) => todo!(),
-            DeclControllerLayer::Puppet(decl_puppet_layer) => todo!(),
-            DeclControllerLayer::Raw(decl_raw_layer) => todo!(),
+            DeclControllerLayer::Switch(decl_switch_layer) => {
+                compile_switch_layer(ctx, sources, decl_switch_layer)
+            }
+            DeclControllerLayer::Puppet(decl_puppet_layer) => {
+                compile_puppet_layer(ctx, sources, decl_puppet_layer)
+            }
+            DeclControllerLayer::Raw(decl_raw_layer) => {
+                compile_raw_layer(ctx, sources, decl_raw_layer)
+            }
         };
         let Some(layer) = layer else {
             continue;
         };
 
         if used_group_names.contains(&layer.name) {
-            ctx.log_warn(LogKind::DuplicateGroupName(layer.name.clone()));
+            ctx.log_warn(LogKind::DuplicateLayerName(layer.name.clone()));
         } else {
             used_group_names.insert(layer.name.clone());
         }

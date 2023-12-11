@@ -61,7 +61,7 @@ pub enum LogKind {
     IncompatibleParameterDeclaration(String),
     IndeterminateAsset(String),
     IncompatibleAssetDeclaration(String),
-    DuplicateGroupName(String),
+    DuplicateLayerName(String),
 
     ParameterNotFound(String),
     ParameterTypeRequirement(String, String),
@@ -105,7 +105,7 @@ impl Display for LogKind {
             LogKind::IncompatibleAssetDeclaration(asset) => {
                 write!(f, "asset '{asset}' has incompatible declaration")
             }
-            LogKind::DuplicateGroupName(group) => write!(f, "group name '{group}' is duplicate"),
+            LogKind::DuplicateLayerName(group) => write!(f, "layer name '{group}' is duplicate"),
 
             LogKind::ParameterNotFound(param) => write!(f, "parameter '{param}' not found"),
             LogKind::ParameterTypeRequirement(param, ty) => {

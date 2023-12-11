@@ -7,7 +7,7 @@ use crate::{
         logging::{LogKind, LoggingContext},
         transformer::{success, Compiled, CompiledSources},
     },
-    decl_v2::data::layer::DeclGroupLayer,
+    decl_v2::data::layer::{DeclGroupLayer, DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer},
 };
 
 pub fn compile_group_layer(
@@ -82,6 +82,30 @@ pub fn compile_group_layer(
         },
     })
     */
+}
+
+pub fn compile_switch_layer(
+    ctx: &mut LoggingContext,
+    sources: &CompiledSources,
+    decl_switch_layer: DeclSwitchLayer,
+) -> Compiled<Layer> {
+    todo!();
+}
+
+pub fn compile_puppet_layer(
+    ctx: &mut LoggingContext,
+    sources: &CompiledSources,
+    decl_puppet_layer: DeclPuppetLayer,
+) -> Compiled<Layer> {
+    todo!();
+}
+
+pub fn compile_raw_layer(
+    ctx: &mut LoggingContext,
+    sources: &CompiledSources,
+    decl_raw_layer: DeclRawLayer,
+) -> Compiled<Layer> {
+    todo!();
 }
 
 /*
