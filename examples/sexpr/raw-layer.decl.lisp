@@ -21,14 +21,15 @@
                 (da/transition-to "state2" :duration 0.5 '(> "piyo" 1))
             )
             (da/state "state2"
-                (da/blendtree :type '2d-cartesian :x "BlendX" :y "BlendY"
+                (da/blendtree :type 'cartesian-2d :x "BlendX" :y "BlendY"
                     (da/blendtree-field "neutral" 0.0 0.0)
                     (da/blendtree-field "right" 1.0 0.0)
                     (da/blendtree-field "left" -1.0 0.0)
                     (da/blendtree-field "up" 0.0 1.0)
                     (da/blendtree-field "down" 0.0 -1.0)
                 )
-                (da/transition-to "state1" '(!= "hoge" 0))
+                (da/transition-to "state1" '(/= "hoge" 0))
+                (da/transition-to "state1" '(/= "fuga" false))
             )
         )
     )

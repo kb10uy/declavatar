@@ -376,7 +376,7 @@ fn declare_state(
     let animation: &DeclRawLayerAnimation = args.exact_arg(function_name, 1)?;
 
     let mut transitions = vec![];
-    for transition_value in args.args_after(function_name, 1)? {
+    for transition_value in args.args_after(function_name, 2)? {
         let transition: &DeclRawLayerTransition = transition_value.downcast_foreign_ref()?;
         transitions.push(transition.clone());
     }
@@ -427,17 +427,17 @@ fn declare_blendtree(
             let x: &str = args.exact_kwarg_expect("x")?;
             DeclRawLayerBlendTreeType::Linear(x.to_string())
         }
-        "2d-simple" => {
+        "simple-2d" => {
             let x: &str = args.exact_kwarg_expect("x")?;
             let y: &str = args.exact_kwarg_expect("y")?;
             DeclRawLayerBlendTreeType::Simple2D(x.to_string(), y.to_string())
         }
-        "2d-freeform" => {
+        "freeform-2d" => {
             let x: &str = args.exact_kwarg_expect("x")?;
             let y: &str = args.exact_kwarg_expect("y")?;
             DeclRawLayerBlendTreeType::Freeform2D(x.to_string(), y.to_string())
         }
-        "2d-cartesian" => {
+        "cartesian-2d" => {
             let x: &str = args.exact_kwarg_expect("x")?;
             let y: &str = args.exact_kwarg_expect("y")?;
             DeclRawLayerBlendTreeType::Cartesian2D(x.to_string(), y.to_string())
