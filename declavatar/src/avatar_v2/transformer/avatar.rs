@@ -4,8 +4,8 @@ use crate::{
         logging::{LogKind, LoggingContext},
         transformer::{
             asset::compile_assets_blocks, controller::compile_fx_controller_blocks, failure,
-            parameter::compile_parameters_blocks, success, Compiled, CompiledAnimations,
-            CompiledSources,
+            menu::compile_menu, parameter::compile_parameters_blocks, success, Compiled,
+            CompiledAnimations, CompiledSources,
         },
     },
     decl_v2::data::avatar::DeclAvatar,
@@ -30,7 +30,7 @@ pub fn compile_avatar(ctx: &mut LoggingContext, avatar: DeclAvatar) -> Compiled<
 
     let layers: Vec<&Layer> = fx_controller.iter().collect();
     let compiled_animations = CompiledAnimations::new(compiled_sources, layers);
-    let menu_items = todo!(); // compile_menu(ctx, &compiled_animations, avatar.menu_blocks)?;
+    let menu_items = compile_menu(ctx, &compiled_animations, avatar.menu_blocks)?;
 
     if ctx.errornous() {
         return failure();

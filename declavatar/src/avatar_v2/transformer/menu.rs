@@ -10,16 +10,13 @@ use crate::{
         logging::{LogKind, LoggingContext},
         transformer::{failure, success, Compiled, CompiledAnimations},
     },
-    decl::data::{
-        BooleanControlTarget as DeclBooleanControlTarget, Menu as DeclMenu,
-        MenuElement as DeclMenuElement, PuppetAxes as DeclPuppetAxes,
-    },
+    decl_v2::data::menu::{DeclMenuElement, DeclSubMenu},
 };
 
 pub fn compile_menu(
     ctx: &mut LoggingContext,
     animations: &CompiledAnimations,
-    decl_menu_blocks: Vec<DeclMenu>,
+    decl_menu_blocks: Vec<DeclSubMenu>,
 ) -> Compiled<Vec<MenuItem>> {
     let menu_elements = decl_menu_blocks
         .into_iter()
@@ -39,28 +36,30 @@ fn compile_menu_group(
     let mut items = vec![];
 
     for menu_element in decl_menu_elements {
+        /*
         let Some(menu_item) = (match menu_element {
             DeclMenuElement::SubMenu(sm) => {
                 compile_menu_group(ctx, animations, sm.name, sm.elements).map(MenuItem::SubMenu)
             }
             DeclMenuElement::Boolean(bc) => {
                 let inner = compile_boolean(ctx, animations, bc.name, bc.target);
-                if bc.toggle {
+                if bc.hold {
                     inner.map(MenuItem::Toggle)
                 } else {
                     inner.map(MenuItem::Button)
                 }
             }
-            DeclMenuElement::Puppet(p) => compile_puppet(ctx, animations, p.name, p.axes),
+            DeclMenuElement::Puppet(p) => compile_puppet(ctx, animations, p.name, p.puppet_type),
         }) else {
             continue;
         };
         items.push(menu_item);
+        */
     }
 
     success(MenuGroup { name, items })
 }
-
+/*
 fn compile_boolean(
     ctx: &mut LoggingContext,
     animations: &CompiledAnimations,
@@ -246,3 +245,4 @@ fn compile_puppet(
         }
     }
 }
+*/
