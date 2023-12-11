@@ -1,0 +1,50 @@
+(use da :self)
+
+(da/avatar "menu"
+    (da/parameters
+        (da/float "x")
+        (da/float "y")
+        (da/float "z")
+        (da/float "w")
+    )
+
+    (da/fx-controller
+        (da/puppet-layer "foo"
+            :driven-by "x"
+            :default-mesh "foo"
+            (da/option 0.0 (da/set-shape "hoge" :value 0.0))
+            (da/option 1.0 (da/set-shape "hoge" :value 1.0))
+        )
+        (da/puppet-layer "bar"
+            :driven-by "y"
+            :default-mesh "bar"
+            (da/option 0.0 (da/set-shape "fuga" :value 0.0))
+            (da/option 1.0 (da/set-shape "fuga" :value 1.0))
+        )
+        (da/puppet-layer "baz"
+            :driven-by "z"
+            :default-mesh "baz"
+            (da/option 0.0 (da/set-shape "piyo" :value 0.0))
+            (da/option 1.0 (da/set-shape "piyo" :value 1.0))
+        )
+        (da/puppet-layer "qux"
+            :driven-by "w"
+            :default-mesh "qux"
+            (da/option 0.0 (da/set-shape "hogera" :value 0.0))
+            (da/option 1.0 (da/set-shape "hogera" :value 1.0))
+        )
+    )
+
+    (da/menu
+        (da/four-axis "meta"
+            :up (da/axis (da/drive-puppet "foo") "ue")
+            :down (da/axis (da/drive-puppet "bar") "shita")
+            :left (da/axis (da/drive-puppet "baz") "hidari")
+            :right (da/axis (da/drive-puppet "qux") "migi")
+        )
+        (da/two-axis "meta2"
+            :horizontal (da/axis (da/drive-puppet "foo") "right" "left")
+            :vertical (da/axis (da/drive-puppet "bar") "up" "down")
+        )
+    )
+)

@@ -51,8 +51,8 @@ pub struct MenuFourAxis {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BiAxis {
     pub parameter: String,
-    pub label_negative: String,
     pub label_positive: String,
+    pub label_negative: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

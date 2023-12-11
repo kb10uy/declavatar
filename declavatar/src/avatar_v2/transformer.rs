@@ -155,6 +155,20 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
+    pub fn find_puppet(&'a self, ctx: &'c mut LoggingContext, name: &'a str) -> Compiled<&'a str> {
+        let layer = self.find_layer(ctx, name)?;
+        if let Layer {
+            content: LayerContent::Puppet { parameter, .. },
+            ..
+        } = layer
+        {
+            success(parameter)
+        } else {
+            ctx.log_error(LogKind::AnimationGroupMustBePuppet(name.to_string()));
+            failure()
+        }
+    }
+
     fn find_layer(&'a self, ctx: &'c mut LoggingContext, name: &'a str) -> Compiled<&'a Layer> {
         if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
             success(ag)

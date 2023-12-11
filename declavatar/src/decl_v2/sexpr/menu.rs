@@ -2,8 +2,8 @@ use crate::decl_v2::{
     data::{
         driver::DeclParameterDrive,
         menu::{
-            DeclBooleanControl, DeclMenuElement, DeclPuppetControl, DeclPuppetTarget,
-            DeclPuppetType, DeclSubMenu,
+            DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl,
+            DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
         },
     },
     error::DeclSexprError,
@@ -32,6 +32,7 @@ pub fn register_menu_function(scope: &Scope) {
         Arity::Exact(1),
         &["up", "down", "left", "right"],
     );
+    register_function(scope, "axis", declare_axis, Arity::Range(1, 3), &[]);
 }
 
 fn declare_menu(
@@ -110,11 +111,11 @@ fn declare_radial(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let target: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
+    let target: &DeclPuppetAxis = args.exact_arg(function_name, 1)?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
-        puppet_type: DeclPuppetType::Radial(take_puppet_target(target)?),
+        puppet_type: DeclPuppetType::Radial(target.clone()),
     })
     .into())
 }
@@ -125,14 +126,14 @@ fn declare_two_axis(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let horizontal: &DeclParameterDrive = args.exact_kwarg_expect("horizontal")?;
-    let vertical: &DeclParameterDrive = args.exact_kwarg_expect("vertical")?;
+    let horizontal: &DeclPuppetAxis = args.exact_kwarg_expect("horizontal")?;
+    let vertical: &DeclPuppetAxis = args.exact_kwarg_expect("vertical")?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
         puppet_type: DeclPuppetType::TwoAxis {
-            horizontal: take_puppet_target(horizontal)?,
-            vertical: take_puppet_target(vertical)?,
+            horizontal: horizontal.clone(),
+            vertical: vertical.clone(),
         },
     })
     .into())
@@ -144,20 +145,37 @@ fn declare_four_axis(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let up: &DeclParameterDrive = args.exact_kwarg_expect("up")?;
-    let down: &DeclParameterDrive = args.exact_kwarg_expect("down")?;
-    let left: &DeclParameterDrive = args.exact_kwarg_expect("left")?;
-    let right: &DeclParameterDrive = args.exact_kwarg_expect("right")?;
+    let up: &DeclPuppetAxis = args.exact_kwarg_expect("up")?;
+    let down: &DeclPuppetAxis = args.exact_kwarg_expect("down")?;
+    let left: &DeclPuppetAxis = args.exact_kwarg_expect("left")?;
+    let right: &DeclPuppetAxis = args.exact_kwarg_expect("right")?;
 
     Ok(DeclMenuElement::Puppet(DeclPuppetControl {
         name: name.to_string(),
         puppet_type: DeclPuppetType::FourAxis {
-            up: take_puppet_target(up)?,
-            down: take_puppet_target(down)?,
-            left: take_puppet_target(left)?,
-            right: take_puppet_target(right)?,
+            up: up.clone(),
+            down: down.clone(),
+            left: left.clone(),
+            right: right.clone(),
         },
     })
+    .into())
+}
+
+fn declare_axis(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let target: &DeclParameterDrive = args.exact_arg(function_name, 0)?;
+    let positive: Option<&str> = args.try_exact_arg(1)?;
+    let negative: Option<&str> = args.try_exact_arg(2)?;
+
+    Ok(DeclPuppetAxis {
+        target: take_puppet_target(target)?,
+        label_positive: positive.map(|l| l.to_string()),
+        label_negative: negative.map(|l| l.to_string()),
+    }
     .into())
 }
 

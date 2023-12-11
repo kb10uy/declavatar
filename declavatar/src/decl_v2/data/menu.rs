@@ -1,14 +1,16 @@
-use crate::static_type_name_impl;
+use crate::{
+    decl_v2::data::driver::{DeclDrivePuppet, DeclParameterDrive},
+    static_type_name_impl,
+};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
-
-use super::driver::{DeclDrivePuppet, DeclParameterDrive};
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclMenuElement {
     SubMenu(DeclSubMenu),
     Boolean(DeclBooleanControl),
     Puppet(DeclPuppetControl),
+    // Parameter,
 }
 static_type_name_impl!(DeclMenuElement);
 
@@ -32,22 +34,30 @@ pub struct DeclPuppetControl {
     pub puppet_type: DeclPuppetType,
 }
 
-#[derive(Debug, Clone)]
-pub enum DeclPuppetTarget {
-    Puppet(DeclDrivePuppet),
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclPuppetAxis {
+    pub target: DeclPuppetTarget,
+    pub label_positive: Option<String>,
+    pub label_negative: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 pub enum DeclPuppetType {
-    Radial(DeclPuppetTarget),
+    Radial(DeclPuppetAxis),
     TwoAxis {
-        horizontal: DeclPuppetTarget,
-        vertical: DeclPuppetTarget,
+        horizontal: DeclPuppetAxis,
+        vertical: DeclPuppetAxis,
     },
     FourAxis {
-        up: DeclPuppetTarget,
-        down: DeclPuppetTarget,
-        left: DeclPuppetTarget,
-        right: DeclPuppetTarget,
+        up: DeclPuppetAxis,
+        down: DeclPuppetAxis,
+        left: DeclPuppetAxis,
+        right: DeclPuppetAxis,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum DeclPuppetTarget {
+    Puppet(DeclDrivePuppet),
+    // Parameter
 }
