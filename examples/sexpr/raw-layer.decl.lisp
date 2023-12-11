@@ -22,11 +22,11 @@
             )
             (da/state "state2"
                 (da/blendtree :type '2d-cartesian :x "BlendX" :y "BlendY"
-                    (da/blend-field "neutral" 0.0 0.0)
-                    (da/blend-field "right" 1.0 0.0)
-                    (da/blend-field "left" -1.0 0.0)
-                    (da/blend-field "up" 0.0 1.0)
-                    (da/blend-field "down" 0.0 -1.0)
+                    (da/blendtree-field "neutral" 0.0 0.0)
+                    (da/blendtree-field "right" 1.0 0.0)
+                    (da/blendtree-field "left" -1.0 0.0)
+                    (da/blendtree-field "up" 0.0 1.0)
+                    (da/blendtree-field "down" 0.0 -1.0)
                 )
                 (da/transition-to "state1" '(!= "hoge" 0))
             )

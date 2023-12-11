@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use crate::{decl_v2::data::driver::DeclParameterDrive, static_type_name_impl};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};

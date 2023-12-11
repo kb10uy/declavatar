@@ -35,4 +35,7 @@ pub enum DeclSexprError {
 
     #[error("invalid option kind: {0:?}")]
     InvalidGroupOption(DeclGroupOptionKind),
+
+    #[error("invalid condition expression")]
+    InvalidCondition,
 }
