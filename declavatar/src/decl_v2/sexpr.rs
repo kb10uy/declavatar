@@ -225,10 +225,16 @@ pub fn load_avatar_sexpr(text: &str) -> Result<DeclAvatar, DeclError> {
 
     let result = match interpreter.run_code(text, None) {
         Ok(value) => value,
-        Err(kerr) => return Err(DeclError::InternalError(kerr.into())),
+        Err(kerr) => {
+            let error_text = kerr.to_string();
+            return Err(DeclError::InternalError(error_text));
+        }
     };
     match result.downcast_foreign_ref::<&DeclAvatar>() {
         Ok(avatar) => Ok(avatar.clone()),
-        Err(e) => Err(DeclError::DelclarationNotReturned(Some(e.into()))),
+        Err(e) => {
+            let error_text = e.to_string();
+            Err(DeclError::DelclarationNotReturned(Some(error_text)))
+        }
     }
 }

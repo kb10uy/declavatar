@@ -1,5 +1,3 @@
-use std::error::Error as StdError;
-
 use thiserror::Error as ThisError;
 
 use crate::decl_v2::data::layer::DeclGroupOptionKind;
@@ -10,10 +8,10 @@ pub enum DeclError {
     UnsupportedFormat,
 
     #[error("internal error: {0}")]
-    InternalError(Box<dyn StdError>),
+    InternalError(String),
 
     #[error("cannot fetch declaration object ({0:?})")]
-    DelclarationNotReturned(Option<Box<dyn StdError>>),
+    DelclarationNotReturned(Option<String>),
 }
 
 #[derive(Debug, ThisError)]
