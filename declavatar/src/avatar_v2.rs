@@ -17,8 +17,8 @@ pub struct TransformResult {
 }
 
 pub fn transform_avatar(avatar: DeclAvatar) -> TransformResult {
-    let mut logger = Logger::new();
-    let avatar = compile_avatar(&mut logger, avatar);
+    let logger = Logger::new();
+    let avatar = compile_avatar(&logger, avatar);
     let logs = logger.logs();
 
     TransformResult { avatar, logs }

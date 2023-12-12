@@ -7,7 +7,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger, LoggerContext},
+        logger::{ContextualLogger, Log, LoggerContext},
         transformer::{failure, success, Compiled, CompiledAnimations},
     },
     decl_v2::data::{
@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub fn compile_menu(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     animations: &CompiledAnimations,
     decl_menu_blocks: Vec<DeclSubMenu>,
 ) -> Compiled<Vec<MenuItem>> {
@@ -34,10 +34,8 @@ pub fn compile_menu(
 
     let mut elements = vec![];
     for (index, decl_menu) in decl_menu_blocks.into_iter().enumerate() {
-        logger.push_context(Context(index));
-        let mut menu = compile_menu_group(logger, animations, decl_menu)?;
-        logger.pop_context();
-
+        let logger = logger.with_context(Context(index));
+        let mut menu = compile_menu_group(&logger, animations, decl_menu)?;
         elements.append(&mut menu.items);
     }
 
@@ -45,7 +43,7 @@ pub fn compile_menu(
 }
 
 fn compile_menu_group(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     animations: &CompiledAnimations,
     submenu: DeclSubMenu,
 ) -> Compiled<MenuGroup> {
@@ -61,21 +59,20 @@ fn compile_menu_group(
         }
     }
 
-    logger.push_context(Context(submenu.name.clone()));
+    let logger = logger.with_context(Context(submenu.name.clone()));
     let mut items = vec![];
     for menu_element in submenu.elements {
         let Some(menu_item) = (match menu_element {
             DeclMenuElement::SubMenu(sm) => {
-                compile_menu_group(logger, animations, sm).map(MenuItem::SubMenu)
+                compile_menu_group(&logger, animations, sm).map(MenuItem::SubMenu)
             }
-            DeclMenuElement::Boolean(bc) => compile_boolean(logger, animations, bc),
-            DeclMenuElement::Puppet(pc) => compile_puppet(logger, animations, pc),
+            DeclMenuElement::Boolean(bc) => compile_boolean(&logger, animations, bc),
+            DeclMenuElement::Puppet(pc) => compile_puppet(&logger, animations, pc),
         }) else {
             continue;
         };
         items.push(menu_item);
     }
-    logger.pop_context();
 
     success(MenuGroup {
         name: submenu.name,
@@ -84,7 +81,7 @@ fn compile_menu_group(
 }
 
 fn compile_boolean(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     animations: &CompiledAnimations,
     control: DeclBooleanControl,
 ) -> Compiled<MenuItem> {
@@ -102,12 +99,12 @@ fn compile_boolean(
 
     let sources = animations.sources();
 
-    logger.push_context(Context(control.hold, control.name.clone()));
+    let logger = logger.with_context(Context(control.hold, control.name.clone()));
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
-            let (parameter, options) = animations.find_group(logger, &dg.group)?;
+            let (parameter, options) = animations.find_group(&logger, &dg.group)?;
             sources.find_parameter(
-                logger,
+                &logger,
                 parameter,
                 ParameterType::INT_TYPE,
                 ParameterScope::MUST_EXPOSE,
@@ -124,9 +121,9 @@ fn compile_boolean(
             )
         }
         DeclParameterDrive::Switch(ds) => {
-            let parameter = animations.find_switch(logger, &ds.switch)?;
+            let parameter = animations.find_switch(&logger, &ds.switch)?;
             sources.find_parameter(
-                logger,
+                &logger,
                 parameter,
                 ParameterType::BOOL_TYPE,
                 ParameterScope::MUST_EXPOSE,
@@ -138,9 +135,9 @@ fn compile_boolean(
             )
         }
         DeclParameterDrive::Puppet(dp) => {
-            let parameter = animations.find_puppet(logger, &dp.puppet)?;
+            let parameter = animations.find_puppet(&logger, &dp.puppet)?;
             sources.find_parameter(
-                logger,
+                &logger,
                 parameter,
                 ParameterType::FLOAT_TYPE,
                 ParameterScope::MUST_EXPOSE,
@@ -152,7 +149,6 @@ fn compile_boolean(
             )
         }
     };
-    logger.pop_context();
 
     let menu_boolean = MenuBoolean {
         name: control.name,
@@ -167,7 +163,7 @@ fn compile_boolean(
 }
 
 fn compile_puppet(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     animations: &CompiledAnimations,
     control: DeclPuppetControl,
 ) -> Compiled<MenuItem> {
@@ -179,12 +175,12 @@ fn compile_puppet(
         }
     }
 
-    logger.push_context(Context(control.name.clone()));
+    let logger = logger.with_context(Context(control.name.clone()));
     let puppet_type = *control.puppet_type;
     let puppet = match puppet_type {
         DeclPuppetType::Radial(pt) => MenuItem::Radial(MenuRadial {
             name: control.name,
-            parameter: take_puppet_parameter(logger, animations, pt.target)?,
+            parameter: take_puppet_parameter(&logger, animations, pt.target)?,
         }),
         DeclPuppetType::TwoAxis {
             horizontal,
@@ -192,12 +188,12 @@ fn compile_puppet(
         } => MenuItem::TwoAxis(MenuTwoAxis {
             name: control.name,
             horizontal_axis: BiAxis {
-                parameter: take_puppet_parameter(logger, animations, horizontal.target)?,
+                parameter: take_puppet_parameter(&logger, animations, horizontal.target)?,
                 label_positive: horizontal.label_positive.unwrap_or_default(),
                 label_negative: horizontal.label_negative.unwrap_or_default(),
             },
             vertical_axis: BiAxis {
-                parameter: take_puppet_parameter(logger, animations, vertical.target)?,
+                parameter: take_puppet_parameter(&logger, animations, vertical.target)?,
                 label_positive: vertical.label_positive.unwrap_or_default(),
                 label_negative: vertical.label_negative.unwrap_or_default(),
             },
@@ -210,30 +206,29 @@ fn compile_puppet(
         } => MenuItem::FourAxis(MenuFourAxis {
             name: control.name,
             left_axis: UniAxis {
-                parameter: take_puppet_parameter(logger, animations, up.target)?,
+                parameter: take_puppet_parameter(&logger, animations, up.target)?,
                 label: up.label_positive.unwrap_or_default(),
             },
             right_axis: UniAxis {
-                parameter: take_puppet_parameter(logger, animations, down.target)?,
+                parameter: take_puppet_parameter(&logger, animations, down.target)?,
                 label: down.label_positive.unwrap_or_default(),
             },
             up_axis: UniAxis {
-                parameter: take_puppet_parameter(logger, animations, left.target)?,
+                parameter: take_puppet_parameter(&logger, animations, left.target)?,
                 label: left.label_positive.unwrap_or_default(),
             },
             down_axis: UniAxis {
-                parameter: take_puppet_parameter(logger, animations, right.target)?,
+                parameter: take_puppet_parameter(&logger, animations, right.target)?,
                 label: right.label_positive.unwrap_or_default(),
             },
         }),
     };
-    logger.pop_context();
 
     success(puppet)
 }
 
 fn take_puppet_parameter(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     animations: &CompiledAnimations,
     dpt: DeclPuppetTarget,
 ) -> Compiled<String> {

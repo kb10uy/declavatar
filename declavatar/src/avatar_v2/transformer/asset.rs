@@ -1,14 +1,14 @@
 use crate::{
     avatar_v2::{
         data::asset::{Asset, AssetType},
-        logger::{Log, Logger, LoggerContext},
+        logger::{ContextualLogger, Log, LoggerContext},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::asset::{DeclAsset, DeclAssets},
 };
 
 pub fn compile_assets_blocks(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     assets_blocks: Vec<DeclAssets>,
 ) -> Compiled<Vec<Asset>> {
     #[derive(Debug)]
@@ -21,21 +21,20 @@ pub fn compile_assets_blocks(
 
     let mut assets = vec![];
     for (index, decl_assets) in assets_blocks.into_iter().enumerate() {
-        logger.push_context(Context(index));
+        let logger = logger.with_context(Context(index));
         for decl_asset in decl_assets.assets {
-            let Some(asset) = compile_asset(logger, decl_asset, &assets) else {
+            let Some(asset) = compile_asset(&logger, decl_asset, &assets) else {
                 continue;
             };
             assets.push(asset);
         }
-        logger.pop_context();
     }
 
     success(assets)
 }
 
 fn compile_asset(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     decl_asset: DeclAsset,
     declared: &[Asset],
 ) -> Compiled<Asset> {

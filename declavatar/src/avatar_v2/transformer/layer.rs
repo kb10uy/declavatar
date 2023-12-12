@@ -4,17 +4,17 @@ use crate::{
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger, LoggerContext},
+        logger::{ContextualLogger, Log, LoggerContext},
         transformer::{success, Compiled, CompiledSources},
     },
     decl_v2::data::layer::{
-        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclPuppetLayer, DeclRawLayer,
-        DeclSwitchLayer,
+        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
+        DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
     },
 };
 
 pub fn compile_group_layer(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
@@ -26,18 +26,16 @@ pub fn compile_group_layer(
         }
     }
 
-    logger.push_context(Context(decl_group_layer.name.clone()));
+    let logger = logger.with_context(Context(decl_group_layer.name.clone()));
 
     let bound_parameter = sources.find_parameter(
-        logger,
+        &logger,
         &decl_group_layer.driven_by,
         ParameterType::INT_TYPE,
         ParameterScope::MAYBE_INTERNAL,
     )?;
 
     for decl_option in decl_group_layer.options {}
-
-    logger.pop_context();
 
     success(Layer {
         name: decl_group_layer.name,
@@ -110,7 +108,7 @@ pub fn compile_group_layer(
 }
 
 pub fn compile_switch_layer(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
@@ -122,13 +120,12 @@ pub fn compile_switch_layer(
         }
     }
 
-    logger.push_context(Context(decl_switch_layer.name.clone()));
-    logger.pop_context();
+    let logger = logger.with_context(Context(decl_switch_layer.name.clone()));
     todo!();
 }
 
 pub fn compile_puppet_layer(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
@@ -140,13 +137,12 @@ pub fn compile_puppet_layer(
         }
     }
 
-    logger.push_context(Context(decl_puppet_layer.name.clone()));
-    logger.pop_context();
+    let logger = logger.with_context(Context(decl_puppet_layer.name.clone()));
     todo!();
 }
 
 pub fn compile_raw_layer(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
@@ -158,13 +154,12 @@ pub fn compile_raw_layer(
         }
     }
 
-    logger.push_context(Context(decl_raw_layer.name.clone()));
-    logger.pop_context();
+    let logger = logger.with_context(Context(decl_raw_layer.name.clone()));
     todo!();
 }
 
 fn compile_group_option(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -189,18 +184,14 @@ fn compile_group_option(
     else {
         unreachable!("group option kind must be selection");
     };
-
-    logger.push_context(Context(name.clone()));
+    let logger = logger.with_context(Context(name.clone()));
 
     let compiled_targets = vec![];
-
-    logger.pop_context();
-
     success((name, value, compiled_targets))
 }
 
 fn compile_switch_option(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -222,18 +213,14 @@ fn compile_switch_option(
     else {
         unreachable!("switch option kind must be boolean");
     };
-
-    logger.push_context(Context(value));
+    let logger = logger.with_context(Context(value));
 
     let compiled_targets = vec![];
-
-    logger.pop_context();
-
     success((value, compiled_targets))
 }
 
 fn compile_puppet_option(
-    logger: &mut Logger,
+    logger: &ContextualLogger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -254,14 +241,40 @@ fn compile_puppet_option(
     else {
         unreachable!("switch option kind must be keyframe");
     };
-
-    logger.push_context(Context(value));
+    let logger = logger.with_context(Context(value));
 
     let compiled_targets = vec![];
 
-    logger.pop_context();
-
     success((value, compiled_targets))
+}
+
+fn compile_target(
+    logger: &ContextualLogger,
+    sources: &CompiledSources,
+    group_name: &str,
+    default_mesh: Option<&str>,
+    default_to_one: bool,
+    decl_target: DeclGroupOptionTarget,
+) -> Compiled<Target> {
+    /*
+    let target = match decl_target {
+        DeclGroupOptionTarget::Shape(shape_target) => {
+            let Some(mesh) = shape_target.mesh.as_deref().or(default_mesh) else {
+                logger.log(Log::LayerIndeterminateShapeChange(shape));
+                return failure();
+            };
+            success(Target::Shape {
+                mesh: mesh.to_string(),
+                shape: shape_target.shape,
+                value: shape_target.value.unwrap_or(default_shape_value),
+            })
+        }
+        DeclGroupOptionTarget::Object(object_target) => todo!(),
+        DeclGroupOptionTarget::Material(material_target) => todo!(),
+        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => todo!(),
+    };
+    */
+    todo!();
 }
 
 /*
