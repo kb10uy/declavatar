@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::layer::Layer,
-        logger::{Log, Logger},
+        logger::{Log, Logger, LoggerContext},
         transformer::{
             layer::{
                 compile_group_layer, compile_puppet_layer, compile_raw_layer, compile_switch_layer,
@@ -19,36 +19,46 @@ pub fn compile_fx_controller_blocks(
     sources: &CompiledSources,
     fx_controller_blocks: Vec<DeclFxController>,
 ) -> Compiled<Vec<Layer>> {
-    let mut layers = vec![];
-
-    let mut used_group_names: HashSet<String> = HashSet::new();
-    let decl_fx_controllers = fx_controller_blocks.into_iter().flat_map(|fx| fx.layers);
-    for decl_layer in decl_fx_controllers {
-        let layer = match decl_layer {
-            DeclControllerLayer::Group(decl_group_layer) => {
-                compile_group_layer(logger, sources, decl_group_layer)
-            }
-            DeclControllerLayer::Switch(decl_switch_layer) => {
-                compile_switch_layer(logger, sources, decl_switch_layer)
-            }
-            DeclControllerLayer::Puppet(decl_puppet_layer) => {
-                compile_puppet_layer(logger, sources, decl_puppet_layer)
-            }
-            DeclControllerLayer::Raw(decl_raw_layer) => {
-                compile_raw_layer(logger, sources, decl_raw_layer)
-            }
-        };
-        let Some(layer) = layer else {
-            continue;
-        };
-
-        if used_group_names.contains(&layer.name) {
-            logger.log(Log::DuplicateLayerName(layer.name.clone()));
-        } else {
-            used_group_names.insert(layer.name.clone());
+    #[derive(Debug)]
+    pub struct Context(usize);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("fx-controller {} > {}", self.0, inner)
         }
+    }
 
-        layers.push(layer);
+    let mut layers = vec![];
+    let mut used_group_names: HashSet<String> = HashSet::new();
+    for (index, decl_fx_controller) in fx_controller_blocks.into_iter().enumerate() {
+        logger.push_context(Context(index));
+        for decl_layer in decl_fx_controller.layers {
+            let layer = match decl_layer {
+                DeclControllerLayer::Group(decl_group_layer) => {
+                    compile_group_layer(logger, sources, decl_group_layer)
+                }
+                DeclControllerLayer::Switch(decl_switch_layer) => {
+                    compile_switch_layer(logger, sources, decl_switch_layer)
+                }
+                DeclControllerLayer::Puppet(decl_puppet_layer) => {
+                    compile_puppet_layer(logger, sources, decl_puppet_layer)
+                }
+                DeclControllerLayer::Raw(decl_raw_layer) => {
+                    compile_raw_layer(logger, sources, decl_raw_layer)
+                }
+            };
+            let Some(layer) = layer else {
+                continue;
+            };
+
+            if used_group_names.contains(&layer.name) {
+                logger.log(Log::DuplicateLayerName(layer.name.clone()));
+            } else {
+                used_group_names.insert(layer.name.clone());
+            }
+
+            layers.push(layer);
+        }
+        logger.pop_context();
     }
 
     success(layers)
