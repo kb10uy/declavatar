@@ -37,4 +37,19 @@ pub struct LayerPuppetOption {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum Target {}
+pub enum Target {
+    Shape {
+        mesh: String,
+        shape: String,
+        value: f64,
+    },
+    Object {
+        object: String,
+        value: bool,
+    },
+    Material {
+        mesh: String,
+        index: usize,
+        asset: String,
+    },
+}
