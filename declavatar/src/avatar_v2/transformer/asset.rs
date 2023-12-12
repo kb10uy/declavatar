@@ -1,14 +1,14 @@
 use crate::{
     avatar_v2::{
         data::asset::{Asset, AssetType},
-        logger::{ContextualLogger, Log, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::asset::{DeclAsset, DeclAssets},
 };
 
 pub fn compile_assets_blocks(
-    logger: &ContextualLogger,
+    logger: &Logger,
     assets_blocks: Vec<DeclAssets>,
 ) -> Compiled<Vec<Asset>> {
     #[derive(Debug)]
@@ -34,7 +34,7 @@ pub fn compile_assets_blocks(
 }
 
 fn compile_asset(
-    logger: &ContextualLogger,
+    logger: &Logger,
     decl_asset: DeclAsset,
     declared: &[Asset],
 ) -> Compiled<Asset> {

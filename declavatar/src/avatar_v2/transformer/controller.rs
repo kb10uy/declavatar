@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::layer::Layer,
-        logger::{ContextualLogger, Log, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{
             layer::{
                 compile_group_layer, compile_puppet_layer, compile_raw_layer, compile_switch_layer,
@@ -15,7 +15,7 @@ use crate::{
 use std::collections::HashSet;
 
 pub fn compile_fx_controller_blocks(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     fx_controller_blocks: Vec<DeclFxController>,
 ) -> Compiled<Vec<Layer>> {

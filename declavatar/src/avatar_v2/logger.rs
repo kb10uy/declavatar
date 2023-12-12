@@ -12,17 +12,19 @@ pub trait LoggerContext: 'static + Debug {
     fn write_context(&self, inner: String) -> String;
 }
 
-#[derive(Debug)]
 pub struct Logger {
     logs: Rc<RefCell<Vec<LogPair>>>,
     erroneous: Rc<Cell<bool>>,
+    context: Stack<Box<dyn LoggerContext>>,
 }
 
+#[allow(dead_code)]
 impl Logger {
     pub fn new() -> Logger {
         Logger {
             logs: Rc::new(RefCell::new(vec![])),
             erroneous: Rc::new(Cell::new(false)),
+            context: Stack::new(),
         }
     }
 
@@ -43,11 +45,17 @@ impl Logger {
             .collect()
     }
 
-    pub(super) fn with_context<C: LoggerContext>(&self, context: C) -> ContextualLogger {
-        ContextualLogger {
+    pub(super) fn log(&self, log: Log) {
+        let mut logs = self.logs.borrow_mut();
+        logs.push((log, self.context.clone()));
+        self.erroneous.set(true);
+    }
+
+    pub(super) fn with_context<C: LoggerContext>(&self, context: C) -> Logger {
+        Logger {
             logs: self.logs.clone(),
             erroneous: self.erroneous.clone(),
-            context: Stack::new().push(Box::new(context)),
+            context: self.context.push(Box::new(context)),
         }
     }
 }
@@ -55,33 +63,6 @@ impl Logger {
 impl Default for Logger {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-pub struct ContextualLogger {
-    logs: Rc<RefCell<Vec<LogPair>>>,
-    erroneous: Rc<Cell<bool>>,
-    context: Stack<Box<dyn LoggerContext>>,
-}
-
-#[allow(dead_code)]
-impl ContextualLogger {
-    pub(super) fn log(&self, log: Log) {
-        let mut logs = self.logs.borrow_mut();
-        logs.push((log, self.context.clone()));
-        self.erroneous.set(true);
-    }
-
-    pub fn erroneous(&self) -> bool {
-        self.erroneous.get()
-    }
-
-    pub(super) fn with_context<C: LoggerContext>(&self, context: C) -> ContextualLogger {
-        ContextualLogger {
-            logs: self.logs.clone(),
-            erroneous: self.erroneous.clone(),
-            context: self.context.push(Box::new(context)),
-        }
     }
 }
 

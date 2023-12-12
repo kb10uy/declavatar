@@ -4,7 +4,7 @@ use crate::{
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{ContextualLogger, Log, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{success, Compiled, CompiledSources},
     },
     decl_v2::data::layer::{
@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub fn compile_group_layer(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
@@ -108,7 +108,7 @@ pub fn compile_group_layer(
 }
 
 pub fn compile_switch_layer(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
@@ -125,7 +125,7 @@ pub fn compile_switch_layer(
 }
 
 pub fn compile_puppet_layer(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
@@ -142,7 +142,7 @@ pub fn compile_puppet_layer(
 }
 
 pub fn compile_raw_layer(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
@@ -159,7 +159,7 @@ pub fn compile_raw_layer(
 }
 
 fn compile_group_option(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -191,7 +191,7 @@ fn compile_group_option(
 }
 
 fn compile_switch_option(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -220,7 +220,7 @@ fn compile_switch_option(
 }
 
 fn compile_puppet_option(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -249,7 +249,7 @@ fn compile_puppet_option(
 }
 
 fn compile_target(
-    logger: &ContextualLogger,
+    logger: &Logger,
     sources: &CompiledSources,
     group_name: &str,
     default_mesh: Option<&str>,

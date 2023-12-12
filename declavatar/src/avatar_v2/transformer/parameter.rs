@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::parameter::{Parameter, ParameterScope, ParameterType},
-        logger::{ContextualLogger, Log, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::parameter::{
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn compile_parameters_blocks(
-    logger: &ContextualLogger,
+    logger: &Logger,
     parameters_blocks: Vec<DeclParameters>,
 ) -> Compiled<Vec<Parameter>> {
     #[derive(Debug)]
@@ -36,7 +36,7 @@ pub fn compile_parameters_blocks(
 }
 
 fn compile_parameter(
-    logger: &ContextualLogger,
+    logger: &Logger,
     decl_parameter: DeclParameter,
     declared: &[Parameter],
 ) -> Compiled<Parameter> {

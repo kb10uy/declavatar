@@ -7,7 +7,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{ContextualLogger, Log, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{failure, success, Compiled, CompiledAnimations},
     },
     decl_v2::data::{
@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub fn compile_menu(
-    logger: &ContextualLogger,
+    logger: &Logger,
     animations: &CompiledAnimations,
     decl_menu_blocks: Vec<DeclSubMenu>,
 ) -> Compiled<Vec<MenuItem>> {
@@ -43,7 +43,7 @@ pub fn compile_menu(
 }
 
 fn compile_menu_group(
-    logger: &ContextualLogger,
+    logger: &Logger,
     animations: &CompiledAnimations,
     submenu: DeclSubMenu,
 ) -> Compiled<MenuGroup> {
@@ -81,7 +81,7 @@ fn compile_menu_group(
 }
 
 fn compile_boolean(
-    logger: &ContextualLogger,
+    logger: &Logger,
     animations: &CompiledAnimations,
     control: DeclBooleanControl,
 ) -> Compiled<MenuItem> {
@@ -163,7 +163,7 @@ fn compile_boolean(
 }
 
 fn compile_puppet(
-    logger: &ContextualLogger,
+    logger: &Logger,
     animations: &CompiledAnimations,
     control: DeclPuppetControl,
 ) -> Compiled<MenuItem> {
@@ -228,7 +228,7 @@ fn compile_puppet(
 }
 
 fn take_puppet_parameter(
-    logger: &ContextualLogger,
+    logger: &Logger,
     animations: &CompiledAnimations,
     dpt: DeclPuppetTarget,
 ) -> Compiled<String> {

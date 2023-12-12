@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::{avatar::Avatar, layer::Layer},
-        logger::{Log, Logger, LoggerContext},
+        logger::{Logger, Log, LoggerContext},
         transformer::{
             asset::compile_assets_blocks, controller::compile_fx_controller_blocks, failure,
             menu::compile_menu, parameter::compile_parameters_blocks, success, Compiled,
