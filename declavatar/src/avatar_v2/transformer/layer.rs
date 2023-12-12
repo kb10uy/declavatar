@@ -4,7 +4,7 @@ use crate::{
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger},
+        logger::{Log, Logger, LoggerContext},
         transformer::{success, Compiled, CompiledSources},
     },
     decl_v2::data::layer::{
@@ -18,6 +18,16 @@ pub fn compile_group_layer(
     sources: &CompiledSources,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("group layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    logger.push_context(Context(decl_group_layer.name.clone()));
+
     let bound_parameter = sources.find_parameter(
         logger,
         &decl_group_layer.driven_by,
@@ -26,6 +36,8 @@ pub fn compile_group_layer(
     )?;
 
     for decl_option in decl_group_layer.options {}
+
+    logger.pop_context();
 
     success(Layer {
         name: decl_group_layer.name,
@@ -37,8 +49,6 @@ pub fn compile_group_layer(
     })
 
     /*
-
-
     let default_mesh = decl_group_layer.default_mesh.as_deref();
     let mut options = vec![];
     let mut default_targets: Vec<_> = match decl_group_layer.default {
@@ -104,6 +114,16 @@ pub fn compile_switch_layer(
     sources: &CompiledSources,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("switch layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    logger.push_context(Context(decl_switch_layer.name.clone()));
+    logger.pop_context();
     todo!();
 }
 
@@ -112,6 +132,16 @@ pub fn compile_puppet_layer(
     sources: &CompiledSources,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("puppet layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    logger.push_context(Context(decl_puppet_layer.name.clone()));
+    logger.pop_context();
     todo!();
 }
 
@@ -120,6 +150,16 @@ pub fn compile_raw_layer(
     sources: &CompiledSources,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("raw layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    logger.push_context(Context(decl_raw_layer.name.clone()));
+    logger.pop_context();
     todo!();
 }
 
@@ -130,6 +170,18 @@ fn compile_group_option(
     default_mesh: Option<&str>,
     default_to_one: bool,
 ) -> Compiled<(Option<String>, Option<usize>, Vec<Target>)> {
+    #[derive(Debug)]
+    pub struct Context(Option<String>);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            if let Some(name) = &self.0 {
+                format!("option '{}' > {}", name, inner)
+            } else {
+                format!("default option > {}", inner)
+            }
+        }
+    }
+
     let DeclGroupOption {
         kind: DeclGroupOptionKind::Selection(name, value),
         targets,
@@ -138,14 +190,80 @@ fn compile_group_option(
         unreachable!("group option kind must be selection");
     };
 
-    let targets = todo!();
-    /*targets
-            .into_iter()
-            .filter_map(|ds| compile_target(ctx, sources, &name, default_mesh, true, ds))
-            .collect();
-    */
-    success((name, value, targets))
+    logger.push_context(Context(name.clone()));
+
+    let compiled_targets = vec![];
+
+    logger.pop_context();
+
+    success((name, value, compiled_targets))
 }
+
+fn compile_switch_option(
+    logger: &mut Logger,
+    sources: &CompiledSources,
+    decl_group_option: DeclGroupOption,
+    default_mesh: Option<&str>,
+    default_to_one: bool,
+) -> Compiled<(bool, Vec<Target>)> {
+    #[derive(Debug)]
+    pub struct Context(bool);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            let name = if self.0 { "enabled" } else { "disabled" };
+            format!("{} option > {}", name, inner)
+        }
+    }
+
+    let DeclGroupOption {
+        kind: DeclGroupOptionKind::Boolean(value),
+        targets,
+    } = decl_group_option
+    else {
+        unreachable!("switch option kind must be boolean");
+    };
+
+    logger.push_context(Context(value));
+
+    let compiled_targets = vec![];
+
+    logger.pop_context();
+
+    success((value, compiled_targets))
+}
+
+fn compile_puppet_option(
+    logger: &mut Logger,
+    sources: &CompiledSources,
+    decl_group_option: DeclGroupOption,
+    default_mesh: Option<&str>,
+    default_to_one: bool,
+) -> Compiled<(f64, Vec<Target>)> {
+    #[derive(Debug)]
+    pub struct Context(f64);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("keyframe {} > {}", self.0, inner)
+        }
+    }
+
+    let DeclGroupOption {
+        kind: DeclGroupOptionKind::Keyframe(value),
+        targets,
+    } = decl_group_option
+    else {
+        unreachable!("switch option kind must be keyframe");
+    };
+
+    logger.push_context(Context(value));
+
+    let compiled_targets = vec![];
+
+    logger.pop_context();
+
+    success((value, compiled_targets))
+}
+
 /*
 fn compile_animation_target(
     ctx: &mut Logger,
