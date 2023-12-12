@@ -1,63 +1,87 @@
-use std::fmt::{Debug, Display, Error as FmtError, Formatter, Result as FmtResult};
+use std::{
+    cell::{Cell, RefCell},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
+    rc::Rc,
+};
 
 use rpds::Stack;
 
-#[derive(Debug)]
-pub struct Logger {
-    logs: Vec<(Log, Stack<Box<dyn LoggerContext>>)>,
-    context: Stack<Box<dyn LoggerContext>>,
-    erroneous: bool,
-}
+type LogPair = (Log, Stack<Box<dyn LoggerContext>>);
 
-#[allow(unused_variables)]
 pub trait LoggerContext: 'static + Debug {
     fn write_context(&self, inner: String) -> String;
 }
 
-#[allow(dead_code)]
+#[derive(Debug)]
+pub struct Logger {
+    logs: Rc<RefCell<Vec<LogPair>>>,
+    erroneous: Rc<Cell<bool>>,
+}
+
 impl Logger {
     pub fn new() -> Logger {
         Logger {
-            logs: vec![],
-            context: Stack::new(),
-            erroneous: false,
+            logs: Rc::new(RefCell::new(vec![])),
+            erroneous: Rc::new(Cell::new(false)),
         }
     }
 
-    pub(super) fn push_context<C: LoggerContext>(&mut self, context: C) {
-        self.context = self.context.push(Box::new(context));
+    pub fn erroneous(&self) -> bool {
+        self.erroneous.get()
     }
 
-    pub(super) fn pop_context(&mut self) {
-        self.context = self.context.pop().expect("too much pops");
+    pub fn logs(&self) -> Vec<(Severity, String)> {
+        let logs = self.logs.borrow();
+        logs.iter()
+            .map(|(log, context_tail)| {
+                let severity = log.severity();
+                let message = context_tail
+                    .iter()
+                    .fold(log.to_string(), |inner, ctx| ctx.write_context(inner));
+                (severity, message)
+            })
+            .collect()
     }
 
-    pub(super) fn erroneous(&self) -> bool {
-        self.erroneous
-    }
-
-    pub fn into_logs(&self) -> Result<Vec<(Severity, String)>, FmtError> {
-        let mut logs = vec![];
-        for (log, context_tail) in &self.logs {
-            let severity = log.severity();
-            let message = context_tail
-                .iter()
-                .fold(log.to_string(), |inner, ctx| ctx.write_context(inner));
-            logs.push((severity, message));
+    pub(super) fn with_context<C: LoggerContext>(&self, context: C) -> ContextualLogger {
+        ContextualLogger {
+            logs: self.logs.clone(),
+            erroneous: self.erroneous.clone(),
+            context: Stack::new().push(Box::new(context)),
         }
-
-        Ok(logs)
-    }
-
-    pub(super) fn log(&mut self, log: Log) {
-        self.logs.push((log, self.context.clone()));
-        self.erroneous = true;
     }
 }
 
 impl Default for Logger {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct ContextualLogger {
+    logs: Rc<RefCell<Vec<LogPair>>>,
+    erroneous: Rc<Cell<bool>>,
+    context: Stack<Box<dyn LoggerContext>>,
+}
+
+#[allow(dead_code)]
+impl ContextualLogger {
+    pub(super) fn log(&self, log: Log) {
+        let mut logs = self.logs.borrow_mut();
+        logs.push((log, self.context.clone()));
+        self.erroneous.set(true);
+    }
+
+    pub fn erroneous(&self) -> bool {
+        self.erroneous.get()
+    }
+
+    pub(super) fn with_context<C: LoggerContext>(&self, context: C) -> ContextualLogger {
+        ContextualLogger {
+            logs: self.logs.clone(),
+            erroneous: self.erroneous.clone(),
+            context: self.context.push(Box::new(context)),
+        }
     }
 }
 
@@ -91,8 +115,8 @@ pub enum Log {
     LayerOptionNotFound(String),
     LayerDisabledTargetFailure(String),
     LayerMaterialFailure(usize),
-    LayerIndeterminateShapeChange(String, String),
-    LayerIndeterminateMaterialChange(String, usize),
+    LayerIndeterminateShapeChange(String),
+    LayerIndeterminateMaterialChange(usize),
     LayerIndeterminateOption(String, String),
     LayerStateNotFound(String, String),
     LayerBlendTreeParameterNotFound(String, String),
@@ -158,17 +182,11 @@ impl Display for Log {
             Log::LayerMaterialFailure(group) => {
                 write!(f, "group name '{group}', material target failure")
             }
-            Log::LayerIndeterminateShapeChange(group, shape) => {
-                write!(
-                    f,
-                    "group name '{group}', '{shape}' does not have mesh target"
-                )
+            Log::LayerIndeterminateShapeChange(shape) => {
+                write!(f, "'{shape}' does not have mesh target")
             }
-            Log::LayerIndeterminateMaterialChange(group, material) => {
-                write!(
-                    f,
-                    "group name '{group}', '{material}' does not have mesh target"
-                )
+            Log::LayerIndeterminateMaterialChange(material) => {
+                write!(f, "'{material}' does not have mesh target")
             }
             Log::LayerIndeterminateOption(group, option) => {
                 write!(f, "group name '{group}', option '{option}' not found")

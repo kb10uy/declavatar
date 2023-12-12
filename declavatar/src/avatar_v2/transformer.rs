@@ -12,7 +12,7 @@ use crate::avatar_v2::{
         layer::{Layer, LayerContent, LayerGroupOption},
         parameter::{Parameter, ParameterScope, ParameterType},
     },
-    logger::{Log, Logger},
+    logger::{ContextualLogger, Log},
 };
 
 pub(super) use self::avatar::compile_avatar;
@@ -44,7 +44,7 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_parameter(
         &'a self,
-        logger: &'c mut Logger,
+        logger: &'c ContextualLogger,
         name: &'a str,
         ty: ParameterType,
         scope: ParameterScope,
@@ -62,7 +62,7 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_parameter_untyped(
         &'a self,
-        logger: &'c mut Logger,
+        logger: &'c ContextualLogger,
         name: &'a str,
         scope: ParameterScope,
     ) -> Compiled<&'a Parameter> {
@@ -85,7 +85,7 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_asset(
         &'a self,
-        logger: &'a mut Logger,
+        logger: &'c ContextualLogger,
         name: &'a str,
         ty: AssetType,
     ) -> Compiled<&'a Asset> {
@@ -123,7 +123,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
 
     pub fn find_group(
         &'a self,
-        logger: &'c mut Logger,
+        logger: &'c ContextualLogger,
         name: &'a str,
     ) -> Compiled<(&'a str, &'a [LayerGroupOption])> {
         let layer = self.find_layer(logger, name)?;
@@ -141,7 +141,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
-    pub fn find_switch(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
+    pub fn find_switch(&'a self, logger: &'c ContextualLogger, name: &'a str) -> Compiled<&'a str> {
         let layer = self.find_layer(logger, name)?;
         if let Layer {
             content: LayerContent::Switch { parameter, .. },
@@ -155,7 +155,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
-    pub fn find_puppet(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
+    pub fn find_puppet(&'a self, logger: &'c ContextualLogger, name: &'a str) -> Compiled<&'a str> {
         let layer = self.find_layer(logger, name)?;
         if let Layer {
             content: LayerContent::Puppet { parameter, .. },
@@ -169,7 +169,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
-    fn find_layer(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a Layer> {
+    fn find_layer(&'a self, logger: &'c ContextualLogger, name: &'a str) -> Compiled<&'a Layer> {
         if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
             success(ag)
         } else {
