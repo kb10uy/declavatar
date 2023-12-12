@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub fn compile_menu(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     animations: &CompiledAnimations,
     decl_menu_blocks: Vec<DeclSubMenu>,
 ) -> Compiled<Vec<MenuItem>> {
@@ -29,7 +29,7 @@ pub fn compile_menu(
         .flat_map(|ab| ab.elements)
         .collect();
     let menu = compile_menu_group(
-        ctx,
+        logger,
         animations,
         DeclSubMenu {
             name: "".into(),
@@ -40,7 +40,7 @@ pub fn compile_menu(
 }
 
 fn compile_menu_group(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     animations: &CompiledAnimations,
     submenu: DeclSubMenu,
 ) -> Compiled<MenuGroup> {
@@ -48,10 +48,10 @@ fn compile_menu_group(
     for menu_element in submenu.elements {
         let Some(menu_item) = (match menu_element {
             DeclMenuElement::SubMenu(sm) => {
-                compile_menu_group(ctx, animations, sm).map(MenuItem::SubMenu)
+                compile_menu_group(logger, animations, sm).map(MenuItem::SubMenu)
             }
-            DeclMenuElement::Boolean(bc) => compile_boolean(ctx, animations, bc),
-            DeclMenuElement::Puppet(pc) => compile_puppet(ctx, animations, pc),
+            DeclMenuElement::Boolean(bc) => compile_boolean(logger, animations, bc),
+            DeclMenuElement::Puppet(pc) => compile_puppet(logger, animations, pc),
         }) else {
             continue;
         };
@@ -65,7 +65,7 @@ fn compile_menu_group(
 }
 
 fn compile_boolean(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     animations: &CompiledAnimations,
     control: DeclBooleanControl,
 ) -> Compiled<MenuItem> {
@@ -73,16 +73,16 @@ fn compile_boolean(
 
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
-            let (parameter, options) = animations.find_group(ctx, &dg.group)?;
+            let (parameter, options) = animations.find_group(logger, &dg.group)?;
             sources.find_parameter(
-                ctx,
+                logger,
                 parameter,
                 ParameterType::INT_TYPE,
                 ParameterScope::MUST_EXPOSE,
             )?;
 
             let Some(option) = options.iter().find(|o| o.name == dg.option) else {
-                ctx.log(Log::AnimationGroupOptionNotFound(
+                logger.log(Log::AnimationGroupOptionNotFound(
                     dg.group.to_string(),
                     dg.option,
                 ));
@@ -95,9 +95,9 @@ fn compile_boolean(
             )
         }
         DeclParameterDrive::Switch(ds) => {
-            let parameter = animations.find_switch(ctx, &ds.switch)?;
+            let parameter = animations.find_switch(logger, &ds.switch)?;
             sources.find_parameter(
-                ctx,
+                logger,
                 parameter,
                 ParameterType::BOOL_TYPE,
                 ParameterScope::MUST_EXPOSE,
@@ -109,9 +109,9 @@ fn compile_boolean(
             )
         }
         DeclParameterDrive::Puppet(dp) => {
-            let parameter = animations.find_puppet(ctx, &dp.puppet)?;
+            let parameter = animations.find_puppet(logger, &dp.puppet)?;
             sources.find_parameter(
-                ctx,
+                logger,
                 parameter,
                 ParameterType::FLOAT_TYPE,
                 ParameterScope::MUST_EXPOSE,
@@ -137,7 +137,7 @@ fn compile_boolean(
 }
 
 fn compile_puppet(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     animations: &CompiledAnimations,
     control: DeclPuppetControl,
 ) -> Compiled<MenuItem> {
@@ -145,7 +145,7 @@ fn compile_puppet(
     match puppet_type {
         DeclPuppetType::Radial(pt) => success(MenuItem::Radial(MenuRadial {
             name: control.name,
-            parameter: take_puppet_parameter(ctx, animations, pt.target)?,
+            parameter: take_puppet_parameter(logger, animations, pt.target)?,
         })),
         DeclPuppetType::TwoAxis {
             horizontal,
@@ -153,12 +153,12 @@ fn compile_puppet(
         } => success(MenuItem::TwoAxis(MenuTwoAxis {
             name: control.name,
             horizontal_axis: BiAxis {
-                parameter: take_puppet_parameter(ctx, animations, horizontal.target)?,
+                parameter: take_puppet_parameter(logger, animations, horizontal.target)?,
                 label_positive: horizontal.label_positive.unwrap_or_default(),
                 label_negative: horizontal.label_negative.unwrap_or_default(),
             },
             vertical_axis: BiAxis {
-                parameter: take_puppet_parameter(ctx, animations, vertical.target)?,
+                parameter: take_puppet_parameter(logger, animations, vertical.target)?,
                 label_positive: vertical.label_positive.unwrap_or_default(),
                 label_negative: vertical.label_negative.unwrap_or_default(),
             },
@@ -171,19 +171,19 @@ fn compile_puppet(
         } => success(MenuItem::FourAxis(MenuFourAxis {
             name: control.name,
             left_axis: UniAxis {
-                parameter: take_puppet_parameter(ctx, animations, up.target)?,
+                parameter: take_puppet_parameter(logger, animations, up.target)?,
                 label: up.label_positive.unwrap_or_default(),
             },
             right_axis: UniAxis {
-                parameter: take_puppet_parameter(ctx, animations, down.target)?,
+                parameter: take_puppet_parameter(logger, animations, down.target)?,
                 label: down.label_positive.unwrap_or_default(),
             },
             up_axis: UniAxis {
-                parameter: take_puppet_parameter(ctx, animations, left.target)?,
+                parameter: take_puppet_parameter(logger, animations, left.target)?,
                 label: left.label_positive.unwrap_or_default(),
             },
             down_axis: UniAxis {
-                parameter: take_puppet_parameter(ctx, animations, right.target)?,
+                parameter: take_puppet_parameter(logger, animations, right.target)?,
                 label: right.label_positive.unwrap_or_default(),
             },
         })),
@@ -191,18 +191,18 @@ fn compile_puppet(
 }
 
 fn take_puppet_parameter(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     animations: &CompiledAnimations,
     dpt: DeclPuppetTarget,
 ) -> Compiled<String> {
     let parameter = match dpt {
         DeclPuppetTarget::Puppet(dp) => {
-            let parameter = animations.find_puppet(ctx, &dp.puppet)?;
+            let parameter = animations.find_puppet(logger, &dp.puppet)?;
             parameter.to_string()
         }
     };
     animations.sources().find_parameter(
-        ctx,
+        logger,
         &parameter,
         ParameterType::FLOAT_TYPE,
         ParameterScope::MUST_EXPOSE,

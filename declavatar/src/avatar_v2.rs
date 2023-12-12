@@ -5,7 +5,7 @@ pub mod transformer;
 use crate::{
     avatar_v2::{
         data::avatar::Avatar,
-        logger::{Severity, Logger},
+        logger::{Logger, Severity},
         transformer::compile_avatar,
     },
     decl_v2::data::avatar::DeclAvatar,
@@ -17,9 +17,9 @@ pub struct TransformResult {
 }
 
 pub fn transform_avatar(avatar: DeclAvatar) -> TransformResult {
-    let mut ctx = Logger::new();
-    let avatar = compile_avatar(&mut ctx, avatar);
-    let logs = ctx.into_logs();
+    let mut logger = Logger::new();
+    let avatar = compile_avatar(&mut logger, avatar);
+    let logs = logger.into_logs().unwrap_or_default();
 
     TransformResult { avatar, logs }
 }

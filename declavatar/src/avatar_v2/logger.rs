@@ -38,7 +38,7 @@ impl Logger {
 
     pub fn into_logs(&self) -> Result<Vec<(Severity, String)>, FmtError> {
         let mut logs = vec![];
-        for (log, context_tail) in self.logs {
+        for (log, context_tail) in &self.logs {
             let severity = log.severity();
             let message = context_tail
                 .iter()
@@ -108,9 +108,7 @@ pub enum Log {
 
 impl Log {
     pub fn severity(&self) -> Severity {
-        match self {
-            _ => Severity::Error,
-        }
+        Severity::Error
     }
 }
 

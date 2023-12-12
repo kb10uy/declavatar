@@ -15,7 +15,7 @@ use crate::{
 use std::collections::HashSet;
 
 pub fn compile_fx_controller_blocks(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     fx_controller_blocks: Vec<DeclFxController>,
 ) -> Compiled<Vec<Layer>> {
@@ -26,16 +26,16 @@ pub fn compile_fx_controller_blocks(
     for decl_layer in decl_fx_controllers {
         let layer = match decl_layer {
             DeclControllerLayer::Group(decl_group_layer) => {
-                compile_group_layer(ctx, sources, decl_group_layer)
+                compile_group_layer(logger, sources, decl_group_layer)
             }
             DeclControllerLayer::Switch(decl_switch_layer) => {
-                compile_switch_layer(ctx, sources, decl_switch_layer)
+                compile_switch_layer(logger, sources, decl_switch_layer)
             }
             DeclControllerLayer::Puppet(decl_puppet_layer) => {
-                compile_puppet_layer(ctx, sources, decl_puppet_layer)
+                compile_puppet_layer(logger, sources, decl_puppet_layer)
             }
             DeclControllerLayer::Raw(decl_raw_layer) => {
-                compile_raw_layer(ctx, sources, decl_raw_layer)
+                compile_raw_layer(logger, sources, decl_raw_layer)
             }
         };
         let Some(layer) = layer else {
@@ -43,7 +43,7 @@ pub fn compile_fx_controller_blocks(
         };
 
         if used_group_names.contains(&layer.name) {
-            ctx.log_warn(Log::DuplicateLayerName(layer.name.clone()));
+            logger.log(Log::DuplicateLayerName(layer.name.clone()));
         } else {
             used_group_names.insert(layer.name.clone());
         }

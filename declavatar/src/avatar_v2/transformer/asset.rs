@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn compile_assets_blocks(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     assets_blocks: Vec<DeclAssets>,
 ) -> Compiled<Vec<Asset>> {
     #[derive(Debug)]
@@ -21,20 +21,24 @@ pub fn compile_assets_blocks(
 
     let mut assets = vec![];
     for (index, decl_assets) in assets_blocks.into_iter().enumerate() {
-        ctx.push_context(Context(index));
+        logger.push_context(Context(index));
         for decl_asset in decl_assets.assets {
-            let Some(asset) = compile_asset(ctx, decl_asset, &assets) else {
+            let Some(asset) = compile_asset(logger, decl_asset, &assets) else {
                 continue;
             };
             assets.push(asset);
         }
-        ctx.pop_context();
+        logger.pop_context();
     }
 
     success(assets)
 }
 
-fn compile_asset(ctx: &mut Logger, decl_asset: DeclAsset, declared: &[Asset]) -> Compiled<Asset> {
+fn compile_asset(
+    logger: &mut Logger,
+    decl_asset: DeclAsset,
+    declared: &[Asset],
+) -> Compiled<Asset> {
     let key = match &decl_asset {
         DeclAsset::Material(key) => key,
         DeclAsset::Animation(key) => key,
@@ -46,7 +50,7 @@ fn compile_asset(ctx: &mut Logger, decl_asset: DeclAsset, declared: &[Asset]) ->
 
     if let Some(defined) = declared.iter().find(|a| a.key == *key) {
         if defined.asset_type != asset_type {
-            ctx.log(Log::IncompatibleAssetDeclaration(key.to_string()));
+            logger.log(Log::IncompatibleAssetDeclaration(key.to_string()));
         }
         return failure();
     }

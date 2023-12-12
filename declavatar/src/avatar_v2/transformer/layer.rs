@@ -14,12 +14,12 @@ use crate::{
 };
 
 pub fn compile_group_layer(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
     let bound_parameter = sources.find_parameter(
-        ctx,
+        logger,
         &decl_group_layer.driven_by,
         ParameterType::INT_TYPE,
         ParameterScope::MAYBE_INTERNAL,
@@ -100,7 +100,7 @@ pub fn compile_group_layer(
 }
 
 pub fn compile_switch_layer(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
@@ -108,7 +108,7 @@ pub fn compile_switch_layer(
 }
 
 pub fn compile_puppet_layer(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
@@ -116,7 +116,7 @@ pub fn compile_puppet_layer(
 }
 
 pub fn compile_raw_layer(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
@@ -124,7 +124,7 @@ pub fn compile_raw_layer(
 }
 
 fn compile_group_option(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     sources: &CompiledSources,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
@@ -140,10 +140,10 @@ fn compile_group_option(
 
     let targets = todo!();
     /*targets
-        .into_iter()
-        .filter_map(|ds| compile_target(ctx, sources, &name, default_mesh, true, ds))
-        .collect();
-*/
+            .into_iter()
+            .filter_map(|ds| compile_target(ctx, sources, &name, default_mesh, true, ds))
+            .collect();
+    */
     success((name, value, targets))
 }
 /*

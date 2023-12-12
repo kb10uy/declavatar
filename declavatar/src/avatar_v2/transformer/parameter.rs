@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn compile_parameters_blocks(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     parameters_blocks: Vec<DeclParameters>,
 ) -> Compiled<Vec<Parameter>> {
     #[derive(Debug)]
@@ -23,21 +23,21 @@ pub fn compile_parameters_blocks(
 
     let mut parameters = vec![];
     for (index, decl_parameters) in parameters_blocks.into_iter().enumerate() {
-        ctx.push_context(Context(index));
+        logger.push_context(Context(index));
         for parameter in decl_parameters.parameters {
-            let Some(parameter) = compile_parameter(ctx, parameter, &parameters) else {
+            let Some(parameter) = compile_parameter(logger, parameter, &parameters) else {
                 continue;
             };
             parameters.push(parameter);
         }
-        ctx.pop_context();
+        logger.pop_context();
     }
 
     success(parameters)
 }
 
 fn compile_parameter(
-    ctx: &mut Logger,
+    logger: &mut Logger,
     decl_parameter: DeclParameter,
     declared: &[Parameter],
 ) -> Compiled<Parameter> {
@@ -55,14 +55,14 @@ fn compile_parameter(
         (None | Some(DeclParameterScope::Synced), Some(saved)) => ParameterScope::Synced(saved),
 
         (Some(DeclParameterScope::Internal), Some(true)) => {
-            ctx.log(Log::InternalMustBeTransient(decl_parameter.name));
+            logger.log(Log::InternalMustBeTransient(decl_parameter.name));
             return failure();
         }
     };
 
     if let Some(defined) = declared.iter().find(|p| p.name == decl_parameter.name) {
         if defined.value_type != value_type || defined.scope != scope {
-            ctx.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
+            logger.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
         }
         return failure();
     }

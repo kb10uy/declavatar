@@ -44,14 +44,14 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_parameter(
         &'a self,
-        ctx: &'c mut Logger,
+        logger: &'c mut Logger,
         name: &'a str,
         ty: ParameterType,
         scope: ParameterScope,
     ) -> Compiled<&'a Parameter> {
-        let parameter = self.find_parameter_untyped(ctx, name, scope)?;
+        let parameter = self.find_parameter_untyped(logger, name, scope)?;
         if !parameter.value_type.matches(ty) {
-            ctx.log(Log::ParameterTypeRequirement(
+            logger.log(Log::ParameterTypeRequirement(
                 name.to_string(),
                 ty.type_name().to_string(),
             ));
@@ -62,19 +62,19 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_parameter_untyped(
         &'a self,
-        ctx: &'c mut Logger,
+        logger: &'c mut Logger,
         name: &'a str,
         scope: ParameterScope,
     ) -> Compiled<&'a Parameter> {
         let parameter = match self.parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
             None => {
-                ctx.log(Log::ParameterNotFound(name.to_string()));
+                logger.log(Log::ParameterNotFound(name.to_string()));
                 return failure();
             }
         };
         if !parameter.scope.suitable_for(scope) {
-            ctx.log(Log::ParameterScopeRequirement(
+            logger.log(Log::ParameterScopeRequirement(
                 name.to_string(),
                 scope.name().to_string(),
             ));
@@ -85,19 +85,19 @@ impl<'c, 'a> CompiledSources<'a> {
 
     pub fn find_asset(
         &'a self,
-        ctx: &'a mut Logger,
+        logger: &'a mut Logger,
         name: &'a str,
         ty: AssetType,
     ) -> Compiled<&'a Asset> {
         let asset = match self.assets.iter().find(|p| p.key == name) {
             Some(p) => p,
             None => {
-                ctx.log(Log::AssetNotFound(name.to_string()));
+                logger.log(Log::AssetNotFound(name.to_string()));
                 return failure();
             }
         };
         if asset.asset_type != ty {
-            ctx.log(Log::AssetTypeRequirement(
+            logger.log(Log::AssetTypeRequirement(
                 name.to_string(),
                 ty.type_name().to_string(),
             ));
@@ -123,10 +123,10 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
 
     pub fn find_group(
         &'a self,
-        ctx: &'c mut Logger,
+        logger: &'c mut Logger,
         name: &'a str,
     ) -> Compiled<(&'a str, &'a [LayerGroupOption])> {
-        let layer = self.find_layer(ctx, name)?;
+        let layer = self.find_layer(logger, name)?;
         if let Layer {
             content: LayerContent::Group {
                 parameter, options, ..
@@ -136,13 +136,13 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success((parameter, options))
         } else {
-            ctx.log(Log::AnimationGroupMustBeGroup(name.to_string()));
+            logger.log(Log::AnimationGroupMustBeGroup(name.to_string()));
             failure()
         }
     }
 
-    pub fn find_switch(&'a self, ctx: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
-        let layer = self.find_layer(ctx, name)?;
+    pub fn find_switch(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
+        let layer = self.find_layer(logger, name)?;
         if let Layer {
             content: LayerContent::Switch { parameter, .. },
             ..
@@ -150,13 +150,13 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            ctx.log(Log::AnimationGroupMustBeSwitch(name.to_string()));
+            logger.log(Log::AnimationGroupMustBeSwitch(name.to_string()));
             failure()
         }
     }
 
-    pub fn find_puppet(&'a self, ctx: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
-        let layer = self.find_layer(ctx, name)?;
+    pub fn find_puppet(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a str> {
+        let layer = self.find_layer(logger, name)?;
         if let Layer {
             content: LayerContent::Puppet { parameter, .. },
             ..
@@ -164,16 +164,16 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            ctx.log(Log::AnimationGroupMustBePuppet(name.to_string()));
+            logger.log(Log::AnimationGroupMustBePuppet(name.to_string()));
             failure()
         }
     }
 
-    fn find_layer(&'a self, ctx: &'c mut Logger, name: &'a str) -> Compiled<&'a Layer> {
+    fn find_layer(&'a self, logger: &'c mut Logger, name: &'a str) -> Compiled<&'a Layer> {
         if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
             success(ag)
         } else {
-            ctx.log(Log::AnimationGroupNotFound(name.to_string()));
+            logger.log(Log::AnimationGroupNotFound(name.to_string()));
             failure()
         }
     }
