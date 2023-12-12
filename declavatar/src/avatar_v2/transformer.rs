@@ -136,7 +136,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success((parameter, options))
         } else {
-            logger.log(Log::AnimationGroupMustBeGroup(name.to_string()));
+            logger.log(Log::LayerMustBeGroup(name.to_string()));
             failure()
         }
     }
@@ -150,7 +150,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            logger.log(Log::AnimationGroupMustBeSwitch(name.to_string()));
+            logger.log(Log::LayerMustBeSwitch(name.to_string()));
             failure()
         }
     }
@@ -164,7 +164,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            logger.log(Log::AnimationGroupMustBePuppet(name.to_string()));
+            logger.log(Log::LayerMustBePuppet(name.to_string()));
             failure()
         }
     }
@@ -173,7 +173,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
             success(ag)
         } else {
-            logger.log(Log::AnimationGroupNotFound(name.to_string()));
+            logger.log(Log::LayerNotFound(name.to_string()));
             failure()
         }
     }

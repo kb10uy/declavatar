@@ -68,7 +68,6 @@ pub enum Severity {
     Error,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Log {
     InvalidAvatarName(String),
@@ -85,25 +84,24 @@ pub enum Log {
     AssetNotFound(String),
     AssetTypeRequirement(String, String),
 
-    AnimationGroupNotFound(String),
-    AnimationGroupMustBeGroup(String),
-    AnimationGroupMustBeSwitch(String),
-    AnimationGroupMustBePuppet(String),
-    AnimationGroupOptionNotFound(String, String),
-    AnimationGroupDisabledTargetFailure(String, String),
-    AnimationGroupMaterialFailure(usize),
-    AnimationGroupIndeterminateShapeChange(String, String),
-    AnimationGroupIndeterminateMaterialChange(String, usize),
-    AnimationGroupIndeterminateOption(String, String),
+    LayerNotFound(String),
+    LayerMustBeGroup(String),
+    LayerMustBeSwitch(String),
+    LayerMustBePuppet(String),
+    LayerOptionNotFound(String),
+    LayerDisabledTargetFailure(String),
+    LayerMaterialFailure(usize),
+    LayerIndeterminateShapeChange(String, String),
+    LayerIndeterminateMaterialChange(String, usize),
+    LayerIndeterminateOption(String, String),
+    LayerStateNotFound(String, String),
+    LayerBlendTreeParameterNotFound(String, String),
 
     DriverOptionNotSpecified(String),
     DriverInvalidAddTarget(String),
     DriverInvalidRandomSpecification(String),
     DriverInvalidCopyTarget(String),
     DriverCopyMismatch(String, (String, String)),
-
-    LayerStateNotFound(String, String),
-    LayerBlendTreeParameterNotFound(String, String),
 }
 
 impl Log {
@@ -139,43 +137,40 @@ impl Display for Log {
             Log::AssetNotFound(asset) => write!(f, "asset '{asset}' not found"),
             Log::AssetTypeRequirement(asset, ty) => write!(f, "asset '{asset}' must be {ty}"),
 
-            Log::AnimationGroupNotFound(group) => {
-                write!(f, "animation group '{group}' not found")
+            Log::LayerNotFound(group) => {
+                write!(f, "layer '{group}' not found")
             }
-            Log::AnimationGroupMustBeGroup(group) => {
-                write!(f, "group '{group}' must be group block")
+            Log::LayerMustBeGroup(group) => {
+                write!(f, "layer '{group}' must be group")
             }
-            Log::AnimationGroupMustBeSwitch(group) => {
-                write!(f, "group '{group}' must be switch block")
+            Log::LayerMustBeSwitch(group) => {
+                write!(f, "layer '{group}' must be switch")
             }
-            Log::AnimationGroupMustBePuppet(group) => {
-                write!(f, "group '{group}' must be puppet block")
+            Log::LayerMustBePuppet(group) => {
+                write!(f, "layer '{group}' must be puppet")
             }
-            Log::AnimationGroupOptionNotFound(group, option) => {
-                write!(f, "group '{group}', option '{option}' not found")
+            Log::LayerOptionNotFound(option) => {
+                write!(f, "option '{option}' not found")
             }
-            Log::AnimationGroupDisabledTargetFailure(group, target) => {
-                write!(
-                    f,
-                    "group name '{group}', target '{target}' has no auto-generated disabled target"
-                )
+            Log::LayerDisabledTargetFailure(target) => {
+                write!(f, "target '{target}' has no auto-generated disabled target")
             }
-            Log::AnimationGroupMaterialFailure(group) => {
+            Log::LayerMaterialFailure(group) => {
                 write!(f, "group name '{group}', material target failure")
             }
-            Log::AnimationGroupIndeterminateShapeChange(group, shape) => {
+            Log::LayerIndeterminateShapeChange(group, shape) => {
                 write!(
                     f,
                     "group name '{group}', '{shape}' does not have mesh target"
                 )
             }
-            Log::AnimationGroupIndeterminateMaterialChange(group, material) => {
+            Log::LayerIndeterminateMaterialChange(group, material) => {
                 write!(
                     f,
                     "group name '{group}', '{material}' does not have mesh target"
                 )
             }
-            Log::AnimationGroupIndeterminateOption(group, option) => {
+            Log::LayerIndeterminateOption(group, option) => {
                 write!(f, "group name '{group}', option '{option}' not found")
             }
 
