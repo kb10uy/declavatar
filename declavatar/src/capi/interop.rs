@@ -113,21 +113,3 @@ impl Declavatar {
         Ok(json)
     }
 }
-
-/// Calculate 1-based line and column number from `SourceSpan`.
-#[allow(dead_code)]
-fn calculate_position(span: SourceSpan, source: &str) -> (usize, usize) {
-    let mut offset = span.offset();
-    let line_length_iter = source.split('\n').map(|s| s.len() + 1);
-
-    let mut line = 1;
-    for line_len in line_length_iter {
-        if line_len >= offset {
-            break;
-        }
-        line += 1;
-        offset -= line_len;
-    }
-
-    (line, offset + 1)
-}

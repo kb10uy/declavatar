@@ -18,7 +18,6 @@ pub struct Logger {
     context: Stack<Box<dyn LoggerContext>>,
 }
 
-#[allow(dead_code)]
 impl Logger {
     pub fn new() -> Logger {
         Logger {
