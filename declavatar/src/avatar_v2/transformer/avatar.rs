@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::{avatar::Avatar, layer::Layer},
-        logging::{LogKind, LoggingContext},
+        logger::{LogKind, Logger},
         transformer::{
             asset::compile_assets_blocks, controller::compile_fx_controller_blocks, failure,
             menu::compile_menu, parameter::compile_parameters_blocks, success, Compiled,
@@ -11,7 +11,7 @@ use crate::{
     decl_v2::data::avatar::DeclAvatar,
 };
 
-pub fn compile_avatar(ctx: &mut LoggingContext, avatar: DeclAvatar) -> Compiled<Avatar> {
+pub fn compile_avatar(ctx: &mut Logger, avatar: DeclAvatar) -> Compiled<Avatar> {
     let name = {
         let decl_name = avatar.name.trim().to_string();
         if decl_name.is_empty() {

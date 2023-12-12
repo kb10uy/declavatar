@@ -1,28 +1,43 @@
 use crate::{
     avatar_v2::{
         data::{
-            layer::Layer,
+            layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logging::{LogKind, LoggingContext},
+        logger::{LogKind, Logger},
         transformer::{success, Compiled, CompiledSources},
     },
-    decl_v2::data::layer::{DeclGroupLayer, DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer},
+    decl_v2::data::layer::{
+        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclPuppetLayer, DeclRawLayer,
+        DeclSwitchLayer,
+    },
 };
 
 pub fn compile_group_layer(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     sources: &CompiledSources,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
-    todo!();
-    /*
-    sources.find_parameter(
+    let bound_parameter = sources.find_parameter(
         ctx,
         &decl_group_layer.driven_by,
         ParameterType::INT_TYPE,
         ParameterScope::MAYBE_INTERNAL,
     )?;
+
+    for decl_option in decl_group_layer.options {}
+
+    success(Layer {
+        name: decl_group_layer.name,
+        content: LayerContent::Group {
+            parameter: bound_parameter.name.to_string(),
+            default: (),
+            options: (),
+        },
+    })
+
+    /*
+
 
     let default_mesh = decl_group_layer.default_mesh.as_deref();
     let mut options = vec![];
@@ -85,7 +100,7 @@ pub fn compile_group_layer(
 }
 
 pub fn compile_switch_layer(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     sources: &CompiledSources,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
@@ -93,7 +108,7 @@ pub fn compile_switch_layer(
 }
 
 pub fn compile_puppet_layer(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     sources: &CompiledSources,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
@@ -101,62 +116,112 @@ pub fn compile_puppet_layer(
 }
 
 pub fn compile_raw_layer(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     sources: &CompiledSources,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
     todo!();
 }
 
-/*
 fn compile_group_option(
-    ctx: &mut Context,
+    ctx: &mut Logger,
     sources: &CompiledSources,
+    decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     default_to_one: bool,
-    decl_group_block: DeclGroupBlock,
-) -> Compiled<GroupOption> {
-    let name = decl_group_block.name.unwrap_or_default();
-
-    let targets = if decl_group_block.indeterminate {
-        let block_targets = decl_group_block.targets;
-        let target = block_targets.into_iter().next();
-        let Some(DeclTarget::Indeterminate {
-            label,
-            object,
-            mesh,
-            shape,
-            value,
-        }) = target
-        else {
-            unreachable!("must be indeterminate");
-        };
-
-        compile_indeterminate_target(
-            ctx,
-            sources,
-            &name,
-            default_mesh,
-            default_to_one,
-            (label, mesh, shape, object, value),
-        )
-        .into_iter()
-        .collect()
-    } else {
-        decl_group_block
-            .targets
-            .into_iter()
-            .filter_map(|ds| compile_animation_target(ctx, sources, &name, default_mesh, true, ds))
-            .collect()
+) -> Compiled<(Option<String>, Option<usize>, Vec<Target>)> {
+    let DeclGroupOption {
+        kind: DeclGroupOptionKind::Selection(name, value),
+        targets,
+    } = decl_group_option
+    else {
+        unreachable!("group option kind must be selection");
     };
 
-    success(GroupOption {
-        name,
-        order: decl_group_block.declared_order,
-        targets,
-    })
+    let targets = targets
+        .into_iter()
+        .filter_map(|ds| compile_target(ctx, sources, &name, default_mesh, true, ds))
+        .collect();
+
+    success((name, value, targets))
 }
 
+fn compile_animation_target(
+    ctx: &mut Logger,
+    sources: &CompiledSources,
+    group_name: &str,
+    default_mesh: Option<&str>,
+    default_to_one: bool,
+    decl_target: DeclTarget,
+) -> Compiled<Target> {
+    let default_shape_value = if default_to_one { 1.0 } else { 0.0 };
+
+    match decl_target {
+        DeclTarget::Shape {
+            shape,
+            mesh,
+            value,
+            cancel_to,
+        } => {
+            let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                ctx.log_error(LogKind::AnimationGroupIndeterminateShapeChange(
+                    group_name.to_string(),
+                    shape,
+                ));
+                return failure();
+            };
+            success(Target::Shape(ShapeTarget {
+                mesh: mesh_name.to_string(),
+                name: shape,
+                value: value.unwrap_or(default_shape_value),
+                cancel_to,
+            }))
+        }
+        DeclTarget::Object {
+            object,
+            value,
+            cancel_to,
+        } => success(Target::Object(ObjectTarget {
+            name: object,
+            enabled: value.unwrap_or(default_to_one),
+            cancel_to,
+        })),
+        DeclTarget::Material {
+            slot,
+            value,
+            mesh,
+            cancel_to,
+        } => {
+            let Some(asset_key) = value else {
+                ctx.log_error(LogKind::AnimationGroupMaterialFailure(slot));
+                return failure();
+            };
+            sources.find_asset(ctx, &asset_key.key, AssetType::Material)?;
+
+            if let Some(cancel_asset_key) = &cancel_to {
+                sources.find_asset(ctx, &cancel_asset_key.key, AssetType::Material)?;
+            }
+
+            let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
+                ctx.log_error(LogKind::AnimationGroupIndeterminateMaterialChange(
+                    group_name.to_string(),
+                    slot,
+                ));
+                return failure();
+            };
+
+            success(Target::Material(MaterialTarget {
+                mesh: mesh_name.to_string(),
+                slot,
+                asset_key: asset_key.key,
+                cancel_to: cancel_to.map(|c| c.key),
+            }))
+        }
+        DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
+    }
+}
+
+/*
 fn compile_switch(
     ctx: &mut Context,
     sources: &CompiledSources,
@@ -239,80 +304,6 @@ fn compile_puppet(
     })
 }
 
-fn compile_animation_target(
-    ctx: &mut Context,
-    sources: &CompiledSources,
-    group_name: &str,
-    default_mesh: Option<&str>,
-    default_to_one: bool,
-    decl_target: DeclTarget,
-) -> Compiled<Target> {
-    let default_shape_value = if default_to_one { 1.0 } else { 0.0 };
-
-    match decl_target {
-        DeclTarget::Shape {
-            shape,
-            mesh,
-            value,
-            cancel_to,
-        } => {
-            let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                ctx.log_error(LogKind::AnimationGroupIndeterminateShapeChange(
-                    group_name.to_string(),
-                    shape,
-                ));
-                return failure();
-            };
-            success(Target::Shape(ShapeTarget {
-                mesh: mesh_name.to_string(),
-                name: shape,
-                value: value.unwrap_or(default_shape_value),
-                cancel_to,
-            }))
-        }
-        DeclTarget::Object {
-            object,
-            value,
-            cancel_to,
-        } => success(Target::Object(ObjectTarget {
-            name: object,
-            enabled: value.unwrap_or(default_to_one),
-            cancel_to,
-        })),
-        DeclTarget::Material {
-            slot,
-            value,
-            mesh,
-            cancel_to,
-        } => {
-            let Some(asset_key) = value else {
-                ctx.log_error(LogKind::AnimationGroupMaterialFailure(slot));
-                return failure();
-            };
-            sources.find_asset(ctx, &asset_key.key, AssetType::Material)?;
-
-            if let Some(cancel_asset_key) = &cancel_to {
-                sources.find_asset(ctx, &cancel_asset_key.key, AssetType::Material)?;
-            }
-
-            let Some(mesh_name) = mesh.as_deref().or(default_mesh) else {
-                ctx.log_error(LogKind::AnimationGroupIndeterminateMaterialChange(
-                    group_name.to_string(),
-                    slot,
-                ));
-                return failure();
-            };
-
-            success(Target::Material(MaterialTarget {
-                mesh: mesh_name.to_string(),
-                slot,
-                asset_key: asset_key.key,
-                cancel_to: cancel_to.map(|c| c.key),
-            }))
-        }
-        DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
-    }
-}
 
 fn compile_indeterminate_target(
     ctx: &mut Context,

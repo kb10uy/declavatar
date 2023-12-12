@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::parameter::{Parameter, ParameterScope, ParameterType},
-        logging::{LogKind, LoggingContext},
+        logger::{LogKind, Logger},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::parameter::{
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn compile_parameters_blocks(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     parameters_blocks: Vec<DeclParameters>,
 ) -> Compiled<Vec<Parameter>> {
     let mut parameters: Vec<Parameter> = vec![];
@@ -28,7 +28,7 @@ pub fn compile_parameters_blocks(
 }
 
 fn compile_parameter(
-    ctx: &mut LoggingContext,
+    ctx: &mut Logger,
     decl_parameter: DeclParameter,
     declared: &[Parameter],
 ) -> Compiled<Parameter> {

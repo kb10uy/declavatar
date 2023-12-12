@@ -1,15 +1,15 @@
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug)]
-pub struct LoggingContext {
+pub struct Logger {
     logs: Vec<(LogLevel, LogKind)>,
     errornous: bool,
 }
 
 #[allow(dead_code)]
-impl LoggingContext {
-    pub fn new() -> LoggingContext {
-        LoggingContext {
+impl Logger {
+    pub fn new() -> Logger {
+        Logger {
             logs: vec![],
             errornous: false,
         }
@@ -40,7 +40,7 @@ impl LoggingContext {
     }
 }
 
-impl Default for LoggingContext {
+impl Default for Logger {
     fn default() -> Self {
         Self::new()
     }
