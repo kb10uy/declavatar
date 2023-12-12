@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::parameter::{Parameter, ParameterScope, ParameterType},
-        logger::{LogKind, Logger},
+        logger::{Log, Logger, LoggerContext},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::parameter::{
@@ -13,15 +13,24 @@ pub fn compile_parameters_blocks(
     ctx: &mut Logger,
     parameters_blocks: Vec<DeclParameters>,
 ) -> Compiled<Vec<Parameter>> {
-    let mut parameters: Vec<Parameter> = vec![];
+    #[derive(Debug)]
+    pub struct Context(usize);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("parameters block {} > {}", self.0, inner)
+        }
+    }
 
-    let decl_parameters = parameters_blocks.into_iter().flat_map(|pb| pb.parameters);
-    for decl_parameter in decl_parameters {
-        let Some(parameter) = compile_parameter(ctx, decl_parameter, &parameters) else {
-            continue;
-        };
-
-        parameters.push(parameter);
+    let mut parameters = vec![];
+    for (index, decl_parameters) in parameters_blocks.into_iter().enumerate() {
+        ctx.push_context(Context(index));
+        for parameter in decl_parameters.parameters {
+            let Some(parameter) = compile_parameter(ctx, parameter, &parameters) else {
+                continue;
+            };
+            parameters.push(parameter);
+        }
+        ctx.pop_context();
     }
 
     success(parameters)
@@ -46,16 +55,14 @@ fn compile_parameter(
         (None | Some(DeclParameterScope::Synced), Some(saved)) => ParameterScope::Synced(saved),
 
         (Some(DeclParameterScope::Internal), Some(true)) => {
-            ctx.log_error(LogKind::InternalMustBeTransient(decl_parameter.name));
+            ctx.log(Log::InternalMustBeTransient(decl_parameter.name));
             return failure();
         }
     };
 
     if let Some(defined) = declared.iter().find(|p| p.name == decl_parameter.name) {
         if defined.value_type != value_type || defined.scope != scope {
-            ctx.log_error(LogKind::IncompatibleParameterDeclaration(
-                decl_parameter.name,
-            ));
+            ctx.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
         }
         return failure();
     }

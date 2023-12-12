@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::layer::Layer,
-        logger::{LogKind, Logger},
+        logger::{Log, Logger},
         transformer::{
             layer::{
                 compile_group_layer, compile_puppet_layer, compile_raw_layer, compile_switch_layer,
@@ -43,7 +43,7 @@ pub fn compile_fx_controller_blocks(
         };
 
         if used_group_names.contains(&layer.name) {
-            ctx.log_warn(LogKind::DuplicateLayerName(layer.name.clone()));
+            ctx.log_warn(Log::DuplicateLayerName(layer.name.clone()));
         } else {
             used_group_names.insert(layer.name.clone());
         }

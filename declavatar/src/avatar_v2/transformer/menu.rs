@@ -7,7 +7,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{LogKind, Logger},
+        logger::{Log, Logger},
         transformer::{failure, success, Compiled, CompiledAnimations},
     },
     decl_v2::data::{
@@ -82,7 +82,7 @@ fn compile_boolean(
             )?;
 
             let Some(option) = options.iter().find(|o| o.name == dg.option) else {
-                ctx.log_error(LogKind::AnimationGroupOptionNotFound(
+                ctx.log(Log::AnimationGroupOptionNotFound(
                     dg.group.to_string(),
                     dg.option,
                 ));

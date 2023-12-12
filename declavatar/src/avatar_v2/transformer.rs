@@ -12,7 +12,7 @@ use crate::avatar_v2::{
         layer::{Layer, LayerContent, LayerGroupOption},
         parameter::{Parameter, ParameterScope, ParameterType},
     },
-    logger::{LogKind, Logger},
+    logger::{Log, Logger},
 };
 
 pub(super) use self::avatar::compile_avatar;
@@ -51,7 +51,7 @@ impl<'c, 'a> CompiledSources<'a> {
     ) -> Compiled<&'a Parameter> {
         let parameter = self.find_parameter_untyped(ctx, name, scope)?;
         if !parameter.value_type.matches(ty) {
-            ctx.log_error(LogKind::ParameterTypeRequirement(
+            ctx.log(Log::ParameterTypeRequirement(
                 name.to_string(),
                 ty.type_name().to_string(),
             ));
@@ -69,12 +69,12 @@ impl<'c, 'a> CompiledSources<'a> {
         let parameter = match self.parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
             None => {
-                ctx.log_error(LogKind::ParameterNotFound(name.to_string()));
+                ctx.log(Log::ParameterNotFound(name.to_string()));
                 return failure();
             }
         };
         if !parameter.scope.suitable_for(scope) {
-            ctx.log_error(LogKind::ParameterScopeRequirement(
+            ctx.log(Log::ParameterScopeRequirement(
                 name.to_string(),
                 scope.name().to_string(),
             ));
@@ -92,12 +92,12 @@ impl<'c, 'a> CompiledSources<'a> {
         let asset = match self.assets.iter().find(|p| p.key == name) {
             Some(p) => p,
             None => {
-                ctx.log_error(LogKind::AssetNotFound(name.to_string()));
+                ctx.log(Log::AssetNotFound(name.to_string()));
                 return failure();
             }
         };
         if asset.asset_type != ty {
-            ctx.log_error(LogKind::AssetTypeRequirement(
+            ctx.log(Log::AssetTypeRequirement(
                 name.to_string(),
                 ty.type_name().to_string(),
             ));
@@ -136,7 +136,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success((parameter, options))
         } else {
-            ctx.log_error(LogKind::AnimationGroupMustBeGroup(name.to_string()));
+            ctx.log(Log::AnimationGroupMustBeGroup(name.to_string()));
             failure()
         }
     }
@@ -150,7 +150,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            ctx.log_error(LogKind::AnimationGroupMustBeSwitch(name.to_string()));
+            ctx.log(Log::AnimationGroupMustBeSwitch(name.to_string()));
             failure()
         }
     }
@@ -164,7 +164,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         {
             success(parameter)
         } else {
-            ctx.log_error(LogKind::AnimationGroupMustBePuppet(name.to_string()));
+            ctx.log(Log::AnimationGroupMustBePuppet(name.to_string()));
             failure()
         }
     }
@@ -173,7 +173,7 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
             success(ag)
         } else {
-            ctx.log_error(LogKind::AnimationGroupNotFound(name.to_string()));
+            ctx.log(Log::AnimationGroupNotFound(name.to_string()));
             failure()
         }
     }

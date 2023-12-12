@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::{avatar::Avatar, layer::Layer},
-        logger::{LogKind, Logger},
+        logger::{Log, Logger, LoggerContext},
         transformer::{
             asset::compile_assets_blocks, controller::compile_fx_controller_blocks, failure,
             menu::compile_menu, parameter::compile_parameters_blocks, success, Compiled,
@@ -12,14 +12,23 @@ use crate::{
 };
 
 pub fn compile_avatar(ctx: &mut Logger, avatar: DeclAvatar) -> Compiled<Avatar> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("avatar '{}' > {}", self.0, inner)
+        }
+    }
+
     let name = {
         let decl_name = avatar.name.trim().to_string();
         if decl_name.is_empty() {
-            ctx.log_error(LogKind::InvalidAvatarName(decl_name));
+            ctx.log(Log::InvalidAvatarName(decl_name));
             return failure();
         }
         decl_name
     };
+    ctx.push_context(Context(name.clone()));
 
     let parameters = compile_parameters_blocks(ctx, avatar.parameters_blocks)?;
     let assets = compile_assets_blocks(ctx, avatar.assets_blocks)?;
@@ -32,7 +41,8 @@ pub fn compile_avatar(ctx: &mut Logger, avatar: DeclAvatar) -> Compiled<Avatar> 
     let compiled_animations = CompiledAnimations::new(compiled_sources, layers);
     let menu_items = compile_menu(ctx, &compiled_animations, avatar.menu_blocks)?;
 
-    if ctx.errornous() {
+    ctx.pop_context();
+    if ctx.erroneous() {
         return failure();
     }
 

@@ -1,9 +1,17 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::fmt::{Debug, Display, Error as FmtError, Formatter, Result as FmtResult};
+
+use rpds::Stack;
 
 #[derive(Debug)]
 pub struct Logger {
-    logs: Vec<(LogLevel, LogKind)>,
-    errornous: bool,
+    logs: Vec<(Log, Stack<Box<dyn LoggerContext>>)>,
+    context: Stack<Box<dyn LoggerContext>>,
+    erroneous: bool,
+}
+
+#[allow(unused_variables)]
+pub trait LoggerContext: 'static + Debug {
+    fn write_context(&self, inner: String) -> String;
 }
 
 #[allow(dead_code)]
@@ -11,32 +19,39 @@ impl Logger {
     pub fn new() -> Logger {
         Logger {
             logs: vec![],
-            errornous: false,
+            context: Stack::new(),
+            erroneous: false,
         }
     }
 
-    pub(super) fn log_info(&mut self, log: LogKind) {
-        self.logs.push((LogLevel::Information, log));
+    pub(super) fn push_context<C: LoggerContext>(&mut self, context: C) {
+        self.context = self.context.push(Box::new(context));
     }
 
-    pub(super) fn log_warn(&mut self, log: LogKind) {
-        self.logs.push((LogLevel::Warning, log));
+    pub(super) fn pop_context(&mut self) {
+        self.context = self.context.pop().expect("too much pops");
     }
 
-    pub(super) fn log_error(&mut self, log: LogKind) {
-        self.logs.push((LogLevel::Error, log));
-        self.errornous = true;
+    pub(super) fn erroneous(&self) -> bool {
+        self.erroneous
     }
 
-    pub(super) fn errornous(&self) -> bool {
-        self.errornous
+    pub fn into_logs(&self) -> Result<Vec<(Severity, String)>, FmtError> {
+        let mut logs = vec![];
+        for (log, context_tail) in self.logs {
+            let severity = log.severity();
+            let message = context_tail
+                .iter()
+                .fold(log.to_string(), |inner, ctx| ctx.write_context(inner));
+            logs.push((severity, message));
+        }
+
+        Ok(logs)
     }
 
-    pub fn into_logs(self) -> Vec<(LogLevel, String)> {
-        self.logs
-            .into_iter()
-            .map(|(ll, lk)| (ll, lk.to_string()))
-            .collect()
+    pub(super) fn log(&mut self, log: Log) {
+        self.logs.push((log, self.context.clone()));
+        self.erroneous = true;
     }
 }
 
@@ -47,7 +62,7 @@ impl Default for Logger {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LogLevel {
+pub enum Severity {
     Information,
     Warning,
     Error,
@@ -55,7 +70,7 @@ pub enum LogLevel {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub enum LogKind {
+pub enum Log {
     InvalidAvatarName(String),
     InternalMustBeTransient(String),
     IncompatibleParameterDeclaration(String),
@@ -91,96 +106,104 @@ pub enum LogKind {
     LayerBlendTreeParameterNotFound(String, String),
 }
 
-impl Display for LogKind {
+impl Log {
+    pub fn severity(&self) -> Severity {
+        match self {
+            _ => Severity::Error,
+        }
+    }
+}
+
+impl Display for Log {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            LogKind::InvalidAvatarName(name) => write!(f, "invalid avatar name '{name}'"),
-            LogKind::InternalMustBeTransient(param) => {
+            Log::InvalidAvatarName(name) => write!(f, "invalid avatar name '{name}'"),
+            Log::InternalMustBeTransient(param) => {
                 write!(f, "internal parameter '{param}' cannot be saved")
             }
-            LogKind::IncompatibleParameterDeclaration(param) => {
+            Log::IncompatibleParameterDeclaration(param) => {
                 write!(f, "parameter '{param}' has incompatible declarations")
             }
-            LogKind::IndeterminateAsset(asset) => write!(f, "indeterminate asset '{asset}'"),
-            LogKind::IncompatibleAssetDeclaration(asset) => {
+            Log::IndeterminateAsset(asset) => write!(f, "indeterminate asset '{asset}'"),
+            Log::IncompatibleAssetDeclaration(asset) => {
                 write!(f, "asset '{asset}' has incompatible declaration")
             }
-            LogKind::DuplicateLayerName(group) => write!(f, "layer name '{group}' is duplicate"),
+            Log::DuplicateLayerName(group) => write!(f, "layer name '{group}' is duplicate"),
 
-            LogKind::ParameterNotFound(param) => write!(f, "parameter '{param}' not found"),
-            LogKind::ParameterTypeRequirement(param, ty) => {
+            Log::ParameterNotFound(param) => write!(f, "parameter '{param}' not found"),
+            Log::ParameterTypeRequirement(param, ty) => {
                 write!(f, "parameter '{param}' must be {ty}")
             }
-            LogKind::ParameterScopeRequirement(param, scope) => {
+            Log::ParameterScopeRequirement(param, scope) => {
                 write!(f, "parameter '{param}' must be {scope}")
             }
 
-            LogKind::AssetNotFound(asset) => write!(f, "asset '{asset}' not found"),
-            LogKind::AssetTypeRequirement(asset, ty) => write!(f, "asset '{asset}' must be {ty}"),
+            Log::AssetNotFound(asset) => write!(f, "asset '{asset}' not found"),
+            Log::AssetTypeRequirement(asset, ty) => write!(f, "asset '{asset}' must be {ty}"),
 
-            LogKind::AnimationGroupNotFound(group) => {
+            Log::AnimationGroupNotFound(group) => {
                 write!(f, "animation group '{group}' not found")
             }
-            LogKind::AnimationGroupMustBeGroup(group) => {
+            Log::AnimationGroupMustBeGroup(group) => {
                 write!(f, "group '{group}' must be group block")
             }
-            LogKind::AnimationGroupMustBeSwitch(group) => {
+            Log::AnimationGroupMustBeSwitch(group) => {
                 write!(f, "group '{group}' must be switch block")
             }
-            LogKind::AnimationGroupMustBePuppet(group) => {
+            Log::AnimationGroupMustBePuppet(group) => {
                 write!(f, "group '{group}' must be puppet block")
             }
-            LogKind::AnimationGroupOptionNotFound(group, option) => {
+            Log::AnimationGroupOptionNotFound(group, option) => {
                 write!(f, "group '{group}', option '{option}' not found")
             }
-            LogKind::AnimationGroupDisabledTargetFailure(group, target) => {
+            Log::AnimationGroupDisabledTargetFailure(group, target) => {
                 write!(
                     f,
                     "group name '{group}', target '{target}' has no auto-generated disabled target"
                 )
             }
-            LogKind::AnimationGroupMaterialFailure(group) => {
+            Log::AnimationGroupMaterialFailure(group) => {
                 write!(f, "group name '{group}', material target failure")
             }
-            LogKind::AnimationGroupIndeterminateShapeChange(group, shape) => {
+            Log::AnimationGroupIndeterminateShapeChange(group, shape) => {
                 write!(
                     f,
                     "group name '{group}', '{shape}' does not have mesh target"
                 )
             }
-            LogKind::AnimationGroupIndeterminateMaterialChange(group, material) => {
+            Log::AnimationGroupIndeterminateMaterialChange(group, material) => {
                 write!(
                     f,
                     "group name '{group}', '{material}' does not have mesh target"
                 )
             }
-            LogKind::AnimationGroupIndeterminateOption(group, option) => {
+            Log::AnimationGroupIndeterminateOption(group, option) => {
                 write!(f, "group name '{group}', option '{option}' not found")
             }
 
-            LogKind::DriverOptionNotSpecified(driver) => {
+            Log::DriverOptionNotSpecified(driver) => {
                 write!(f, "driver option '{driver}' not specified")
             }
-            LogKind::DriverInvalidAddTarget(driver) => {
+            Log::DriverInvalidAddTarget(driver) => {
                 write!(f, "driver '{driver}' has invalid add target")
             }
-            LogKind::DriverInvalidRandomSpecification(driver) => {
+            Log::DriverInvalidRandomSpecification(driver) => {
                 write!(
                     f,
                     "driver '{driver}' has invalid random target specification"
                 )
             }
-            LogKind::DriverInvalidCopyTarget(driver) => {
+            Log::DriverInvalidCopyTarget(driver) => {
                 write!(f, "driver option '{driver}' has invalid copy target")
             }
-            LogKind::DriverCopyMismatch(driver, (from, to)) => {
+            Log::DriverCopyMismatch(driver, (from, to)) => {
                 write!(f, "driver option '{driver}' has copy target; parameters '{from}' and '{to}' have different type")
             }
 
-            LogKind::LayerStateNotFound(layer, state) => {
+            Log::LayerStateNotFound(layer, state) => {
                 write!(f, "layer '{layer}', state '{state}' not found")
             }
-            LogKind::LayerBlendTreeParameterNotFound(layer, state) => write!(
+            Log::LayerBlendTreeParameterNotFound(layer, state) => write!(
                 f,
                 "layer '{layer}', state '{state}' does not sufficient parameters"
             ),

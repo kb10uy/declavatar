@@ -4,7 +4,7 @@ use crate::{
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{LogKind, Logger},
+        logger::{Log, Logger},
         transformer::{success, Compiled, CompiledSources},
     },
     decl_v2::data::layer::{
@@ -31,8 +31,8 @@ pub fn compile_group_layer(
         name: decl_group_layer.name,
         content: LayerContent::Group {
             parameter: bound_parameter.name.to_string(),
-            default: (),
-            options: (),
+            default: todo!(),
+            options: todo!(),
         },
     })
 
@@ -138,14 +138,15 @@ fn compile_group_option(
         unreachable!("group option kind must be selection");
     };
 
-    let targets = targets
+    let targets = todo!();
+    /*targets
         .into_iter()
         .filter_map(|ds| compile_target(ctx, sources, &name, default_mesh, true, ds))
         .collect();
-
+*/
     success((name, value, targets))
 }
-
+/*
 fn compile_animation_target(
     ctx: &mut Logger,
     sources: &CompiledSources,
@@ -220,7 +221,7 @@ fn compile_animation_target(
         DeclTarget::Indeterminate { .. } => unreachable!("must be determinate"),
     }
 }
-
+*/
 /*
 fn compile_switch(
     ctx: &mut Context,

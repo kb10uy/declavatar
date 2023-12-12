@@ -13,6 +13,7 @@ crate-type = ["rlib", "cdylib"]
 kdl = { workspace = true }
 ketos = { workspace = true }
 miette = { workspace = true }
+rpds = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
