@@ -56,3 +56,14 @@ pub enum Target {
     },
     ParameterDrive(ParameterDrive),
 }
+
+impl Target {
+    pub fn driving_key(&self) -> String {
+        match self {
+            Target::Shape { mesh, shape, .. } => format!("shape://{mesh}/{shape}"),
+            Target::Object { object, .. } => format!("object://{object}"),
+            Target::Material { mesh, index, .. } => format!("material://{mesh}/{index}"),
+            Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
+        }
+    }
+}

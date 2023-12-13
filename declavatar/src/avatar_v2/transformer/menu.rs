@@ -5,7 +5,7 @@ use crate::{
                 BiAxis, MenuBoolean, MenuFourAxis, MenuGroup, MenuItem, MenuRadial, MenuTwoAxis,
                 UniAxis,
             },
-            parameter::{ParameterScope, ParameterType},
+            parameter::ParameterType,
         },
         logger::{Log, Logger, LoggerContext},
         transformer::{failure, success, Compiled, FirstPassData},
@@ -101,13 +101,6 @@ fn compile_boolean(
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
             let (parameter, options) = first_pass.find_group(&logger, &dg.group)?;
-            first_pass.find_parameter(
-                &logger,
-                parameter,
-                ParameterType::INT_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
-
             let Some((_, value)) = options.iter().find(|(name, _)| name == &dg.option) else {
                 logger.log(Log::LayerOptionNotFound(dg.option));
                 return failure();
@@ -117,12 +110,6 @@ fn compile_boolean(
         }
         DeclParameterDrive::Switch(ds) => {
             let parameter = first_pass.find_switch(&logger, &ds.switch)?;
-            first_pass.find_parameter(
-                &logger,
-                parameter,
-                ParameterType::BOOL_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
 
             (
                 parameter.to_string(),
@@ -131,12 +118,6 @@ fn compile_boolean(
         }
         DeclParameterDrive::Puppet(dp) => {
             let parameter = first_pass.find_puppet(&logger, &dp.puppet)?;
-            first_pass.find_parameter(
-                &logger,
-                parameter,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
 
             (
                 parameter.to_string(),
@@ -233,12 +214,6 @@ fn take_puppet_parameter(
             parameter.to_string()
         }
     };
-    first_pass.find_parameter(
-        logger,
-        &parameter,
-        ParameterType::FLOAT_TYPE,
-        ParameterScope::MUST_EXPOSE,
-    )?;
 
     success(parameter)
 }

@@ -97,7 +97,7 @@ pub enum Log {
     LayerMaterialFailure(usize),
     LayerIndeterminateShapeChange(String),
     LayerIndeterminateMaterialChange(usize),
-    LayerIndeterminateOption(String, String),
+    LayerPuppetCannotDrive,
     LayerStateNotFound(String),
     LayerBlendTreeParameterNotFound(String),
 
@@ -168,8 +168,8 @@ impl Display for Log {
             Log::LayerIndeterminateMaterialChange(material) => {
                 write!(f, "'{material}' does not have mesh target")
             }
-            Log::LayerIndeterminateOption(group, option) => {
-                write!(f, "group name '{group}', option '{option}' not found")
+            Log::LayerPuppetCannotDrive => {
+                write!(f, "puppet layer cannot drive parameters")
             }
 
             Log::DriverOptionNotSpecified(driver) => {

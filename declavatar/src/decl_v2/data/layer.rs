@@ -155,6 +155,13 @@ pub enum DeclRawLayerTransitionOrdering {
 }
 
 impl DeclGroupOptionKind {
+    pub fn as_all_selection(&self) -> Option<(Option<String>, Option<usize>)> {
+        let DeclGroupOptionKind::Selection(name, value) = self else {
+            return None;
+        };
+        Some((name.clone(), *value))
+    }
+
     pub fn as_selection(&self) -> Option<(String, Option<usize>)> {
         let DeclGroupOptionKind::Selection(Some(name), value) = self else {
             return None;

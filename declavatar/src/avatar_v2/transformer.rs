@@ -128,36 +128,48 @@ impl FirstPassData {
     }
 
     pub fn find_group(&self, logger: &Logger, name: &str) -> Compiled<(&str, &[(String, usize)])> {
-        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let DeclaredLayerType::Group(parameter, options) = layer {
-            success((&parameter, &options))
-        } else {
+        let DeclaredLayerType::Group(parameter, options) = layer else {
             logger.log(Log::LayerMustBeGroup(name.to_string()));
-            failure()
-        }
+            return failure();
+        };
+        self.find_parameter(
+            &logger,
+            parameter,
+            ParameterType::INT_TYPE,
+            ParameterScope::MUST_EXPOSE,
+        )?;
+        success((&parameter, &options))
     }
 
     pub fn find_switch(&self, logger: &Logger, name: &str) -> Compiled<&str> {
-        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let DeclaredLayerType::Switch(parameter) = layer {
-            success(parameter)
-        } else {
+        let DeclaredLayerType::Switch(parameter) = layer else {
             logger.log(Log::LayerMustBeSwitch(name.to_string()));
-            failure()
-        }
+            return failure();
+        };
+        self.find_parameter(
+            &logger,
+            parameter,
+            ParameterType::BOOL_TYPE,
+            ParameterScope::MUST_EXPOSE,
+        )?;
+        success(parameter)
     }
 
     pub fn find_puppet(&self, logger: &Logger, name: &str) -> Compiled<&str> {
-        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let DeclaredLayerType::Puppet(parameter) = layer {
-            success(parameter)
-        } else {
+        let DeclaredLayerType::Puppet(parameter) = layer else {
             logger.log(Log::LayerMustBePuppet(name.to_string()));
-            failure()
-        }
+            return failure();
+        };
+        self.find_parameter(
+            &logger,
+            parameter,
+            ParameterType::BOOL_TYPE,
+            ParameterScope::MUST_EXPOSE,
+        )?;
+        success(parameter)
     }
 
     fn find_layer(&self, logger: &Logger, name: &str) -> Compiled<&DeclaredLayerType> {
@@ -167,5 +179,35 @@ impl FirstPassData {
             logger.log(Log::LayerNotFound(name.to_string()));
             failure()
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum UnsetValue {
+    Active,
+    Inactive,
+}
+
+impl UnsetValue {
+    pub const fn as_bool(self) -> bool {
+        match self {
+            UnsetValue::Active => true,
+            UnsetValue::Inactive => false,
+        }
+    }
+
+    pub const fn as_f64(self) -> f64 {
+        match self {
+            UnsetValue::Active => 1.0,
+            UnsetValue::Inactive => 0.0,
+        }
+    }
+
+    pub fn replace_f64(self, base: Option<f64>) -> f64 {
+        base.unwrap_or(self.as_f64())
+    }
+
+    pub fn replace_bool(self, base: Option<bool>) -> bool {
+        base.unwrap_or(self.as_bool())
     }
 }

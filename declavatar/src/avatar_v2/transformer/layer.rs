@@ -2,21 +2,18 @@ use crate::{
     avatar_v2::{
         data::{
             asset::AssetType,
-            driver::ParameterDrive,
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger, LoggerContext},
         transformer::{
-            failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,
+            driver::compile_parameter_drive, failure, success, Compiled, DeclaredLayer,
+            DeclaredLayerType, FirstPassData, UnsetValue,
         },
     },
-    decl_v2::data::{
-        driver::DeclParameterDrive,
-        layer::{
-            DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
-            DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
-        },
+    decl_v2::data::layer::{
+        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
+        DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
     },
 };
 
@@ -69,66 +66,6 @@ pub fn compile_group_layer(
             options: todo!(),
         },
     })
-
-    /*
-    let default_mesh = decl_group_layer.default_mesh.as_deref();
-    let mut options = vec![];
-    let mut default_targets: Vec<_> = match decl_group_layer.default {
-        Some(db) => compile_group_option(ctx, sources, default_mesh, false, db)
-            .map(|b| b.targets)
-            .unwrap_or_default(),
-        None => vec![],
-    };
-    let mut default_shape_indices: HashSet<_> = default_targets.iter().map(|t| t.index()).collect();
-
-    let canceled_defaults: Vec<_> = default_targets
-        .iter()
-        .flat_map(|dt| dt.clone_as_canceled())
-        .collect();
-
-    for decl_option in decl_group.options {
-        let cancel_default = decl_option.cancel_default.unwrap_or(false);
-        let Some(mut option) = compile_group_option(ctx, sources, default_mesh, true, decl_option)
-        else {
-            continue;
-        };
-
-        for target in &option.targets {
-            let shape_index = target.index();
-            if default_shape_indices.contains(&shape_index) {
-                continue;
-            }
-            let Some(disabled_target) = target.clone_as_disabled() else {
-                ctx.log_error(LogKind::AnimationGroupDisabledTargetFailure(
-                    decl_group.name,
-                    format!("{target:?}"),
-                ));
-                return failure();
-            };
-            default_targets.push(disabled_target);
-            default_shape_indices.insert(shape_index);
-        }
-
-        if cancel_default {
-            option.targets.extend_from_slice(&canceled_defaults);
-        }
-
-        options.push(option);
-    }
-
-    success(AnimationGroup {
-        name: decl_group.name,
-        content: AnimationGroupContent::Group {
-            parameter: decl_group.parameter,
-            preventions: Preventions {
-                mouth: decl_group.preventions.mouth.unwrap_or(false),
-                eyelids: decl_group.preventions.eyelids.unwrap_or(false),
-            },
-            default_targets,
-            options,
-        },
-    })
-    */
 }
 
 pub fn compile_switch_layer(
@@ -202,7 +139,10 @@ pub fn compile_raw_layer(
     todo!();
 }
 
-pub fn first_pass_raw_layer(_logger: &Logger, decl_raw_layer: &DeclRawLayer) -> Compiled<DeclaredLayer> {
+pub fn first_pass_raw_layer(
+    _logger: &Logger,
+    decl_raw_layer: &DeclRawLayer,
+) -> Compiled<DeclaredLayer> {
     success(DeclaredLayer {
         name: decl_raw_layer.name.clone(),
         layer_type: DeclaredLayerType::Raw,
@@ -214,7 +154,7 @@ fn compile_group_option(
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
-    default_to_one: bool,
+    unset_value: UnsetValue,
 ) -> Compiled<(Option<String>, Option<usize>, Vec<Target>)> {
     #[derive(Debug)]
     pub struct Context(Option<String>);
@@ -228,16 +168,22 @@ fn compile_group_option(
         }
     }
 
-    let DeclGroupOption {
-        kind: DeclGroupOptionKind::Selection(name, value),
-        targets,
-    } = decl_group_option
-    else {
-        unreachable!("group option kind must be selection");
-    };
+    let (name, value) = decl_group_option
+        .kind
+        .as_all_selection()
+        .expect("group option kind must be selection");
     let logger = logger.with_context(Context(name.clone()));
 
-    let compiled_targets = vec![];
+    let mut compiled_targets = vec![];
+    for decl_target in decl_group_option.targets {
+        let Some(target) =
+            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
+        else {
+            continue;
+        };
+        compiled_targets.push(target);
+    }
+
     success((name, value, compiled_targets))
 }
 
@@ -246,7 +192,7 @@ fn compile_switch_option(
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
-    default_to_one: bool,
+    unset_value: UnsetValue,
 ) -> Compiled<(bool, Vec<Target>)> {
     #[derive(Debug)]
     pub struct Context(bool);
@@ -257,16 +203,21 @@ fn compile_switch_option(
         }
     }
 
-    let DeclGroupOption {
-        kind: DeclGroupOptionKind::Boolean(value),
-        targets,
-    } = decl_group_option
-    else {
-        unreachable!("switch option kind must be boolean");
-    };
+    let value = decl_group_option
+        .kind
+        .as_boolean()
+        .expect("group option kind must be boolean");
     let logger = logger.with_context(Context(value));
 
-    let compiled_targets = vec![];
+    let mut compiled_targets = vec![];
+    for decl_target in decl_group_option.targets {
+        let Some(target) =
+            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
+        else {
+            continue;
+        };
+        compiled_targets.push(target);
+    }
     success((value, compiled_targets))
 }
 
@@ -275,7 +226,7 @@ fn compile_puppet_option(
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
-    default_to_one: bool,
+    unset_value: UnsetValue,
 ) -> Compiled<(f64, Vec<Target>)> {
     #[derive(Debug)]
     pub struct Context(f64);
@@ -285,16 +236,25 @@ fn compile_puppet_option(
         }
     }
 
-    let DeclGroupOption {
-        kind: DeclGroupOptionKind::Keyframe(value),
-        targets,
-    } = decl_group_option
-    else {
-        unreachable!("switch option kind must be keyframe");
-    };
+    let value = decl_group_option
+        .kind
+        .as_keyframe()
+        .expect("group option kind must be keyframe");
     let logger = logger.with_context(Context(value));
 
-    let compiled_targets = vec![];
+    let mut compiled_targets = vec![];
+    for decl_target in decl_group_option.targets {
+        let Some(target) =
+            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
+        else {
+            continue;
+        };
+        if let Target::ParameterDrive(_) = target {
+            logger.log(Log::LayerPuppetCannotDrive);
+            continue;
+        }
+        compiled_targets.push(target);
+    }
 
     success((value, compiled_targets))
 }
@@ -334,23 +294,11 @@ fn compile_target(
                 asset: material_target.value,
             }
         }
-        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => {
-            Target::ParameterDrive(compile_parameter_drive(logger, first_pass, parameter_drive)?)
-        }
+        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => Target::ParameterDrive(
+            compile_parameter_drive(logger, first_pass, unset_value, parameter_drive)?,
+        ),
     };
     success(target)
-}
-
-fn compile_parameter_drive(
-    logger: &Logger,
-    first_pass: &FirstPassData,
-    decl_parameter_drive: DeclParameterDrive,
-) -> Compiled<ParameterDrive> {
-    match decl_parameter_drive {
-        DeclParameterDrive::Group(dg) => todo!(),
-        DeclParameterDrive::Switch(ds) => todo!(),
-        DeclParameterDrive::Puppet(dp) => todo!(),
-    }
 }
 
 /*
@@ -889,33 +837,3 @@ fn compile_raw_layer_state(
     })
 }
 */
-
-#[derive(Debug, Clone, Copy)]
-enum UnsetValue {
-    Active,
-    Inactive,
-}
-
-impl UnsetValue {
-    pub const fn as_bool(self) -> bool {
-        match self {
-            UnsetValue::Active => true,
-            UnsetValue::Inactive => false,
-        }
-    }
-
-    pub const fn as_f64(self) -> f64 {
-        match self {
-            UnsetValue::Active => 1.0,
-            UnsetValue::Inactive => 0.0,
-        }
-    }
-
-    pub fn replace_f64(self, base: Option<f64>) -> f64 {
-        base.unwrap_or(self.as_f64())
-    }
-
-    pub fn replace_bool(self, base: Option<bool>) -> bool {
-        base.unwrap_or(self.as_bool())
-    }
-}
