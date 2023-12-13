@@ -1,21 +1,45 @@
 use crate::{
     avatar_v2::{
         data::{
+            asset::AssetType,
+            driver::ParameterDrive,
             layer::{Layer, LayerContent, LayerGroupOption, Target},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Logger, Log, LoggerContext},
-        transformer::{success, Compiled, CompiledSources},
+        logger::{Log, Logger, LoggerContext},
+        transformer::{
+            failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,
+        },
     },
-    decl_v2::data::layer::{
-        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
-        DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
+    decl_v2::data::{
+        driver::DeclParameterDrive,
+        layer::{
+            DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
+            DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
+        },
     },
 };
 
+pub fn first_pass_group_layer(
+    _logger: &Logger,
+    decl_group_layer: &DeclGroupLayer,
+) -> Compiled<DeclaredLayer> {
+    // if it compiles, order will be preserved
+    let option_names = decl_group_layer
+        .options
+        .iter()
+        .enumerate()
+        .flat_map(|(di, o)| o.kind.as_selection().map(|(n, i)| (n, i.unwrap_or(di))))
+        .collect();
+    success(DeclaredLayer {
+        name: decl_group_layer.name.clone(),
+        layer_type: DeclaredLayerType::Group(decl_group_layer.driven_by.clone(), option_names),
+    })
+}
+
 pub fn compile_group_layer(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
     #[derive(Debug)]
@@ -28,7 +52,7 @@ pub fn compile_group_layer(
 
     let logger = logger.with_context(Context(decl_group_layer.name.clone()));
 
-    let bound_parameter = sources.find_parameter(
+    let bound_parameter = first_pass.find_parameter(
         &logger,
         &decl_group_layer.driven_by,
         ParameterType::INT_TYPE,
@@ -109,7 +133,7 @@ pub fn compile_group_layer(
 
 pub fn compile_switch_layer(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
     #[derive(Debug)]
@@ -124,9 +148,19 @@ pub fn compile_switch_layer(
     todo!();
 }
 
+pub fn first_pass_switch_layer(
+    _logger: &Logger,
+    decl_switch_layer: &DeclSwitchLayer,
+) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_switch_layer.name.clone(),
+        layer_type: DeclaredLayerType::Switch(decl_switch_layer.driven_by.clone()),
+    })
+}
+
 pub fn compile_puppet_layer(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
     #[derive(Debug)]
@@ -141,9 +175,19 @@ pub fn compile_puppet_layer(
     todo!();
 }
 
+pub fn first_pass_puppet_layer(
+    _logger: &Logger,
+    decl_puppet_layer: &DeclPuppetLayer,
+) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_puppet_layer.name.clone(),
+        layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone()),
+    })
+}
+
 pub fn compile_raw_layer(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
     #[derive(Debug)]
@@ -158,9 +202,16 @@ pub fn compile_raw_layer(
     todo!();
 }
 
+pub fn first_pass_raw_layer(_logger: &Logger, decl_raw_layer: &DeclRawLayer) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_raw_layer.name.clone(),
+        layer_type: DeclaredLayerType::Raw,
+    })
+}
+
 fn compile_group_option(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     default_to_one: bool,
@@ -192,7 +243,7 @@ fn compile_group_option(
 
 fn compile_switch_option(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     default_to_one: bool,
@@ -221,7 +272,7 @@ fn compile_switch_option(
 
 fn compile_puppet_option(
     logger: &Logger,
-    sources: &CompiledSources,
+    first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     default_to_one: bool,
@@ -250,31 +301,56 @@ fn compile_puppet_option(
 
 fn compile_target(
     logger: &Logger,
-    sources: &CompiledSources,
-    group_name: &str,
+    first_pass: &FirstPassData,
     default_mesh: Option<&str>,
-    default_to_one: bool,
+    unset_value: UnsetValue,
     decl_target: DeclGroupOptionTarget,
 ) -> Compiled<Target> {
-    /*
     let target = match decl_target {
         DeclGroupOptionTarget::Shape(shape_target) => {
             let Some(mesh) = shape_target.mesh.as_deref().or(default_mesh) else {
-                logger.log(Log::LayerIndeterminateShapeChange(shape));
+                logger.log(Log::LayerIndeterminateShapeChange(shape_target.shape));
                 return failure();
             };
-            success(Target::Shape {
+            Target::Shape {
                 mesh: mesh.to_string(),
                 shape: shape_target.shape,
-                value: shape_target.value.unwrap_or(default_shape_value),
-            })
+                value: unset_value.replace_f64(shape_target.value),
+            }
         }
-        DeclGroupOptionTarget::Object(object_target) => todo!(),
-        DeclGroupOptionTarget::Material(material_target) => todo!(),
-        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => todo!(),
+        DeclGroupOptionTarget::Object(object_target) => Target::Object {
+            object: object_target.object,
+            value: unset_value.replace_bool(object_target.value),
+        },
+        DeclGroupOptionTarget::Material(material_target) => {
+            let Some(mesh) = material_target.mesh.as_deref().or(default_mesh) else {
+                logger.log(Log::LayerIndeterminateMaterialChange(material_target.index));
+                return failure();
+            };
+            first_pass.find_asset(logger, &material_target.value, AssetType::Material)?;
+            Target::Material {
+                mesh: mesh.to_string(),
+                index: material_target.index,
+                asset: material_target.value,
+            }
+        }
+        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => {
+            Target::ParameterDrive(compile_parameter_drive(logger, first_pass, parameter_drive)?)
+        }
     };
-    */
-    todo!();
+    success(target)
+}
+
+fn compile_parameter_drive(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_parameter_drive: DeclParameterDrive,
+) -> Compiled<ParameterDrive> {
+    match decl_parameter_drive {
+        DeclParameterDrive::Group(dg) => todo!(),
+        DeclParameterDrive::Switch(ds) => todo!(),
+        DeclParameterDrive::Puppet(dp) => todo!(),
+    }
 }
 
 /*
@@ -813,3 +889,33 @@ fn compile_raw_layer_state(
     })
 }
 */
+
+#[derive(Debug, Clone, Copy)]
+enum UnsetValue {
+    Active,
+    Inactive,
+}
+
+impl UnsetValue {
+    pub const fn as_bool(self) -> bool {
+        match self {
+            UnsetValue::Active => true,
+            UnsetValue::Inactive => false,
+        }
+    }
+
+    pub const fn as_f64(self) -> f64 {
+        match self {
+            UnsetValue::Active => 1.0,
+            UnsetValue::Inactive => 0.0,
+        }
+    }
+
+    pub fn replace_f64(self, base: Option<f64>) -> f64 {
+        base.unwrap_or(self.as_f64())
+    }
+
+    pub fn replace_bool(self, base: Option<bool>) -> bool {
+        base.unwrap_or(self.as_bool())
+    }
+}

@@ -1,5 +1,3 @@
-use miette::SourceSpan;
-
 use crate::{
     avatar::{data::Avatar, transform_avatar, LogLevel},
     decl::parse_document,

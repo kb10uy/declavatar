@@ -98,8 +98,8 @@ pub enum Log {
     LayerIndeterminateShapeChange(String),
     LayerIndeterminateMaterialChange(usize),
     LayerIndeterminateOption(String, String),
-    LayerStateNotFound(String, String),
-    LayerBlendTreeParameterNotFound(String, String),
+    LayerStateNotFound(String),
+    LayerBlendTreeParameterNotFound(String),
 
     DriverOptionNotSpecified(String),
     DriverInvalidAddTarget(String),
@@ -191,13 +191,12 @@ impl Display for Log {
                 write!(f, "driver option '{driver}' has copy target; parameters '{from}' and '{to}' have different type")
             }
 
-            Log::LayerStateNotFound(layer, state) => {
-                write!(f, "layer '{layer}', state '{state}' not found")
+            Log::LayerStateNotFound(state) => {
+                write!(f, "state '{state}' not found")
             }
-            Log::LayerBlendTreeParameterNotFound(layer, state) => write!(
-                f,
-                "layer '{layer}', state '{state}' does not sufficient parameters"
-            ),
+            Log::LayerBlendTreeParameterNotFound(state) => {
+                write!(f, "state '{state}' does not sufficient parameters")
+            }
         }
     }
 }

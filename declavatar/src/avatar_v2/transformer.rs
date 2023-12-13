@@ -9,10 +9,9 @@ pub mod parameter;
 use crate::avatar_v2::{
     data::{
         asset::{Asset, AssetType},
-        layer::{Layer, LayerContent, LayerGroupOption},
         parameter::{Parameter, ParameterScope, ParameterType},
     },
-    logger::{Logger, Log},
+    logger::{Log, Logger},
 };
 
 pub(super) use self::avatar::compile_avatar;
@@ -32,23 +31,50 @@ fn failure<T>() -> Compiled<T> {
     None
 }
 
-pub struct CompiledSources<'a> {
-    parameters: &'a [Parameter],
-    assets: &'a [Asset],
+#[derive(Debug, Clone)]
+pub struct DeclaredLayer {
+    pub name: String,
+    pub layer_type: DeclaredLayerType,
 }
 
-impl<'c, 'a> CompiledSources<'a> {
-    pub fn new(parameters: &'a [Parameter], assets: &'a [Asset]) -> CompiledSources<'a> {
-        CompiledSources { parameters, assets }
+#[derive(Debug, Clone)]
+pub enum DeclaredLayerType {
+    Group(String, Vec<(String, usize)>),
+    Switch(String),
+    Puppet(String),
+    Raw,
+}
+
+pub struct FirstPassData {
+    parameters: Vec<Parameter>,
+    assets: Vec<Asset>,
+    layers: Vec<DeclaredLayer>,
+}
+
+impl FirstPassData {
+    pub fn new(
+        parameters: Vec<Parameter>,
+        assets: Vec<Asset>,
+        layers: Vec<DeclaredLayer>,
+    ) -> FirstPassData {
+        FirstPassData {
+            parameters,
+            assets,
+            layers,
+        }
+    }
+
+    pub fn take_back(self) -> (Vec<Parameter>, Vec<Asset>) {
+        (self.parameters, self.assets)
     }
 
     pub fn find_parameter(
-        &'a self,
-        logger: &'c Logger,
-        name: &'a str,
+        &self,
+        logger: &Logger,
+        name: &str,
         ty: ParameterType,
         scope: ParameterScope,
-    ) -> Compiled<&'a Parameter> {
+    ) -> Compiled<&Parameter> {
         let parameter = self.find_parameter_untyped(logger, name, scope)?;
         if !parameter.value_type.matches(ty) {
             logger.log(Log::ParameterTypeRequirement(
@@ -61,11 +87,11 @@ impl<'c, 'a> CompiledSources<'a> {
     }
 
     pub fn find_parameter_untyped(
-        &'a self,
-        logger: &'c Logger,
-        name: &'a str,
+        &self,
+        logger: &Logger,
+        name: &str,
         scope: ParameterScope,
-    ) -> Compiled<&'a Parameter> {
+    ) -> Compiled<&Parameter> {
         let parameter = match self.parameters.iter().find(|p| p.name == name) {
             Some(p) => p,
             None => {
@@ -83,12 +109,7 @@ impl<'c, 'a> CompiledSources<'a> {
         success(parameter)
     }
 
-    pub fn find_asset(
-        &'a self,
-        logger: &'c Logger,
-        name: &'a str,
-        ty: AssetType,
-    ) -> Compiled<&'a Asset> {
+    pub fn find_asset(&self, logger: &Logger, name: &str, ty: AssetType) -> Compiled<&Asset> {
         let asset = match self.assets.iter().find(|p| p.key == name) {
             Some(p) => p,
             None => {
@@ -105,49 +126,22 @@ impl<'c, 'a> CompiledSources<'a> {
         }
         success(asset)
     }
-}
 
-pub struct CompiledAnimations<'a> {
-    sources: CompiledSources<'a>,
-    layers: Vec<&'a Layer>,
-}
-
-impl<'c, 'a: 'c> CompiledAnimations<'a> {
-    pub fn new(sources: CompiledSources<'a>, layers: Vec<&'a Layer>) -> CompiledAnimations<'a> {
-        CompiledAnimations { sources, layers }
-    }
-
-    pub fn sources(&'a self) -> &'a CompiledSources {
-        &self.sources
-    }
-
-    pub fn find_group(
-        &'a self,
-        logger: &'c Logger,
-        name: &'a str,
-    ) -> Compiled<(&'a str, &'a [LayerGroupOption])> {
+    pub fn find_group(&self, logger: &Logger, name: &str) -> Compiled<(&str, &[(String, usize)])> {
+        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let Layer {
-            content: LayerContent::Group {
-                parameter, options, ..
-            },
-            ..
-        } = layer
-        {
-            success((parameter, options))
+        if let DeclaredLayerType::Group(parameter, options) = layer {
+            success((&parameter, &options))
         } else {
             logger.log(Log::LayerMustBeGroup(name.to_string()));
             failure()
         }
     }
 
-    pub fn find_switch(&'a self, logger: &'c Logger, name: &'a str) -> Compiled<&'a str> {
+    pub fn find_switch(&self, logger: &Logger, name: &str) -> Compiled<&str> {
+        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let Layer {
-            content: LayerContent::Switch { parameter, .. },
-            ..
-        } = layer
-        {
+        if let DeclaredLayerType::Switch(parameter) = layer {
             success(parameter)
         } else {
             logger.log(Log::LayerMustBeSwitch(name.to_string()));
@@ -155,13 +149,10 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
-    pub fn find_puppet(&'a self, logger: &'c Logger, name: &'a str) -> Compiled<&'a str> {
+    pub fn find_puppet(&self, logger: &Logger, name: &str) -> Compiled<&str> {
+        // don't check parameter in first pass
         let layer = self.find_layer(logger, name)?;
-        if let Layer {
-            content: LayerContent::Puppet { parameter, .. },
-            ..
-        } = layer
-        {
+        if let DeclaredLayerType::Puppet(parameter) = layer {
             success(parameter)
         } else {
             logger.log(Log::LayerMustBePuppet(name.to_string()));
@@ -169,9 +160,9 @@ impl<'c, 'a: 'c> CompiledAnimations<'a> {
         }
     }
 
-    fn find_layer(&'a self, logger: &'c Logger, name: &'a str) -> Compiled<&'a Layer> {
-        if let Some(ag) = self.layers.iter().find(|a| a.name == name) {
-            success(ag)
+    fn find_layer(&self, logger: &Logger, name: &str) -> Compiled<&DeclaredLayerType> {
+        if let Some(dl) = self.layers.iter().find(|a| a.name == name) {
+            success(&dl.layer_type)
         } else {
             logger.log(Log::LayerNotFound(name.to_string()));
             failure()

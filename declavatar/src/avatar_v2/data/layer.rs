@@ -1,3 +1,5 @@
+use crate::avatar_v2::data::driver::ParameterDrive;
+
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -52,4 +54,5 @@ pub enum Target {
         index: usize,
         asset: String,
     },
+    ParameterDrive(ParameterDrive),
 }

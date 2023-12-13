@@ -153,3 +153,26 @@ pub enum DeclRawLayerTransitionOrdering {
     Greater,
     Lesser,
 }
+
+impl DeclGroupOptionKind {
+    pub fn as_selection(&self) -> Option<(String, Option<usize>)> {
+        let DeclGroupOptionKind::Selection(Some(name), value) = self else {
+            return None;
+        };
+        Some((name.clone(), *value))
+    }
+
+    pub fn as_boolean(&self) -> Option<bool> {
+        let DeclGroupOptionKind::Boolean(value) = self else {
+            return None;
+        };
+        Some(*value)
+    }
+
+    pub fn as_keyframe(&self) -> Option<f64> {
+        let DeclGroupOptionKind::Keyframe(value) = self else {
+            return None;
+        };
+        Some(*value)
+    }
+}
