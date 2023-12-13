@@ -142,7 +142,7 @@ static_type_name_impl!(DeclRawLayerTransition);
 #[derive(Debug, Clone)]
 pub enum DeclRawLayerTransitionCondition {
     Bool(String, bool),
-    Int(String, DeclRawLayerTransitionOrdering, u8),
+    Int(String, DeclRawLayerTransitionOrdering, i64),
     Float(String, DeclRawLayerTransitionOrdering, f64),
 }
 

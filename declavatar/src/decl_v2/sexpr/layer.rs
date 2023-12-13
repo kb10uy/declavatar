@@ -550,7 +550,7 @@ fn parse_condition(
         Value::Integer(iv) => DeclRawLayerTransitionCondition::Int(
             parameter,
             ordering,
-            iv.to_u8()
+            iv.to_i64()
                 .ok_or_else(|| Error::Custom(DeclSexprError::InvalidCondition.into()))?,
         ),
         Value::Float(fv) => DeclRawLayerTransitionCondition::Float(parameter, ordering, *fv),

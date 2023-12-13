@@ -92,6 +92,7 @@ pub enum Log {
     LayerMustBeGroup(String),
     LayerMustBeSwitch(String),
     LayerMustBePuppet(String),
+    LayerMustBeRaw(String),
     LayerOptionNotFound(String),
     LayerDisabledTargetFailure(String),
     LayerMaterialFailure(usize),
@@ -101,6 +102,7 @@ pub enum Log {
     LayerKeyframeOutOfRange(f64),
     LayerStateNotFound(String),
     LayerBlendTreeParameterNotFound(String),
+    LayerInvalidCondition,
 
     DriverOptionNotSpecified(String),
     DriverInvalidAddTarget(String),
@@ -154,6 +156,9 @@ impl Display for Log {
             Log::LayerMustBePuppet(group) => {
                 write!(f, "layer '{group}' must be puppet")
             }
+            Log::LayerMustBeRaw(group) => {
+                write!(f, "layer '{group}' must be raw")
+            }
             Log::LayerOptionNotFound(option) => {
                 write!(f, "option '{option}' not found")
             }
@@ -174,6 +179,9 @@ impl Display for Log {
             }
             Log::LayerKeyframeOutOfRange(value) => {
                 write!(f, "puppet layer value out of range: {value}")
+            }
+            Log::LayerInvalidCondition => {
+                write!(f, "transition condition is invalid")
             }
 
             Log::DriverOptionNotSpecified(driver) => {

@@ -1,10 +1,12 @@
-use std::collections::BTreeMap;
-
 use crate::{
     avatar_v2::{
         data::{
             asset::AssetType,
-            layer::{Layer, LayerContent, LayerGroupOption, LayerPuppetKeyframe, Target},
+            layer::{
+                Layer, LayerContent, LayerGroupOption, LayerPuppetKeyframe, LayerRawAnimation,
+                LayerRawBlendTreeType, LayerRawCondition, LayerRawField, LayerRawState,
+                LayerRawTransition, Target,
+            },
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger, LoggerContext},
@@ -15,9 +17,12 @@ use crate::{
     },
     decl_v2::data::layer::{
         DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer, DeclRawLayer,
-        DeclSwitchLayer,
+        DeclRawLayerAnimation, DeclRawLayerBlendTreeType, DeclRawLayerTransition,
+        DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering, DeclSwitchLayer,
     },
 };
+
+use std::collections::BTreeMap;
 
 pub fn first_pass_group_layer(
     _logger: &Logger,
@@ -60,9 +65,16 @@ pub fn first_pass_raw_layer(
     _logger: &Logger,
     decl_raw_layer: &DeclRawLayer,
 ) -> Compiled<DeclaredLayer> {
+    // if it compiles, order will be preserved
+    let state_names = decl_raw_layer
+        .states
+        .iter()
+        .map(|s| s.name.clone())
+        .collect();
+
     success(DeclaredLayer {
         name: decl_raw_layer.name.clone(),
-        layer_type: DeclaredLayerType::Raw,
+        layer_type: DeclaredLayerType::Raw(state_names),
     })
 }
 
@@ -253,7 +265,50 @@ pub fn compile_raw_layer(
     }
 
     let logger = logger.with_context(Context(decl_raw_layer.name.clone()));
-    todo!();
+    let layer_names = first_pass.find_raw(&logger, &decl_raw_layer.name)?;
+
+    let mut states = vec![];
+    let mut transitions = vec![];
+    for (index, decl_state) in decl_raw_layer.states.into_iter().enumerate() {
+        // if it compiles, order will be preserved
+        let Some(animation) = compile_raw_animation(&logger, first_pass, decl_state.animation)
+        else {
+            continue;
+        };
+        let state = LayerRawState {
+            name: decl_state.name,
+            animation,
+        };
+        states.push(state);
+
+        for decl_transition in decl_state.transitions {
+            let Some(transition) =
+                compile_raw_transition(&logger, first_pass, decl_transition, index, layer_names)
+            else {
+                continue;
+            };
+            transitions.push(transition);
+        }
+    }
+    let default_index = match decl_raw_layer.default {
+        Some(dsn) => match states.iter().position(|s| s.name == dsn) {
+            Some(i) => i,
+            None => {
+                logger.log(Log::LayerStateNotFound(dsn.clone()));
+                return failure();
+            }
+        },
+        None => 0,
+    };
+
+    success(Layer {
+        name: decl_raw_layer.name,
+        content: LayerContent::Raw {
+            default_index,
+            states,
+            transitions,
+        },
+    })
 }
 
 fn compile_group_option(
@@ -408,239 +463,135 @@ fn compile_target(
     success(target)
 }
 
-/*
-fn compile_raw_layer(
-    ctx: &mut Context,
-    sources: &CompiledSources,
-    decl_layer: DeclLayer,
-) -> Compiled<AnimationGroup> {
-    // if it compiles, states will be registered same order
-    let state_names: Vec<_> = decl_layer.states.iter().map(|s| s.name.clone()).collect();
-
-    let compiled_states: Vec<_> = decl_layer
-        .states
-        .into_iter()
-        .filter_map(|ds| compile_raw_layer_state(ctx, sources, &decl_layer.name, &state_names, ds))
-        .collect();
-
-    let default_index = match decl_layer.default_state {
-        Some(ds) => {
-            let Some(i) = compiled_states.iter().position(|s| s.name == ds) else {
-                ctx.log_error(LogKind::LayerStateNotFound(decl_layer.name, ds));
-                return failure();
-            };
-            i
-        }
-        None => 0,
-    };
-
-    success(AnimationGroup {
-        name: decl_layer.name,
-        content: AnimationGroupContent::Layer {
-            default_index,
-            states: compiled_states,
-        },
-    })
-}
-
-fn compile_raw_layer_state(
-    ctx: &mut Context,
-    sources: &CompiledSources,
-    layer_name: &str,
-    state_names: &[String],
-    decl_layer_state: DeclLayerState,
-) -> Compiled<LayerState> {
-    let animation = match decl_layer_state.animation {
-        DeclLayerAnimation::Clip(anim) => {
-            sources.find_asset(ctx, &anim.key, AssetType::Animation)?;
-            LayerAnimation::Clip(anim.key)
-        }
-        DeclLayerAnimation::BlendTree(bt) => {
-            let blend_type = match bt.ty {
-                Some(DeclLayerBlendTreeType::Linear) => LayerBlendTreeType::Linear,
-                Some(DeclLayerBlendTreeType::Simple2D) => LayerBlendTreeType::Simple2D,
-                Some(DeclLayerBlendTreeType::Freeform2D) => LayerBlendTreeType::Freeform2D,
-                Some(DeclLayerBlendTreeType::Cartesian2D) => LayerBlendTreeType::Cartesian2D,
-                None => {
-                    ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
-                        layer_name.to_string(),
-                        decl_layer_state.name,
-                    ));
-                    return failure();
-                }
-            };
-            let params = match blend_type {
-                LayerBlendTreeType::Linear => {
-                    let Some(x) = bt.x else {
-                        ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
-                            layer_name.to_string(),
-                            decl_layer_state.name,
-                        ));
-                        return failure();
-                    };
-                    vec![x]
-                }
-                LayerBlendTreeType::Simple2D
-                | LayerBlendTreeType::Freeform2D
-                | LayerBlendTreeType::Cartesian2D => {
-                    let (Some(x), Some(y)) = (bt.x, bt.y) else {
-                        ctx.log_error(LogKind::LayerBlendTreeParameterNotFound(
-                            layer_name.to_string(),
-                            decl_layer_state.name,
-                        ));
-                        return failure();
-                    };
-                    vec![x, y]
-                }
-            };
-            for param_name in &params {
-                sources.find_parameter(
-                    ctx,
-                    param_name,
-                    ParameterType::FLOAT_TYPE,
-                    ParameterScope::MAYBE_INTERNAL,
-                )?;
+fn compile_raw_animation(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_animation: DeclRawLayerAnimation,
+) -> Compiled<LayerRawAnimation> {
+    let animation = match decl_animation {
+        DeclRawLayerAnimation::Clip { name, speed, time } => {
+            first_pass.find_asset(logger, &name, AssetType::Animation)?;
+            LayerRawAnimation::Clip {
+                name,
+                speed: speed.0,
+                speed_by: speed.1,
+                time_by: time,
             }
+        }
+        DeclRawLayerAnimation::BlendTree {
+            tree_type,
+            fields: decl_fields,
+        } => {
+            let (blend_type, params) = match tree_type {
+                DeclRawLayerBlendTreeType::Linear(p) => (LayerRawBlendTreeType::Linear, vec![p]),
+                DeclRawLayerBlendTreeType::Simple2D(px, py) => {
+                    (LayerRawBlendTreeType::Simple2D, vec![px, py])
+                }
+                DeclRawLayerBlendTreeType::Freeform2D(px, py) => {
+                    (LayerRawBlendTreeType::Freeform2D, vec![px, py])
+                }
+                DeclRawLayerBlendTreeType::Cartesian2D(px, py) => {
+                    (LayerRawBlendTreeType::Cartesian2D, vec![px, py])
+                }
+            };
 
             let mut fields = vec![];
-            for decl_field in bt.fields {
-                sources.find_asset(ctx, &decl_field.clip.key, AssetType::Animation)?;
-                fields.push(LayerBlendTreeField {
-                    clip: decl_field.clip.key,
-                    position: decl_field.position,
+            for decl_field in decl_fields {
+                first_pass.find_asset(logger, &decl_field.name, AssetType::Animation)?;
+                fields.push(LayerRawField {
+                    name: decl_field.name,
+                    position: decl_field.values,
                 });
             }
-            LayerAnimation::BlendTree(LayerBlendTree {
+
+            LayerRawAnimation::BlendTree {
                 blend_type,
                 params,
                 fields,
-            })
+            }
         }
     };
 
-    let mut transitions = vec![];
-    for decl_transition in decl_layer_state.transitions {
-        let Some(target) = state_names
-            .iter()
-            .position(|n| &decl_transition.target == n)
-        else {
-            ctx.log_error(LogKind::LayerStateNotFound(
-                layer_name.to_string(),
-                decl_transition.target,
-            ));
-            return failure();
+    success(animation)
+}
+
+fn compile_raw_transition(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_transition: DeclRawLayerTransition,
+    from_index: usize,
+    layer_names: &[String],
+) -> Compiled<LayerRawTransition> {
+    let target_index = layer_names
+        .iter()
+        .position(|s| s == &decl_transition.target)?;
+
+    let mut conditions = vec![];
+    for decl_condition in decl_transition.and_terms {
+        let Some(condition) = compile_raw_condition(logger, first_pass, decl_condition) else {
+            continue;
         };
-        let duration = decl_transition.duration.unwrap_or(0.0);
-
-        let mut conditions = vec![];
-        for decl_condition in decl_transition.conditions {
-            let condition = match decl_condition {
-                DeclLayerCondition::Be(param) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::BOOL_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::Be(param)
-                }
-                DeclLayerCondition::Not(param) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::BOOL_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::Not(param)
-                }
-                DeclLayerCondition::EqInt(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::INT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::EqInt(param, value)
-                }
-                DeclLayerCondition::NeqInt(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::INT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::NeqInt(param, value)
-                }
-                DeclLayerCondition::GtInt(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::INT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::GtInt(param, value)
-                }
-                DeclLayerCondition::LeInt(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::INT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::LeInt(param, value)
-                }
-                DeclLayerCondition::GtFloat(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::FLOAT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::GtFloat(param, value)
-                }
-                DeclLayerCondition::LeFloat(param, value) => {
-                    sources.find_parameter(
-                        ctx,
-                        &param,
-                        ParameterType::FLOAT_TYPE,
-                        ParameterScope::MAYBE_INTERNAL,
-                    )?;
-                    LayerCondition::LeFloat(param, value)
-                }
-            };
-            conditions.push(condition);
-        }
-
-        transitions.push(LayerTransition {
-            target,
-            duration,
-            conditions,
-        });
+        conditions.push(condition);
     }
 
-    if let Some(speed_param) = decl_layer_state.speed.1.as_deref() {
-        sources.find_parameter(
-            ctx,
-            speed_param,
-            ParameterType::FLOAT_TYPE,
-            ParameterScope::MAYBE_INTERNAL,
-        )?;
-    }
-    if let Some(time_param) = decl_layer_state.time.as_deref() {
-        sources.find_parameter(
-            ctx,
-            time_param,
-            ParameterType::FLOAT_TYPE,
-            ParameterScope::MAYBE_INTERNAL,
-        )?;
-    }
-
-    success(LayerState {
-        name: decl_layer_state.name,
-        animation,
-        speed: decl_layer_state.speed,
-        time: decl_layer_state.time,
-        transitions,
+    success(LayerRawTransition {
+        from_index,
+        target_index,
+        duration: decl_transition.duration.unwrap_or(0.0),
+        conditions,
     })
 }
-*/
+
+fn compile_raw_condition(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_condition: DeclRawLayerTransitionCondition,
+) -> Compiled<LayerRawCondition> {
+    let condition = match decl_condition {
+        DeclRawLayerTransitionCondition::Bool(name, value) => {
+            first_pass.find_parameter(
+                logger,
+                &name,
+                ParameterType::BOOL_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            if value {
+                LayerRawCondition::Be(name)
+            } else {
+                LayerRawCondition::Not(name)
+            }
+        }
+        DeclRawLayerTransitionCondition::Int(name, order, value) => {
+            first_pass.find_parameter(
+                logger,
+                &name,
+                ParameterType::INT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            match order {
+                DeclRawLayerTransitionOrdering::Equal => LayerRawCondition::EqInt(name, value),
+                DeclRawLayerTransitionOrdering::NotEqual => LayerRawCondition::NeqInt(name, value),
+                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtInt(name, value),
+                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeInt(name, value),
+            }
+        }
+        DeclRawLayerTransitionCondition::Float(name, order, value) => {
+            first_pass.find_parameter(
+                logger,
+                &name,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            match order {
+                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtFloat(name, value),
+                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeFloat(name, value),
+                _ => {
+                    logger.log(Log::LayerInvalidCondition);
+                    return failure();
+                }
+            }
+        }
+    };
+
+    success(condition)
+}

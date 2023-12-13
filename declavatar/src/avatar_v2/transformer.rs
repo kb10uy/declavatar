@@ -42,7 +42,7 @@ pub enum DeclaredLayerType {
     Group(String, Vec<(String, usize)>),
     Switch(String),
     Puppet(String),
-    Raw,
+    Raw(Vec<String>),
 }
 
 pub struct FirstPassData {
@@ -170,6 +170,15 @@ impl FirstPassData {
             ParameterScope::MUST_EXPOSE,
         )?;
         success(parameter)
+    }
+
+    pub fn find_raw(&self, logger: &Logger, name: &str) -> Compiled<&[String]> {
+        let layer = self.find_layer(logger, name)?;
+        let DeclaredLayerType::Raw(state_names) = layer else {
+            logger.log(Log::LayerMustBeRaw(name.to_string()));
+            return failure();
+        };
+        success(state_names)
     }
 
     fn find_layer(&self, logger: &Logger, name: &str) -> Compiled<&DeclaredLayerType> {
