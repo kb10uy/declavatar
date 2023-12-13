@@ -37,6 +37,10 @@ fn main() -> Result<()> {
                     serde_json::to_string(&avatar)
                 }?;
                 println!("{json}");
+            } else {
+                for (severity, message) in avatar_result.logs {
+                    println!("{severity:?}: {message}");
+                }
             }
         }
     }
