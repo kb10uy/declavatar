@@ -1,0 +1,14 @@
+[package]
+name = "declavalidate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+declavatar = { workspace = true }
+miette = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+static_vcruntime = { workspace = true }

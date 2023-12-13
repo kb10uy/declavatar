@@ -1,8 +1,6 @@
-use miette::SourceSpan;
-
 use crate::{
-    avatar::{data::Avatar, transform_avatar, LogLevel},
-    decl::parse_document,
+    avatar_v2::{data::avatar::Avatar, logger::Severity, transform_avatar},
+    decl_v2::{load_declaration, DeclarationFormat},
 };
 
 #[repr(u32)]
@@ -66,15 +64,21 @@ impl Declavatar {
         &self.errors
     }
 
-    pub fn compile(&mut self, source: &str) -> Result<(), StatusCode> {
+    pub fn compile(&mut self, source: &str, kind: u32) -> Result<(), StatusCode> {
         if self.in_use {
             return Err(StatusCode::AlreadyInUse);
         } else {
             self.in_use = true;
         }
 
-        let avatar_decl = match parse_document(source) {
-            Ok(avatar_decl) => avatar_decl,
+        let format = match kind {
+            1 => DeclarationFormat::Sexpr,
+            2 => DeclarationFormat::Lua,
+            _ => return Err(StatusCode::CompileError),
+        };
+
+        let decl_avatar = match load_declaration(source, format) {
+            Ok(decl_avatar) => decl_avatar,
             Err(report) => {
                 self.errors
                     .push((ErrorKind::SyntaxError, report.to_string()));
@@ -82,15 +86,15 @@ impl Declavatar {
             }
         };
 
-        let transformed = transform_avatar(avatar_decl.avatar);
+        let transformed = transform_avatar(decl_avatar);
         let avatar = match transformed.avatar {
             Some(avatar) => avatar,
             None => {
                 for (level, message) in transformed.logs {
                     let error_kind = match level {
-                        LogLevel::Information => ErrorKind::SemanticInfo,
-                        LogLevel::Warning => ErrorKind::SemanticWarning,
-                        LogLevel::Error => ErrorKind::SemanticError,
+                        Severity::Information => ErrorKind::SemanticInfo,
+                        Severity::Warning => ErrorKind::SemanticWarning,
+                        Severity::Error => ErrorKind::SemanticError,
                     };
                     self.errors.push((error_kind, message));
                 }
@@ -112,22 +116,4 @@ impl Declavatar {
 
         Ok(json)
     }
-}
-
-/// Calculate 1-based line and column number from `SourceSpan`.
-#[allow(dead_code)]
-fn calculate_position(span: SourceSpan, source: &str) -> (usize, usize) {
-    let mut offset = span.offset();
-    let line_length_iter = source.split('\n').map(|s| s.len() + 1);
-
-    let mut line = 1;
-    for line_len in line_length_iter {
-        if line_len >= offset {
-            break;
-        }
-        line += 1;
-        offset -= line_len;
-    }
-
-    (line, offset + 1)
 }

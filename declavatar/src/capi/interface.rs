@@ -77,11 +77,12 @@ pub extern "system" fn DeclavatarCompile(
     da: *mut Declavatar,
     source: *const c_char,
     source_len: u32,
+    format_kind: u32,
 ) -> StatusCode {
     as_ref!(da, &mut Declavatar);
     as_ref!(source, &str, source_len);
 
-    match da.compile(source) {
+    match da.compile(source, format_kind) {
         Ok(()) => StatusCode::Success,
         Err(e) => e,
     }
