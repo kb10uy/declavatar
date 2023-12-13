@@ -37,6 +37,7 @@
 
         (da/puppet-layer "目閉じ"
             :driven-by "Eyelids"
+            :default-mesh "Face"
             (da/option 0.0
                 (da/set-shape "eye_まばたき" :value 0.0)
             )
@@ -49,7 +50,7 @@
     ; menu definition
     (da/menu
         (da/toggle "帽子オンオフ" (da/drive-switch "帽子"))
-        (da/radial "まばたき" (da/drive-puppet "目閉じ"))
+        (da/radial "まばたき" (da/axis (da/drive-puppet "目閉じ")))
         (da/submenu "表情"
             (da/toggle "にっこり" (da/drive-group "表情" "smile"))
             (da/toggle "むっ" (da/drive-group "表情" "angry"))

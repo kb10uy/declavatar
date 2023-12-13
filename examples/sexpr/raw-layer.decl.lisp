@@ -11,6 +11,15 @@
         (da/float "BlendY" :scope 'internal)
     )
 
+    (da/assets
+        (da/animation "animation-clip")
+        (da/animation "neutral")
+        (da/animation "right")
+        (da/animation "left")
+        (da/animation "up")
+        (da/animation "down")
+    )
+
     ; FX controller definition
     (da/fx-controller
         (da/raw-layer "raw"
