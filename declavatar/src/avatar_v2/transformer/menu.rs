@@ -127,35 +127,39 @@ fn compile_boolean(
                 ParameterType::Float(dp.value.unwrap_or(1.0)),
             )
         }
-        DeclParameterDrive::IntParameter(di) => {
+        DeclParameterDrive::SetInt { parameter, value } => {
             first_pass.find_parameter(
                 &logger,
-                &di.parameter,
+                &parameter,
                 ParameterType::INT_TYPE,
                 ParameterScope::MUST_EXPOSE,
             )?;
 
-            (di.parameter, ParameterType::Int(di.value as u8))
+            (parameter, ParameterType::Int(value as u8))
         }
-        DeclParameterDrive::BoolParameter(db) => {
+        DeclParameterDrive::SetBool { parameter, value } => {
             first_pass.find_parameter(
                 &logger,
-                &db.parameter,
+                &parameter,
                 ParameterType::BOOL_TYPE,
                 ParameterScope::MUST_EXPOSE,
             )?;
 
-            (db.parameter, ParameterType::Bool(db.value.unwrap_or(true)))
+            (parameter, ParameterType::Bool(value.unwrap_or(true)))
         }
-        DeclParameterDrive::FloatParameter(df) => {
+        DeclParameterDrive::SetFloat { parameter, value } => {
             first_pass.find_parameter(
                 &logger,
-                &df.parameter,
+                &parameter,
                 ParameterType::FLOAT_TYPE,
                 ParameterScope::MUST_EXPOSE,
             )?;
 
-            (df.parameter, ParameterType::Float(df.value.unwrap_or(1.0)))
+            (parameter, ParameterType::Float(value.unwrap_or(1.0)))
+        }
+        _ => {
+            logger.log(Log::MenuInvalidDrive);
+            return failure();
         }
     };
 

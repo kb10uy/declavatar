@@ -36,32 +36,50 @@ pub fn compile_parameter_drive(
                 first_pass.find_puppet(logger, &dp.puppet, ParameterScope::MAYBE_INTERNAL)?;
             ParameterDrive::SetFloat(parameter.to_string(), unset_value.replace_f64(dp.value))
         }
-        DeclParameterDrive::IntParameter(di) => {
+        DeclParameterDrive::SetInt { parameter, value } => {
             first_pass.find_parameter(
                 logger,
-                &di.parameter,
+                &parameter,
                 ParameterType::INT_TYPE,
                 ParameterScope::MAYBE_INTERNAL,
             )?;
-            ParameterDrive::SetInt(di.parameter, di.value as u8)
+            ParameterDrive::SetInt(parameter, value as u8)
         }
-        DeclParameterDrive::BoolParameter(db) => {
+        DeclParameterDrive::SetBool { parameter, value } => {
             first_pass.find_parameter(
                 logger,
-                &db.parameter,
+                &parameter,
                 ParameterType::BOOL_TYPE,
                 ParameterScope::MAYBE_INTERNAL,
             )?;
-            ParameterDrive::SetBool(db.parameter, unset_value.replace_bool(db.value))
+            ParameterDrive::SetBool(parameter, unset_value.replace_bool(value))
         }
-        DeclParameterDrive::FloatParameter(df) => {
+        DeclParameterDrive::SetFloat { parameter, value } => {
             first_pass.find_parameter(
                 logger,
-                &df.parameter,
+                &parameter,
                 ParameterType::FLOAT_TYPE,
                 ParameterScope::MAYBE_INTERNAL,
             )?;
-            ParameterDrive::SetFloat(df.parameter, unset_value.replace_f64(df.value))
+            ParameterDrive::SetFloat(parameter, unset_value.replace_f64(value))
+        }
+        DeclParameterDrive::AddInt { parameter, value } => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::INT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            ParameterDrive::AddInt(parameter, value as u8)
+        }
+        DeclParameterDrive::AddFloat { parameter, value } => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            ParameterDrive::AddFloat(parameter, value)
         }
     };
     success(parameter_drive)

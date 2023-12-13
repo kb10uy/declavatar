@@ -1,12 +1,9 @@
 use crate::decl_v2::{
-    data::driver::{
-        DeclDriveBool, DeclDriveFloat, DeclDriveGroup, DeclDriveInt, DeclDrivePuppet,
-        DeclDriveSwitch, DeclParameterDrive,
-    },
+    data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive},
     sexpr::{register_function, KetosResult, SeparateArguments},
 };
 
-use ketos::{Arity, Name, NameStore, Scope, Value};
+use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
 
 pub fn register_driver_function(scope: &Scope) {
     register_function(
@@ -36,14 +33,29 @@ pub fn register_driver_function(scope: &Scope) {
         scope,
         "drive-bool",
         declare_drive_bool,
-        Arity::Range(1, 2),
+        Arity::Exact(1),
         &[],
     );
     register_function(
         scope,
         "drive-float",
         declare_drive_float,
-        Arity::Range(1, 2),
+        Arity::Exact(1),
+        &[],
+    );
+
+    register_function(
+        scope,
+        "set-parameter",
+        declare_set_parameter,
+        Arity::Exact(2),
+        &[],
+    );
+    register_function(
+        scope,
+        "add-parameter",
+        declare_add_parameter,
+        Arity::Exact(2),
         &[],
     );
 }
@@ -101,10 +113,10 @@ fn declare_drive_int(
     let parameter: &str = args.exact_arg(function_name, 0)?;
     let value: i64 = args.exact_arg(function_name, 1)?;
 
-    Ok(DeclParameterDrive::IntParameter(DeclDriveInt {
+    Ok(DeclParameterDrive::SetInt {
         parameter: parameter.to_string(),
         value,
-    })
+    }
     .into())
 }
 
@@ -114,12 +126,11 @@ fn declare_drive_bool(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
-    let value: Option<bool> = args.try_exact_arg(1)?;
 
-    Ok(DeclParameterDrive::BoolParameter(DeclDriveBool {
+    Ok(DeclParameterDrive::SetBool {
         parameter: parameter.to_string(),
-        value,
-    })
+        value: None,
+    }
     .into())
 }
 
@@ -129,11 +140,74 @@ fn declare_drive_float(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
-    let value: Option<f64> = args.try_exact_arg(1)?;
 
-    Ok(DeclParameterDrive::FloatParameter(DeclDriveFloat {
+    Ok(DeclParameterDrive::SetFloat {
         parameter: parameter.to_string(),
-        value,
-    })
+        value: None,
+    }
     .into())
+}
+
+fn declare_set_parameter(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let value: &Value = args.exact_arg(function_name, 1)?;
+
+    let parameter = parameter.to_string();
+    let drive = match value {
+        Value::Integer(v) => DeclParameterDrive::SetInt {
+            parameter,
+            value: v.to_i64().expect("failed to convert"),
+        },
+        Value::Bool(v) => DeclParameterDrive::SetBool {
+            parameter,
+            value: Some(*v),
+        },
+        Value::Float(v) => DeclParameterDrive::SetFloat {
+            parameter,
+            value: Some(*v),
+        },
+        v => {
+            return Err(Error::ExecError(ExecError::TypeError {
+                expected: "int, bool, or float",
+                found: v.type_name(),
+                value: Some(v.clone()),
+            }))
+        }
+    };
+
+    Ok(drive.into())
+}
+
+fn declare_add_parameter(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let value: &Value = args.exact_arg(function_name, 1)?;
+
+    let parameter = parameter.to_string();
+    let drive = match value {
+        Value::Integer(v) => DeclParameterDrive::AddInt {
+            parameter,
+            value: v.to_i64().expect("failed to convert"),
+        },
+        Value::Float(v) => DeclParameterDrive::AddFloat {
+            parameter,
+            value: *v,
+        },
+        v => {
+            return Err(Error::ExecError(ExecError::TypeError {
+                expected: "int or float",
+                found: v.type_name(),
+                value: Some(v.clone()),
+            }))
+        }
+    };
+
+    Ok(drive.into())
 }

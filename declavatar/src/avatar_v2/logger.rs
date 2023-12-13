@@ -104,6 +104,8 @@ pub enum Log {
     LayerBlendTreeParameterNotFound(String),
     LayerInvalidCondition,
 
+    MenuInvalidDrive,
+
     DriverOptionNotSpecified(String),
     DriverInvalidAddTarget(String),
     DriverInvalidRandomSpecification(String),
@@ -182,6 +184,10 @@ impl Display for Log {
             }
             Log::LayerInvalidCondition => {
                 write!(f, "transition condition is invalid")
+            }
+
+            Log::MenuInvalidDrive => {
+                write!(f, "menu drive must be set or drive")
             }
 
             Log::DriverOptionNotSpecified(driver) => {
