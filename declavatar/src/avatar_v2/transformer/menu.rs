@@ -5,7 +5,7 @@ use crate::{
                 BiAxis, MenuBoolean, MenuFourAxis, MenuGroup, MenuItem, MenuRadial, MenuTwoAxis,
                 UniAxis,
             },
-            parameter::ParameterType,
+            parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger, LoggerContext},
         transformer::{failure, success, Compiled, FirstPassData},
@@ -100,7 +100,8 @@ fn compile_boolean(
     let logger = logger.with_context(Context(control.hold, control.name.clone()));
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
-            let (parameter, options) = first_pass.find_group(&logger, &dg.group)?;
+            let (parameter, options) =
+                first_pass.find_group(&logger, &dg.group, ParameterScope::MUST_EXPOSE)?;
             let Some((_, value)) = options.iter().find(|(name, _)| name == &dg.option) else {
                 logger.log(Log::LayerOptionNotFound(dg.option));
                 return failure();
@@ -109,7 +110,8 @@ fn compile_boolean(
             (parameter.to_string(), ParameterType::Int(*value as u8))
         }
         DeclParameterDrive::Switch(ds) => {
-            let parameter = first_pass.find_switch(&logger, &ds.switch)?;
+            let parameter =
+                first_pass.find_switch(&logger, &ds.switch, ParameterScope::MUST_EXPOSE)?;
 
             (
                 parameter.to_string(),
@@ -117,12 +119,43 @@ fn compile_boolean(
             )
         }
         DeclParameterDrive::Puppet(dp) => {
-            let parameter = first_pass.find_puppet(&logger, &dp.puppet)?;
+            let parameter =
+                first_pass.find_puppet(&logger, &dp.puppet, ParameterScope::MUST_EXPOSE)?;
 
             (
                 parameter.to_string(),
                 ParameterType::Float(dp.value.unwrap_or(1.0)),
             )
+        }
+        DeclParameterDrive::IntParameter(di) => {
+            first_pass.find_parameter(
+                &logger,
+                &di.parameter,
+                ParameterType::INT_TYPE,
+                ParameterScope::MUST_EXPOSE,
+            )?;
+
+            (di.parameter, ParameterType::Int(di.value as u8))
+        }
+        DeclParameterDrive::BoolParameter(db) => {
+            first_pass.find_parameter(
+                &logger,
+                &db.parameter,
+                ParameterType::BOOL_TYPE,
+                ParameterScope::MUST_EXPOSE,
+            )?;
+
+            (db.parameter, ParameterType::Bool(db.value.unwrap_or(true)))
+        }
+        DeclParameterDrive::FloatParameter(df) => {
+            first_pass.find_parameter(
+                &logger,
+                &df.parameter,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MUST_EXPOSE,
+            )?;
+
+            (df.parameter, ParameterType::Float(df.value.unwrap_or(1.0)))
         }
     };
 
@@ -210,8 +243,18 @@ fn take_puppet_parameter(
 ) -> Compiled<String> {
     let parameter = match dpt {
         DeclPuppetTarget::Puppet(dp) => {
-            let parameter = first_pass.find_puppet(logger, &dp.puppet)?;
+            let parameter =
+                first_pass.find_puppet(logger, &dp.puppet, ParameterScope::MUST_EXPOSE)?;
             parameter.to_string()
+        }
+        DeclPuppetTarget::Parameter(parameter) => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MUST_EXPOSE,
+            )?;
+            parameter
         }
     };
 

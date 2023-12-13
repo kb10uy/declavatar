@@ -10,7 +10,6 @@ pub enum DeclMenuElement {
     SubMenu(DeclSubMenu),
     Boolean(DeclBooleanControl),
     Puppet(DeclPuppetControl),
-    // Parameter,
 }
 static_type_name_impl!(DeclMenuElement);
 
@@ -59,5 +58,5 @@ pub enum DeclPuppetType {
 #[derive(Debug, Clone)]
 pub enum DeclPuppetTarget {
     Puppet(DeclDrivePuppet),
-    // Parameter
+    Parameter(String),
 }

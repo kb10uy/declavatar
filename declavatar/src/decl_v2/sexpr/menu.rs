@@ -182,6 +182,9 @@ fn declare_axis(
 fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPuppetTarget> {
     match drive_target {
         DeclParameterDrive::Puppet(puppet) => Ok(DeclPuppetTarget::Puppet(puppet.clone())),
+        DeclParameterDrive::FloatParameter(param) => {
+            Ok(DeclPuppetTarget::Parameter(param.parameter.clone()))
+        }
         _ => Err(Error::Custom(
             DeclSexprError::UnexpectedTypeValue(
                 "invalid drive target".to_string(),

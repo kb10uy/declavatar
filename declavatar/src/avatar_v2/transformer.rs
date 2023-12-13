@@ -127,48 +127,48 @@ impl FirstPassData {
         success(asset)
     }
 
-    pub fn find_group(&self, logger: &Logger, name: &str) -> Compiled<(&str, &[(String, usize)])> {
+    pub fn find_group(
+        &self,
+        logger: &Logger,
+        name: &str,
+        scope: ParameterScope,
+    ) -> Compiled<(&str, &[(String, usize)])> {
         let layer = self.find_layer(logger, name)?;
         let DeclaredLayerType::Group(parameter, options) = layer else {
             logger.log(Log::LayerMustBeGroup(name.to_string()));
             return failure();
         };
-        self.find_parameter(
-            logger,
-            parameter,
-            ParameterType::INT_TYPE,
-            ParameterScope::MUST_EXPOSE,
-        )?;
+        self.find_parameter(logger, parameter, ParameterType::INT_TYPE, scope)?;
         success((&parameter, &options))
     }
 
-    pub fn find_switch(&self, logger: &Logger, name: &str) -> Compiled<&str> {
+    pub fn find_switch(
+        &self,
+        logger: &Logger,
+        name: &str,
+        scope: ParameterScope,
+    ) -> Compiled<&str> {
         let layer = self.find_layer(logger, name)?;
         let DeclaredLayerType::Switch(parameter) = layer else {
             logger.log(Log::LayerMustBeSwitch(name.to_string()));
             return failure();
         };
-        self.find_parameter(
-            logger,
-            parameter,
-            ParameterType::BOOL_TYPE,
-            ParameterScope::MUST_EXPOSE,
-        )?;
+        self.find_parameter(logger, parameter, ParameterType::BOOL_TYPE, scope)?;
         success(parameter)
     }
 
-    pub fn find_puppet(&self, logger: &Logger, name: &str) -> Compiled<&str> {
+    pub fn find_puppet(
+        &self,
+        logger: &Logger,
+        name: &str,
+        scope: ParameterScope,
+    ) -> Compiled<&str> {
         let layer = self.find_layer(logger, name)?;
         let DeclaredLayerType::Puppet(parameter) = layer else {
             logger.log(Log::LayerMustBePuppet(name.to_string()));
             return failure();
         };
-        self.find_parameter(
-            logger,
-            parameter,
-            ParameterType::BOOL_TYPE,
-            ParameterScope::MUST_EXPOSE,
-        )?;
+        self.find_parameter(logger, parameter, ParameterType::FLOAT_TYPE, scope)?;
         success(parameter)
     }
 

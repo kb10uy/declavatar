@@ -1,5 +1,8 @@
 use crate::decl_v2::{
-    data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive},
+    data::driver::{
+        DeclDriveBool, DeclDriveFloat, DeclDriveGroup, DeclDriveInt, DeclDrivePuppet,
+        DeclDriveSwitch, DeclParameterDrive,
+    },
     sexpr::{register_function, KetosResult, SeparateArguments},
 };
 
@@ -24,6 +27,22 @@ pub fn register_driver_function(scope: &Scope) {
         scope,
         "drive-puppet",
         declare_drive_puppet,
+        Arity::Range(1, 2),
+        &[],
+    );
+
+    register_function(scope, "drive-int", declare_drive_int, Arity::Exact(2), &[]);
+    register_function(
+        scope,
+        "drive-bool",
+        declare_drive_bool,
+        Arity::Range(1, 2),
+        &[],
+    );
+    register_function(
+        scope,
+        "drive-float",
+        declare_drive_float,
         Arity::Range(1, 2),
         &[],
     );
@@ -69,6 +88,51 @@ fn declare_drive_puppet(
 
     Ok(DeclParameterDrive::Puppet(DeclDrivePuppet {
         puppet: puppet.to_string(),
+        value,
+    })
+    .into())
+}
+
+fn declare_drive_int(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let value: i64 = args.exact_arg(function_name, 1)?;
+
+    Ok(DeclParameterDrive::IntParameter(DeclDriveInt {
+        parameter: parameter.to_string(),
+        value,
+    })
+    .into())
+}
+
+fn declare_drive_bool(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let value: Option<bool> = args.try_exact_arg(1)?;
+
+    Ok(DeclParameterDrive::BoolParameter(DeclDriveBool {
+        parameter: parameter.to_string(),
+        value,
+    })
+    .into())
+}
+
+fn declare_drive_float(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let value: Option<f64> = args.try_exact_arg(1)?;
+
+    Ok(DeclParameterDrive::FloatParameter(DeclDriveFloat {
+        parameter: parameter.to_string(),
         value,
     })
     .into())
