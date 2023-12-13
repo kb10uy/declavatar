@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::asset::{Asset, AssetType},
-        logger::{Logger, Log, LoggerContext},
+        logger::{Log, Logger, LoggerContext},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::asset::{DeclAsset, DeclAssets},
@@ -33,11 +33,7 @@ pub fn compile_assets_blocks(
     success(assets)
 }
 
-fn compile_asset(
-    logger: &Logger,
-    decl_asset: DeclAsset,
-    declared: &[Asset],
-) -> Compiled<Asset> {
+fn compile_asset(logger: &Logger, decl_asset: DeclAsset, declared: &[Asset]) -> Compiled<Asset> {
     let key = match &decl_asset {
         DeclAsset::Material(key) => key,
         DeclAsset::Animation(key) => key,
