@@ -46,6 +46,7 @@ pub struct LayerPuppetKeyframe {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum Target {
     Shape {
         mesh: String,
