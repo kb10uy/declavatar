@@ -17,9 +17,12 @@ pub enum LayerContent {
     },
     Switch {
         parameter: String,
+        disabled: Vec<Target>,
+        enabled: Vec<Target>,
     },
     Puppet {
         parameter: String,
+        keyframes: Vec<LayerPuppetKeyframe>,
     },
     Raw {},
 }
@@ -32,9 +35,8 @@ pub struct LayerGroupOption {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct LayerPuppetOption {
-    pub name: String,
-    pub value: usize,
+pub struct LayerPuppetKeyframe {
+    pub value: f64,
     pub targets: Vec<Target>,
 }
 

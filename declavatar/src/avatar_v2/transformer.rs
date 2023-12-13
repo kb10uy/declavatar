@@ -134,7 +134,7 @@ impl FirstPassData {
             return failure();
         };
         self.find_parameter(
-            &logger,
+            logger,
             parameter,
             ParameterType::INT_TYPE,
             ParameterScope::MUST_EXPOSE,
@@ -149,7 +149,7 @@ impl FirstPassData {
             return failure();
         };
         self.find_parameter(
-            &logger,
+            logger,
             parameter,
             ParameterType::BOOL_TYPE,
             ParameterScope::MUST_EXPOSE,
@@ -164,7 +164,7 @@ impl FirstPassData {
             return failure();
         };
         self.find_parameter(
-            &logger,
+            logger,
             parameter,
             ParameterType::BOOL_TYPE,
             ParameterScope::MUST_EXPOSE,
@@ -183,7 +183,7 @@ impl FirstPassData {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum UnsetValue {
+pub enum UnsetValue {
     Active,
     Inactive,
 }

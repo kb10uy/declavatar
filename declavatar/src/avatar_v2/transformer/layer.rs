@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
+
 use crate::{
     avatar_v2::{
         data::{
             asset::AssetType,
-            layer::{Layer, LayerContent, LayerGroupOption, Target},
+            layer::{Layer, LayerContent, LayerGroupOption, LayerPuppetKeyframe, Target},
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger, LoggerContext},
@@ -12,8 +14,8 @@ use crate::{
         },
     },
     decl_v2::data::layer::{
-        DeclGroupLayer, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
-        DeclPuppetLayer, DeclRawLayer, DeclSwitchLayer,
+        DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer, DeclRawLayer,
+        DeclSwitchLayer,
     },
 };
 
@@ -55,97 +57,54 @@ pub fn compile_group_layer(
         ParameterType::INT_TYPE,
         ParameterScope::MAYBE_INTERNAL,
     )?;
+    let default_mesh = decl_group_layer.default_mesh.as_deref();
 
-    for decl_option in decl_group_layer.options {}
+    let default = if let Some(d) = decl_group_layer.default {
+        match compile_group_option(&logger, first_pass, d, default_mesh, UnsetValue::Inactive) {
+            Some((None, None, targets)) => LayerGroupOption {
+                name: "<default>".to_string(),
+                value: 0,
+                targets,
+            },
+            _ => LayerGroupOption {
+                name: "<default>".to_string(),
+                value: 0,
+                targets: vec![],
+            },
+        }
+    } else {
+        LayerGroupOption {
+            name: "<default>".to_string(),
+            value: 0,
+            targets: vec![],
+        }
+    };
+
+    let mut options = vec![];
+    for (index, decl_option) in decl_group_layer.options.into_iter().enumerate() {
+        let Some((Some(name), explicit_index, targets)) = compile_group_option(
+            &logger,
+            first_pass,
+            decl_option,
+            default_mesh,
+            UnsetValue::Active,
+        ) else {
+            continue;
+        };
+        options.push(LayerGroupOption {
+            name,
+            value: explicit_index.unwrap_or(index),
+            targets,
+        });
+    }
 
     success(Layer {
         name: decl_group_layer.name,
         content: LayerContent::Group {
             parameter: bound_parameter.name.to_string(),
-            default: todo!(),
-            options: todo!(),
+            default,
+            options,
         },
-    })
-}
-
-pub fn compile_switch_layer(
-    logger: &Logger,
-    first_pass: &FirstPassData,
-    decl_switch_layer: DeclSwitchLayer,
-) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("switch layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_switch_layer.name.clone()));
-    todo!();
-}
-
-pub fn first_pass_switch_layer(
-    _logger: &Logger,
-    decl_switch_layer: &DeclSwitchLayer,
-) -> Compiled<DeclaredLayer> {
-    success(DeclaredLayer {
-        name: decl_switch_layer.name.clone(),
-        layer_type: DeclaredLayerType::Switch(decl_switch_layer.driven_by.clone()),
-    })
-}
-
-pub fn compile_puppet_layer(
-    logger: &Logger,
-    first_pass: &FirstPassData,
-    decl_puppet_layer: DeclPuppetLayer,
-) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("puppet layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_puppet_layer.name.clone()));
-    todo!();
-}
-
-pub fn first_pass_puppet_layer(
-    _logger: &Logger,
-    decl_puppet_layer: &DeclPuppetLayer,
-) -> Compiled<DeclaredLayer> {
-    success(DeclaredLayer {
-        name: decl_puppet_layer.name.clone(),
-        layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone()),
-    })
-}
-
-pub fn compile_raw_layer(
-    logger: &Logger,
-    first_pass: &FirstPassData,
-    decl_raw_layer: DeclRawLayer,
-) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("raw layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_raw_layer.name.clone()));
-    todo!();
-}
-
-pub fn first_pass_raw_layer(
-    _logger: &Logger,
-    decl_raw_layer: &DeclRawLayer,
-) -> Compiled<DeclaredLayer> {
-    success(DeclaredLayer {
-        name: decl_raw_layer.name.clone(),
-        layer_type: DeclaredLayerType::Raw,
     })
 }
 
@@ -174,17 +133,80 @@ fn compile_group_option(
         .expect("group option kind must be selection");
     let logger = logger.with_context(Context(name.clone()));
 
-    let mut compiled_targets = vec![];
+    let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
         let Some(target) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
         else {
             continue;
         };
-        compiled_targets.push(target);
+        compiled_targets.insert(target.driving_key(), target);
     }
 
-    success((name, value, compiled_targets))
+    success((name, value, compiled_targets.into_values().collect()))
+}
+
+pub fn first_pass_switch_layer(
+    _logger: &Logger,
+    decl_switch_layer: &DeclSwitchLayer,
+) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_switch_layer.name.clone(),
+        layer_type: DeclaredLayerType::Switch(decl_switch_layer.driven_by.clone()),
+    })
+}
+
+pub fn compile_switch_layer(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_switch_layer: DeclSwitchLayer,
+) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("switch layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    let logger = logger.with_context(Context(decl_switch_layer.name.clone()));
+
+    let bound_parameter = first_pass.find_parameter(
+        &logger,
+        &decl_switch_layer.driven_by,
+        ParameterType::BOOL_TYPE,
+        ParameterScope::MAYBE_INTERNAL,
+    )?;
+    let default_mesh = decl_switch_layer.default_mesh.as_deref();
+
+    let disabled = compile_switch_option(
+        &logger,
+        first_pass,
+        decl_switch_layer.disabled,
+        default_mesh,
+        UnsetValue::Inactive,
+    )
+    .map(|(_, t)| t)
+    .unwrap_or_default();
+
+    let enabled = compile_switch_option(
+        &logger,
+        first_pass,
+        decl_switch_layer.enabled,
+        default_mesh,
+        UnsetValue::Active,
+    )
+    .map(|(_, t)| t)
+    .unwrap_or_default();
+
+    success(Layer {
+        name: decl_switch_layer.name,
+        content: LayerContent::Switch {
+            parameter: bound_parameter.name.to_string(),
+            disabled,
+            enabled,
+        },
+    })
 }
 
 fn compile_switch_option(
@@ -209,16 +231,79 @@ fn compile_switch_option(
         .expect("group option kind must be boolean");
     let logger = logger.with_context(Context(value));
 
-    let mut compiled_targets = vec![];
+    let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
         let Some(target) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
         else {
             continue;
         };
-        compiled_targets.push(target);
+        compiled_targets.insert(target.driving_key(), target);
     }
-    success((value, compiled_targets))
+    success((value, compiled_targets.into_values().collect()))
+}
+
+pub fn first_pass_puppet_layer(
+    _logger: &Logger,
+    decl_puppet_layer: &DeclPuppetLayer,
+) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_puppet_layer.name.clone(),
+        layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone()),
+    })
+}
+
+pub fn compile_puppet_layer(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_puppet_layer: DeclPuppetLayer,
+) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("puppet layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    let logger = logger.with_context(Context(decl_puppet_layer.name.clone()));
+
+    let bound_parameter = first_pass.find_parameter(
+        &logger,
+        &decl_puppet_layer.driven_by,
+        ParameterType::FLOAT_TYPE,
+        ParameterScope::MAYBE_INTERNAL,
+    )?;
+    let default_mesh = decl_puppet_layer.default_mesh.as_deref();
+
+    let mut keyframes = vec![];
+    for decl_option in decl_puppet_layer.keyframes {
+        let Some((value, targets)) = compile_puppet_option(
+            &logger,
+            first_pass,
+            decl_option,
+            default_mesh,
+            UnsetValue::Active,
+        ) else {
+            continue;
+        };
+        if !(0.0..=1.0).contains(&value) {
+            logger.log(Log::LayerKeyframeOutOfRange(value));
+            continue;
+        }
+
+        let keyframe = LayerPuppetKeyframe { value, targets };
+        keyframes.push(keyframe);
+    }
+    keyframes.sort_by(|lhs, rhs| lhs.value.total_cmp(&rhs.value));
+
+    success(Layer {
+        name: decl_puppet_layer.name,
+        content: LayerContent::Puppet {
+            parameter: bound_parameter.name.to_string(),
+            keyframes,
+        },
+    })
 }
 
 fn compile_puppet_option(
@@ -242,7 +327,7 @@ fn compile_puppet_option(
         .expect("group option kind must be keyframe");
     let logger = logger.with_context(Context(value));
 
-    let mut compiled_targets = vec![];
+    let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
         let Some(target) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
@@ -253,10 +338,10 @@ fn compile_puppet_option(
             logger.log(Log::LayerPuppetCannotDrive);
             continue;
         }
-        compiled_targets.push(target);
+        compiled_targets.insert(target.driving_key(), target);
     }
 
-    success((value, compiled_targets))
+    success((value, compiled_targets.into_values().collect()))
 }
 
 fn compile_target(
@@ -299,6 +384,33 @@ fn compile_target(
         ),
     };
     success(target)
+}
+
+pub fn first_pass_raw_layer(
+    _logger: &Logger,
+    decl_raw_layer: &DeclRawLayer,
+) -> Compiled<DeclaredLayer> {
+    success(DeclaredLayer {
+        name: decl_raw_layer.name.clone(),
+        layer_type: DeclaredLayerType::Raw,
+    })
+}
+
+pub fn compile_raw_layer(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_raw_layer: DeclRawLayer,
+) -> Compiled<Layer> {
+    #[derive(Debug)]
+    pub struct Context(String);
+    impl LoggerContext for Context {
+        fn write_context(&self, inner: String) -> String {
+            format!("raw layer '{}' > {}", self.0, inner)
+        }
+    }
+
+    let logger = logger.with_context(Context(decl_raw_layer.name.clone()));
+    todo!();
 }
 
 /*
