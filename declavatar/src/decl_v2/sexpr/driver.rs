@@ -58,6 +58,20 @@ pub fn register_driver_function(scope: &Scope) {
         Arity::Exact(2),
         &[],
     );
+    register_function(
+        scope,
+        "random-parameter",
+        declare_random_parameter,
+        Arity::Exact(2),
+        &[],
+    );
+    register_function(
+        scope,
+        "copy-parameter",
+        declare_copy_parameter,
+        Arity::Range(2, 4),
+        &[],
+    );
 }
 
 fn declare_drive_group(
@@ -210,4 +224,72 @@ fn declare_add_parameter(
     };
 
     Ok(drive.into())
+}
+
+fn declare_random_parameter(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let range: &Value = args.exact_arg(function_name, 1)?;
+
+    let parameter = parameter.to_string();
+    let drive = match range {
+        Value::List(_) => {
+            if let Ok(int_range) = args.exact_arg::<(u8, u8)>(function_name, 1) {
+                DeclParameterDrive::RandomInt {
+                    parameter,
+                    range: int_range,
+                }
+            } else if let Ok(float_range) = args.exact_arg::<(f64, f64)>(function_name, 1) {
+                DeclParameterDrive::RandomFloat {
+                    parameter,
+                    range: float_range,
+                }
+            } else {
+                return Err(Error::ExecError(ExecError::TypeError {
+                    expected: "float or int/float pair",
+                    found: range.type_name(),
+                    value: Some(range.clone()),
+                }));
+            }
+        }
+        Value::Float(v) => DeclParameterDrive::RandomBool {
+            parameter,
+            value: *v,
+        },
+        v => {
+            return Err(Error::ExecError(ExecError::TypeError {
+                expected: "float or int/float pair",
+                found: v.type_name(),
+                value: Some(v.clone()),
+            }));
+        }
+    };
+
+    Ok(drive.into())
+}
+
+fn declare_copy_parameter(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let from: &str = args.exact_arg(function_name, 0)?;
+    let to: &str = args.exact_arg(function_name, 1)?;
+    let from_range: Option<(f64, f64)> = args.try_exact_arg(2)?;
+    let to_range: Option<(f64, f64)> = args.try_exact_arg(3)?;
+
+    let range = match (from_range, to_range) {
+        (Some(f), Some(t)) => Some((f, t)),
+        _ => None,
+    };
+
+    Ok(DeclParameterDrive::Copy {
+        from: from.to_string(),
+        to: to.to_string(),
+        range,
+    }
+    .into())
 }

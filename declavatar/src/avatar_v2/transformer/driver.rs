@@ -81,6 +81,52 @@ pub fn compile_parameter_drive(
             )?;
             ParameterDrive::AddFloat(parameter, value)
         }
+        DeclParameterDrive::RandomInt { parameter, range } => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::INT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            ParameterDrive::RandomInt(parameter, range)
+        }
+        DeclParameterDrive::RandomBool { parameter, value } => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::BOOL_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            ParameterDrive::RandomBool(parameter, value)
+        }
+        DeclParameterDrive::RandomFloat { parameter, range } => {
+            first_pass.find_parameter(
+                logger,
+                &parameter,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            ParameterDrive::RandomFloat(parameter, range)
+        }
+        DeclParameterDrive::Copy { from, to, range } => {
+            first_pass.find_parameter(
+                logger,
+                &from,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            first_pass.find_parameter(
+                logger,
+                &to,
+                ParameterType::FLOAT_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            if let Some(range) = range {
+                ParameterDrive::RangedCopy(from, to, range.0, range.1)
+            } else {
+                ParameterDrive::Copy(from, to)
+            }
+        }
     };
     success(parameter_drive)
 }

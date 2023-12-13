@@ -27,6 +27,23 @@ pub enum DeclParameterDrive {
         parameter: String,
         value: f64,
     },
+    RandomInt {
+        parameter: String,
+        range: (u8, u8),
+    },
+    RandomBool {
+        parameter: String,
+        value: f64,
+    },
+    RandomFloat {
+        parameter: String,
+        range: (f64, f64),
+    },
+    Copy {
+        from: String,
+        to: String,
+        range: Option<((f64, f64), (f64, f64))>,
+    },
 }
 static_type_name_impl!(DeclParameterDrive);
 
