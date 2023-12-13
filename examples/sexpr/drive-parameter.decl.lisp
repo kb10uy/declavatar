@@ -1,0 +1,33 @@
+(use da :self)
+
+(da/avatar "drive-parameter"
+    ; parameter definition
+    (da/parameters
+        (da/int "int-param" :default 42)
+        (da/bool "bool-param" :scope 'local)
+        (da/float "float-param" :save false)
+    )
+
+    ; FX controller definition
+    (da/fx-controller
+        (da/group-layer "表情"
+            :driven-by "int-param"
+            (da/option "smile"
+                (da/set-parameter "float-param" 1.0)
+            )
+            (da/option "angry"
+                (da/set-parameter "float-param" 0.5)
+            )
+        )
+
+        (da/switch-layer "帽子"
+            :driven-by "bool-param"
+            (da/option 'disabled
+                (da/set-parameter "bool-param" true)
+            )
+            (da/option 'enabled
+                (da/set-parameter "bool-param" false)
+            )
+        )
+    )
+)
