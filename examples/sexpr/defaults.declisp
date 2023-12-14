@@ -1,3 +1,4 @@
+; vim: set ft=commonlisp
 (use da :self)
 
 (define hyojo-defaults
