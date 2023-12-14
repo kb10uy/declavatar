@@ -11,11 +11,11 @@ use crate::decl_v2::{
     error::{DeclError, DeclSexprError},
 };
 
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use ketos::{
-    Arity, BuiltinModuleLoader, CompileError, Context, Error, ExecError, FromValueRef, Interpreter,
-    Module, ModuleBuilder, ModuleLoader, Name, NameStore, Scope, Value,
+    Arity, BuiltinModuleLoader, CompileError, Context, Error, ExecError, FileModuleLoader,
+    FromValueRef, Interpreter, Module, ModuleBuilder, ModuleLoader, Name, NameStore, Scope, Value,
 };
 
 type KetosResult<T> = Result<T, Error>;
@@ -219,8 +219,17 @@ impl KetosValueExt for Value {
     }
 }
 
-pub fn load_avatar_sexpr(text: &str) -> Result<DeclAvatar, DeclError> {
-    let loader = Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader));
+pub fn load_avatar_sexpr(text: &str, paths: Vec<PathBuf>) -> Result<DeclAvatar, DeclError> {
+    let da_loader = DeclavatarModuleLoader;
+    let builtin_loader = BuiltinModuleLoader;
+    let file_loader = {
+        let mut l = FileModuleLoader::with_search_paths(paths);
+        l.set_read_bytecode(false);
+        l.set_write_bytecode(false);
+        l
+    };
+
+    let loader = Box::new(da_loader.chain(builtin_loader).chain(file_loader));
     let interpreter = Interpreter::with_loader(loader);
 
     let result = match interpreter.run_code(text, None) {

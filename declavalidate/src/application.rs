@@ -8,10 +8,6 @@ use clap::Parser;
 pub struct Arguments {
     #[clap(subcommand)]
     pub subcommand: Subcommand,
-
-    /// Shows result struct in indented form.
-    #[clap(short, long)]
-    pub indented: bool,
 }
 
 #[derive(Debug, Clone, Parser)]
@@ -27,4 +23,11 @@ pub enum Subcommand {
 pub struct FileOption {
     /// Filename.
     pub file: PathBuf,
+
+    /// Shows result struct in indented form.
+    #[clap(short, long)]
+    pub indented: bool,
+
+    #[clap(short = 'l', long = "library")]
+    pub library_paths: Vec<PathBuf>,
 }

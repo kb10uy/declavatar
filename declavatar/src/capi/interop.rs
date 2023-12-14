@@ -72,8 +72,8 @@ impl Declavatar {
         }
 
         let format = match kind {
-            1 => DeclarationFormat::Sexpr,
-            2 => DeclarationFormat::Lua,
+            1 => DeclarationFormat::Sexpr(vec![]),
+            2 => DeclarationFormat::Lua(vec![]),
             _ => return Err(StatusCode::CompileError),
         };
 
