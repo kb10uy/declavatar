@@ -1,0 +1,34 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "all-features"
+    ; parameter definition
+    (da/parameters
+        (da/int "Emote" :default 42)
+        (da/bool "Hat" :scope 'local)
+        (da/float "Eyelids" :save false)
+    )
+
+    ; FX controller definition
+    (da/fx-controller
+        (da/group-layer "表情"
+            :driven-by "Emote"
+            :default-mesh "Face"
+            (da/option 'default
+                (da/set-tracking 'tracking 'eyes 'mouth)
+            )
+            (da/option "smile"
+                (da/set-tracking 'animation 'eyes 'mouth)
+                (da/set-shape "eyebrow_笑顔")
+                (da/set-shape "eye_にっこり")
+                (da/set-shape "mouth_にっこり")
+            )
+            (da/option "angry"
+                (da/set-tracking 'animation 'eyes 'mouth)
+                (da/set-shape "eyebrow_真面目" :value 1.0)
+                (da/set-shape "eye_むっ" :value 0.5)
+                (da/set-shape "mouth_への字" :value 0.5)
+            )
+        )
+    )
+)

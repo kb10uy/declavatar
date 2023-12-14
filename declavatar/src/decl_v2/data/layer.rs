@@ -1,4 +1,7 @@
-use crate::{decl_v2::data::driver::DeclParameterDrive, static_type_name_impl};
+use crate::{
+    decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl},
+    static_type_name_impl,
+};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
@@ -41,6 +44,7 @@ pub enum DeclGroupOptionTarget {
     Object(DeclGroupObjectTarget),
     Material(DeclGroupMaterialTarget),
     ParameterDrive(DeclParameterDrive),
+    TrackingControl(DeclTrackingControl),
 }
 static_type_name_impl!(DeclGroupOptionTarget);
 

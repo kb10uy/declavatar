@@ -1,4 +1,4 @@
-use crate::avatar_v2::data::driver::ParameterDrive;
+use crate::avatar_v2::data::driver::{ParameterDrive, TrackingControl};
 
 use serde::Serialize;
 
@@ -63,6 +63,7 @@ pub enum Target {
         asset: String,
     },
     ParameterDrive(ParameterDrive),
+    TrackingControl(TrackingControl),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -129,6 +130,7 @@ impl Target {
             Target::Object { object, .. } => format!("object://{object}"),
             Target::Material { mesh, index, .. } => format!("material://{mesh}/{index}"),
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
+            Target::TrackingControl(tc) => format!("tracking://{tc:?}"),
         }
     }
 }

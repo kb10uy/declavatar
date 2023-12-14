@@ -67,3 +67,24 @@ pub struct DeclDrivePuppet {
     pub value: Option<f64>,
 }
 static_type_name_impl!(DeclDrivePuppet);
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclTrackingControl {
+    pub animation_desired: bool,
+    pub targets: Vec<DeclTrackingTarget>,
+}
+static_type_name_impl!(DeclTrackingControl);
+
+#[derive(Debug, Clone, Copy)]
+pub enum DeclTrackingTarget {
+    Head,
+    Hip,
+    Eyes,
+    Mouth,
+    HandLeft,
+    HandRight,
+    FootLeft,
+    FoorRight,
+    FingersLeft,
+    FingersRight,
+}
