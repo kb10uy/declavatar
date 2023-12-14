@@ -1,13 +1,13 @@
 use crate::{
     avatar_v2::{
         data::{
-            driver::ParameterDrive,
+            driver::{ParameterDrive, TrackingControl},
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger},
         transformer::{failure, success, Compiled, FirstPassData, UnsetValue},
     },
-    decl_v2::data::driver::DeclParameterDrive,
+    decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl, DeclTrackingTarget},
 };
 
 pub fn compile_parameter_drive(
@@ -129,4 +129,30 @@ pub fn compile_parameter_drive(
         }
     };
     success(parameter_drive)
+}
+
+pub fn compile_tracking_control(
+    _logger: &Logger,
+    _first_pass: &FirstPassData,
+    decl_tracking_control: DeclTrackingControl,
+) -> Compiled<TrackingControl> {
+    success(TrackingControl {
+        animation_desired: decl_tracking_control.animation_desired,
+        targets: decl_tracking_control
+            .targets
+            .into_iter()
+            .map(|t| match t {
+                DeclTrackingTarget::Head => todo!(),
+                DeclTrackingTarget::Hip => todo!(),
+                DeclTrackingTarget::Eyes => todo!(),
+                DeclTrackingTarget::Mouth => todo!(),
+                DeclTrackingTarget::HandLeft => todo!(),
+                DeclTrackingTarget::HandRight => todo!(),
+                DeclTrackingTarget::FootLeft => todo!(),
+                DeclTrackingTarget::FoorRight => todo!(),
+                DeclTrackingTarget::FingersLeft => todo!(),
+                DeclTrackingTarget::FingersRight => todo!(),
+            })
+            .collect(),
+    })
 }

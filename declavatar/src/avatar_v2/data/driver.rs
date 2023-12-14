@@ -32,3 +32,14 @@ impl ParameterDrive {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TrackingControl {
+    pub animation_desired: bool,
+    pub targets: Vec<TrackingTarget>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+pub enum TrackingTarget {
+
+}

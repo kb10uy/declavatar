@@ -1,5 +1,8 @@
 use crate::decl_v2::{
-    data::driver::{DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive},
+    data::driver::{
+        DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive, DeclTrackingControl,
+        DeclTrackingTarget,
+    },
     sexpr::{register_function, KetosResult, SeparateArguments},
 };
 
@@ -70,6 +73,14 @@ pub fn register_driver_function(scope: &Scope) {
         "copy-parameter",
         declare_copy_parameter,
         Arity::Range(2, 4),
+        &[],
+    );
+
+    register_function(
+        scope,
+        "set-tracking",
+        declare_set_tracking,
+        Arity::Min(1),
         &[],
     );
 }
@@ -290,6 +301,105 @@ fn declare_copy_parameter(
         from: from.to_string(),
         to: to.to_string(),
         range,
+    }
+    .into())
+}
+
+fn declare_set_tracking(
+    name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let animation_desired = match args.exact_arg::<&Value>(function_name, 0)? {
+        Value::Name(n) => match name_store.get(*n) {
+            "animation" => true,
+            "tracking" => false,
+            _ => {
+                return Err(Error::ExecError(ExecError::TypeError {
+                    expected: "'animation or 'tracking",
+                    found: "invalid name",
+                    value: None,
+                }));
+            }
+        },
+        v => {
+            return Err(Error::ExecError(ExecError::TypeError {
+                expected: "'animation or 'tracking",
+                found: v.type_name(),
+                value: Some(v.clone()),
+            }));
+        }
+    };
+
+    let mut targets = vec![];
+    for target_value in args.args_after(function_name, 1)? {
+        let target_str = match args.exact_arg::<&Value>(function_name, 0)? {
+            Value::Name(n) => name_store.get(*n),
+            v => {
+                return Err(Error::ExecError(ExecError::TypeError {
+                    expected: "target name",
+                    found: v.type_name(),
+                    value: Some(v.clone()),
+                }));
+            }
+        };
+
+        match target_str {
+            "head" => {
+                targets.push(DeclTrackingTarget::Head);
+            }
+            "hip" => {
+                targets.push(DeclTrackingTarget::Hip);
+            }
+            "eyes" => {
+                targets.push(DeclTrackingTarget::Eyes);
+            }
+            "mouth" => {
+                targets.push(DeclTrackingTarget::Mouth);
+            }
+            "hand-left" => {
+                targets.push(DeclTrackingTarget::HandLeft);
+            }
+            "hand-right" => {
+                targets.push(DeclTrackingTarget::HandRight);
+            }
+            "hand" => {
+                targets.push(DeclTrackingTarget::HandLeft);
+                targets.push(DeclTrackingTarget::HandRight);
+            }
+            "foot-left" => {
+                targets.push(DeclTrackingTarget::FootLeft);
+            }
+            "foot-right" => {
+                targets.push(DeclTrackingTarget::FoorRight);
+            }
+            "foot" => {
+                targets.push(DeclTrackingTarget::FootLeft);
+                targets.push(DeclTrackingTarget::FoorRight);
+            }
+            "fingers-left" => {
+                targets.push(DeclTrackingTarget::FingersLeft);
+            }
+            "fingers-right" => {
+                targets.push(DeclTrackingTarget::FingersRight);
+            }
+            "fingers" => {
+                targets.push(DeclTrackingTarget::FingersLeft);
+                targets.push(DeclTrackingTarget::FingersRight);
+            }
+            _ => {
+                return Err(Error::ExecError(ExecError::TypeError {
+                    expected: "target name",
+                    found: "invalid name",
+                    value: Some((*target_value).clone()),
+                }));
+            }
+        }
+    }
+
+    Ok(DeclTrackingControl {
+        animation_desired,
+        targets,
     }
     .into())
 }

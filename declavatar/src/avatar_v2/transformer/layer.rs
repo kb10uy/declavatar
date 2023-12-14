@@ -11,8 +11,9 @@ use crate::{
         },
         logger::{Log, Logger, LoggerContext},
         transformer::{
-            driver::compile_parameter_drive, failure, success, Compiled, DeclaredLayer,
-            DeclaredLayerType, FirstPassData, UnsetValue,
+            driver::{compile_parameter_drive, compile_tracking_control},
+            failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,
+            UnsetValue,
         },
     },
     decl_v2::data::layer::{
@@ -458,6 +459,9 @@ fn compile_target(
         }
         DeclGroupOptionTarget::ParameterDrive(parameter_drive) => Target::ParameterDrive(
             compile_parameter_drive(logger, first_pass, unset_value, parameter_drive)?,
+        ),
+        DeclGroupOptionTarget::TrackingControl(tracking_control) => Target::TrackingControl(
+            compile_tracking_control(logger, first_pass, tracking_control)?,
         ),
     };
     success(target)
