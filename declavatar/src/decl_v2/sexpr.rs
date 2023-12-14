@@ -24,27 +24,42 @@ type KetosResult<T> = Result<T, Error>;
 pub struct DeclavatarModuleLoader;
 
 impl DeclavatarModuleLoader {
-    fn define_module(scope: &Scope) -> Module {
-        avatar::register_avatar_function(scope);
-        parameter::register_parameter_function(scope);
-        asset::register_asset_function(scope);
-        controller::register_controller_function(scope);
-        layer::register_layer_function(scope);
-        driver::register_driver_function(scope);
-        menu::register_menu_function(scope);
+    const MODULE_DA: &'static str = "da";
+    const MODULE_DA_INTERNAL: &'static str = "da-internal";
 
-        ModuleBuilder::new("da", scope.clone()).finish()
+    fn get_loader(name: &str) -> Option<fn(Scope) -> Module> {
+        match name {
+            DeclavatarModuleLoader::MODULE_DA => Some(Self::define_da_module),
+            DeclavatarModuleLoader::MODULE_DA_INTERNAL => Some(Self::define_da_internal_module),
+            _ => None,
+        }
+    }
+
+    fn define_da_module(scope: Scope) -> Module {
+        avatar::register_avatar_function(&scope);
+        parameter::register_parameter_function(&scope);
+        asset::register_asset_function(&scope);
+        controller::register_controller_function(&scope);
+        layer::register_layer_function(&scope);
+        driver::register_driver_function(&scope);
+        menu::register_menu_function(&scope);
+
+        ModuleBuilder::new(DeclavatarModuleLoader::MODULE_DA, scope.clone()).finish()
+    }
+
+    fn define_da_internal_module(scope: Scope) -> Module {
+        ModuleBuilder::new(DeclavatarModuleLoader::MODULE_DA_INTERNAL, scope.clone()).finish()
     }
 }
 
 impl ModuleLoader for DeclavatarModuleLoader {
     fn load_module(&self, name: Name, ctx: Context) -> KetosResult<Module> {
-        let load_da = ctx.scope().with_name(name, |n| n == "da");
+        let scope = ctx.scope();
+        let loader = scope.with_name(name, Self::get_loader);
 
-        if load_da {
-            Ok(DeclavatarModuleLoader::define_module(ctx.scope()))
-        } else {
-            Err(Error::CompileError(CompileError::ModuleError(name)))
+        match loader {
+            Some(l) => Ok(l(scope.clone())),
+            None => Err(From::from(CompileError::ModuleError(name))),
         }
     }
 }
