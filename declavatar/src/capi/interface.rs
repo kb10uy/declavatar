@@ -73,6 +73,20 @@ pub extern "system" fn DeclavatarReset(da: *mut Declavatar) -> StatusCode {
 }
 
 #[no_mangle]
+pub extern "system" fn DeclavatarAddLibraryPath(
+    da: *mut Declavatar,
+    path: *const c_char,
+    path_len: u32,
+) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
+    as_ref!(path, &str, path_len);
+
+    da.add_library_path(path);
+
+    StatusCode::Success
+}
+
+#[no_mangle]
 pub extern "system" fn DeclavatarCompile(
     da: *mut Declavatar,
     source: *const c_char,
@@ -145,15 +159,6 @@ pub extern "system" fn DeclavatarGetError(
     *error_kind = *kind as u32;
     *error_str = message.as_ptr() as *const i8;
     *error_len = message.len() as u32;
-
-    StatusCode::Success
-}
-
-#[no_mangle]
-pub extern "system" fn DeclavatarPushExampleErrors(da: *mut Declavatar) -> StatusCode {
-    as_ref!(da, &mut Declavatar);
-
-    da.push_example_errors();
 
     StatusCode::Success
 }
