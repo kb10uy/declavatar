@@ -11,11 +11,11 @@ use crate::decl_v2::{
     error::{DeclError, DeclSexprError},
 };
 
-use std::{any::Any, collections::HashMap};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use ketos::{
-    Arity, BuiltinModuleLoader, CompileError, Context, Error, ExecError, FromValueRef, Interpreter,
-    Module, ModuleBuilder, ModuleLoader, Name, NameStore, Scope, Value,
+    Arity, BuiltinModuleLoader, CompileError, Context, Error, ExecError, FileModuleLoader,
+    FromValueRef, Interpreter, Module, ModuleBuilder, ModuleLoader, Name, NameStore, Scope, Value,
 };
 
 type KetosResult<T> = Result<T, Error>;
@@ -24,27 +24,42 @@ type KetosResult<T> = Result<T, Error>;
 pub struct DeclavatarModuleLoader;
 
 impl DeclavatarModuleLoader {
-    fn define_module(scope: &Scope) -> Module {
-        avatar::register_avatar_function(scope);
-        parameter::register_parameter_function(scope);
-        asset::register_asset_function(scope);
-        controller::register_controller_function(scope);
-        layer::register_layer_function(scope);
-        driver::register_driver_function(scope);
-        menu::register_menu_function(scope);
+    const MODULE_DA: &'static str = "da";
+    const MODULE_DA_INTERNAL: &'static str = "da-internal";
 
-        ModuleBuilder::new("da", scope.clone()).finish()
+    fn get_loader(name: &str) -> Option<fn(Scope) -> Module> {
+        match name {
+            DeclavatarModuleLoader::MODULE_DA => Some(Self::define_da_module),
+            DeclavatarModuleLoader::MODULE_DA_INTERNAL => Some(Self::define_da_internal_module),
+            _ => None,
+        }
+    }
+
+    fn define_da_module(scope: Scope) -> Module {
+        avatar::register_avatar_function(&scope);
+        parameter::register_parameter_function(&scope);
+        asset::register_asset_function(&scope);
+        controller::register_controller_function(&scope);
+        layer::register_layer_function(&scope);
+        driver::register_driver_function(&scope);
+        menu::register_menu_function(&scope);
+
+        ModuleBuilder::new(DeclavatarModuleLoader::MODULE_DA, scope.clone()).finish()
+    }
+
+    fn define_da_internal_module(scope: Scope) -> Module {
+        ModuleBuilder::new(DeclavatarModuleLoader::MODULE_DA_INTERNAL, scope.clone()).finish()
     }
 }
 
 impl ModuleLoader for DeclavatarModuleLoader {
     fn load_module(&self, name: Name, ctx: Context) -> KetosResult<Module> {
-        let load_da = ctx.scope().with_name(name, |n| n == "da");
+        let scope = ctx.scope();
+        let loader = scope.with_name(name, Self::get_loader);
 
-        if load_da {
-            Ok(DeclavatarModuleLoader::define_module(ctx.scope()))
-        } else {
-            Err(Error::CompileError(CompileError::ModuleError(name)))
+        match loader {
+            Some(l) => Ok(l(scope.clone())),
+            None => Err(From::from(CompileError::ModuleError(name))),
         }
     }
 }
@@ -219,8 +234,17 @@ impl KetosValueExt for Value {
     }
 }
 
-pub fn load_avatar_sexpr(text: &str) -> Result<DeclAvatar, DeclError> {
-    let loader = Box::new(DeclavatarModuleLoader.chain(BuiltinModuleLoader));
+pub fn load_avatar_sexpr(text: &str, paths: Vec<PathBuf>) -> Result<DeclAvatar, DeclError> {
+    let da_loader = DeclavatarModuleLoader;
+    let builtin_loader = BuiltinModuleLoader;
+    let file_loader = {
+        let mut l = FileModuleLoader::with_search_paths(paths);
+        l.set_read_bytecode(false);
+        l.set_write_bytecode(false);
+        l
+    };
+
+    let loader = Box::new(da_loader.chain(builtin_loader).chain(file_loader));
     let interpreter = Interpreter::with_loader(loader);
 
     let result = match interpreter.run_code(text, None) {

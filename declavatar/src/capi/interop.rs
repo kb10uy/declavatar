@@ -3,6 +3,8 @@ use crate::{
     decl_v2::{load_declaration, DeclarationFormat},
 };
 
+use std::path::{Path, PathBuf};
+
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusCode {
@@ -17,7 +19,6 @@ pub enum StatusCode {
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
-    CompilerError = 0,
     SyntaxError = 1,
     SemanticError = 2,
     SemanticInfo = 3,
@@ -29,6 +30,7 @@ pub struct Declavatar {
     compiled_avatar: Option<Avatar>,
     compiled_avatar_json: Option<String>,
     errors: Vec<(ErrorKind, String)>,
+    library_paths: Vec<PathBuf>,
 }
 
 impl Declavatar {
@@ -38,6 +40,7 @@ impl Declavatar {
             compiled_avatar: None,
             compiled_avatar_json: None,
             errors: vec![],
+            library_paths: vec![],
         }
     }
 
@@ -46,18 +49,11 @@ impl Declavatar {
         self.compiled_avatar = None;
         self.compiled_avatar_json = None;
         self.errors.clear();
+        self.library_paths.clear();
     }
 
-    pub fn push_example_errors(&mut self) {
-        self.in_use = true;
-        self.errors
-            .push((ErrorKind::CompilerError, "compiler error".to_string()));
-        self.errors
-            .push((ErrorKind::SyntaxError, "syntax error".to_string()));
-        self.errors
-            .push((ErrorKind::SemanticError, "semantic error".to_string()));
-        self.errors
-            .push((ErrorKind::SemanticInfo, "semantic info".to_string()));
+    pub fn add_library_path(&mut self, path: impl AsRef<Path>) {
+        self.library_paths.push(path.as_ref().to_owned());
     }
 
     pub fn errors(&self) -> &[(ErrorKind, String)] {
@@ -72,8 +68,8 @@ impl Declavatar {
         }
 
         let format = match kind {
-            1 => DeclarationFormat::Sexpr,
-            2 => DeclarationFormat::Lua,
+            1 => DeclarationFormat::Sexpr(self.library_paths.clone()),
+            2 => DeclarationFormat::Lua(self.library_paths.clone()),
             _ => return Err(StatusCode::CompileError),
         };
 

@@ -15,9 +15,13 @@ fn main() -> Result<()> {
     let args = Arguments::parse();
 
     match args.subcommand {
-        Subcommand::Load(FileOption { file }) => match load_declaration_auto(file) {
+        Subcommand::Load(FileOption {
+            file,
+            indented,
+            library_paths,
+        }) => match load_declaration_auto(file, library_paths) {
             Ok(a) => {
-                if args.indented {
+                if indented {
                     println!("{a:#?}");
                 } else {
                     println!("{a:?}");
@@ -27,11 +31,15 @@ fn main() -> Result<()> {
                 eprintln!("Error: {e}");
             }
         },
-        Subcommand::Compile(FileOption { file }) => {
-            let decl_avatar = load_declaration_auto(file)?;
+        Subcommand::Compile(FileOption {
+            file,
+            indented,
+            library_paths,
+        }) => {
+            let decl_avatar = load_declaration_auto(file, library_paths)?;
             let avatar_result = transform_avatar(decl_avatar);
             if let Some(avatar) = avatar_result.avatar {
-                let json = if args.indented {
+                let json = if indented {
                     serde_json::to_string_pretty(&avatar)
                 } else {
                     serde_json::to_string(&avatar)
@@ -47,14 +55,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn load_declaration_auto(file: PathBuf) -> Result<DeclAvatar> {
+fn load_declaration_auto(file: PathBuf, paths: Vec<PathBuf>) -> Result<DeclAvatar> {
     let file_ext = file.extension();
     let Some(file_ext) = file_ext else {
         bail!("file format cannot be determined");
     };
     let format = match file_ext.to_str().expect("cannot convert") {
-        "lisp" | "scm" => DeclarationFormat::Sexpr,
-        "lua" => DeclarationFormat::Lua,
+        "lisp" | "scm" => DeclarationFormat::Sexpr(paths),
+        "lua" => DeclarationFormat::Lua(paths),
         ext => bail!("unknown file type: {ext}"),
     };
 
