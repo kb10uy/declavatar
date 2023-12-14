@@ -10,11 +10,8 @@ cdylib = []
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
-kdl = { workspace = true }
 ketos = { workspace = true }
-miette = { workspace = true }
 rpds = { workspace = true }
-semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
