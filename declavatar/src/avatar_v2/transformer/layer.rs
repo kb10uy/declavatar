@@ -33,7 +33,7 @@ pub fn first_pass_group_layer(
         .options
         .iter()
         .enumerate()
-        .flat_map(|(di, o)| o.kind.as_selection().map(|(n, i)| (n, i.unwrap_or(di))))
+        .flat_map(|(di, o)| o.kind.as_selection().map(|(n, i)| (n, i.unwrap_or(di + 1))))
         .collect();
     success(DeclaredLayer {
         name: decl_group_layer.name.clone(),
@@ -130,7 +130,7 @@ pub fn compile_group_layer(
         };
         options.push(LayerGroupOption {
             name,
-            value: explicit_index.unwrap_or(index),
+            value: explicit_index.unwrap_or(index + 1),
             targets,
         });
     }

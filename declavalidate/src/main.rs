@@ -61,8 +61,8 @@ fn load_declaration_auto(file: PathBuf, paths: Vec<PathBuf>) -> Result<DeclAvata
         bail!("file format cannot be determined");
     };
     let format = match file_ext.to_str().expect("cannot convert") {
-        "lisp" | "scm" => DeclarationFormat::Sexpr(paths),
-        "lua" => DeclarationFormat::Lua(paths),
+        "declisp" | "lisp" | "scm" => DeclarationFormat::Sexpr(paths),
+        "declua" | "lua" => DeclarationFormat::Lua(paths),
         ext => bail!("unknown file type: {ext}"),
     };
 
