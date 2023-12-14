@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::{
-            driver::{ParameterDrive, TrackingControl},
+            driver::{ParameterDrive, TrackingControl, TrackingTarget},
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger},
@@ -142,16 +142,16 @@ pub fn compile_tracking_control(
             .targets
             .into_iter()
             .map(|t| match t {
-                DeclTrackingTarget::Head => todo!(),
-                DeclTrackingTarget::Hip => todo!(),
-                DeclTrackingTarget::Eyes => todo!(),
-                DeclTrackingTarget::Mouth => todo!(),
-                DeclTrackingTarget::HandLeft => todo!(),
-                DeclTrackingTarget::HandRight => todo!(),
-                DeclTrackingTarget::FootLeft => todo!(),
-                DeclTrackingTarget::FoorRight => todo!(),
-                DeclTrackingTarget::FingersLeft => todo!(),
-                DeclTrackingTarget::FingersRight => todo!(),
+                DeclTrackingTarget::Head => TrackingTarget::Head,
+                DeclTrackingTarget::Hip => TrackingTarget::Hip,
+                DeclTrackingTarget::Eyes => TrackingTarget::Eyes,
+                DeclTrackingTarget::Mouth => TrackingTarget::Mouth,
+                DeclTrackingTarget::HandLeft => TrackingTarget::HandLeft,
+                DeclTrackingTarget::HandRight => TrackingTarget::HandRight,
+                DeclTrackingTarget::FootLeft => TrackingTarget::FootLeft,
+                DeclTrackingTarget::FoorRight => TrackingTarget::FoorRight,
+                DeclTrackingTarget::FingersLeft => TrackingTarget::FingersLeft,
+                DeclTrackingTarget::FingersRight => TrackingTarget::FingersRight,
             })
             .collect(),
     })

@@ -41,5 +41,14 @@ pub struct TrackingControl {
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub enum TrackingTarget {
-
+    Head,
+    Hip,
+    Eyes,
+    Mouth,
+    HandLeft,
+    HandRight,
+    FootLeft,
+    FoorRight,
+    FingersLeft,
+    FingersRight,
 }

@@ -333,13 +333,13 @@ fn declare_set_tracking(
 
     let mut targets = vec![];
     for target_value in args.args_after(function_name, 1)? {
-        let target_str = match args.exact_arg::<&Value>(function_name, 0)? {
+        let target_str = match target_value {
             Value::Name(n) => name_store.get(*n),
             v => {
                 return Err(Error::ExecError(ExecError::TypeError {
                     expected: "target name",
                     found: v.type_name(),
-                    value: Some(v.clone()),
+                    value: None,
                 }));
             }
         };

@@ -1,6 +1,6 @@
 use crate::decl_v2::{
     data::{
-        driver::DeclParameterDrive,
+        driver::{DeclParameterDrive, DeclTrackingControl},
         layer::{
             DeclControllerLayer, DeclGroupLayer, DeclGroupMaterialTarget, DeclGroupObjectTarget,
             DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget, DeclGroupShapeTarget,
@@ -306,6 +306,11 @@ fn declare_option(
             DeclParameterDrive::TYPE_NAME => DeclGroupOptionTarget::ParameterDrive(
                 target_value
                     .downcast_foreign_ref::<&DeclParameterDrive>()?
+                    .clone(),
+            ),
+            DeclTrackingControl::TYPE_NAME => DeclGroupOptionTarget::TrackingControl(
+                target_value
+                    .downcast_foreign_ref::<&DeclTrackingControl>()?
                     .clone(),
             ),
             _ => {
