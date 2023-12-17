@@ -135,24 +135,25 @@ pub fn compile_tracking_control(
     _logger: &Logger,
     _first_pass: &FirstPassData,
     decl_tracking_control: DeclTrackingControl,
-) -> Compiled<TrackingControl> {
-    success(TrackingControl {
-        animation_desired: decl_tracking_control.animation_desired,
-        targets: decl_tracking_control
-            .targets
-            .into_iter()
-            .map(|t| match t {
-                DeclTrackingTarget::Head => TrackingTarget::Head,
-                DeclTrackingTarget::Hip => TrackingTarget::Hip,
-                DeclTrackingTarget::Eyes => TrackingTarget::Eyes,
-                DeclTrackingTarget::Mouth => TrackingTarget::Mouth,
-                DeclTrackingTarget::HandLeft => TrackingTarget::HandLeft,
-                DeclTrackingTarget::HandRight => TrackingTarget::HandRight,
-                DeclTrackingTarget::FootLeft => TrackingTarget::FootLeft,
-                DeclTrackingTarget::FoorRight => TrackingTarget::FoorRight,
-                DeclTrackingTarget::FingersLeft => TrackingTarget::FingersLeft,
-                DeclTrackingTarget::FingersRight => TrackingTarget::FingersRight,
-            })
-            .collect(),
-    })
+) -> Compiled<impl Iterator<Item = TrackingControl>> {
+    let tracking_controls = decl_tracking_control.targets.into_iter().map(move |t| {
+        let target = match t {
+            DeclTrackingTarget::Head => TrackingTarget::Head,
+            DeclTrackingTarget::Hip => TrackingTarget::Hip,
+            DeclTrackingTarget::Eyes => TrackingTarget::Eyes,
+            DeclTrackingTarget::Mouth => TrackingTarget::Mouth,
+            DeclTrackingTarget::HandLeft => TrackingTarget::HandLeft,
+            DeclTrackingTarget::HandRight => TrackingTarget::HandRight,
+            DeclTrackingTarget::FootLeft => TrackingTarget::FootLeft,
+            DeclTrackingTarget::FoorRight => TrackingTarget::FoorRight,
+            DeclTrackingTarget::FingersLeft => TrackingTarget::FingersLeft,
+            DeclTrackingTarget::FingersRight => TrackingTarget::FingersRight,
+        };
+        TrackingControl {
+            animation_desired: decl_tracking_control.animation_desired,
+            target,
+        }
+    });
+
+    success(tracking_controls)
 }
