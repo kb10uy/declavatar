@@ -26,6 +26,7 @@ use crate::{
 use std::{
     collections::BTreeMap,
     iter::{once, Once},
+    vec::IntoIter as VecIntoIter,
 };
 
 use either::{Either, Left, Right};
@@ -439,7 +440,7 @@ fn compile_target(
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
     decl_target: DeclGroupOptionTarget,
-) -> Compiled<Either<Once<Target>, Vec<Target>>> {
+) -> Compiled<Either<Once<Target>, VecIntoIter<Target>>> {
     let target = match decl_target {
         DeclGroupOptionTarget::Shape(shape_target) => {
             let Some(mesh) = shape_target.mesh.as_deref().or(default_mesh) else {
@@ -477,8 +478,11 @@ fn compile_target(
             )?)))
         }
         DeclGroupOptionTarget::TrackingControl(tracking_control) => {
-            let tracking_controls = compile_tracking_control(logger, first_pass, tracking_control)?;
-            Right(tracking_controls.map(Target::TrackingControl).collect())
+            let tracking_controls: Vec<_> =
+                compile_tracking_control(logger, first_pass, tracking_control)?
+                    .map(Target::TrackingControl)
+                    .collect();
+            Right(tracking_controls.into_iter())
         }
     };
     success(target)
