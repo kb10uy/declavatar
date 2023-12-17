@@ -136,24 +136,14 @@ pub fn compile_tracking_control(
     _first_pass: &FirstPassData,
     decl_tracking_control: DeclTrackingControl,
 ) -> Compiled<impl Iterator<Item = TrackingControl>> {
-    let tracking_controls = decl_tracking_control.targets.into_iter().map(move |t| {
-        let target = match t {
-            DeclTrackingTarget::Head => TrackingTarget::Head,
-            DeclTrackingTarget::Hip => TrackingTarget::Hip,
-            DeclTrackingTarget::Eyes => TrackingTarget::Eyes,
-            DeclTrackingTarget::Mouth => TrackingTarget::Mouth,
-            DeclTrackingTarget::HandLeft => TrackingTarget::HandLeft,
-            DeclTrackingTarget::HandRight => TrackingTarget::HandRight,
-            DeclTrackingTarget::FootLeft => TrackingTarget::FootLeft,
-            DeclTrackingTarget::FoorRight => TrackingTarget::FoorRight,
-            DeclTrackingTarget::FingersLeft => TrackingTarget::FingersLeft,
-            DeclTrackingTarget::FingersRight => TrackingTarget::FingersRight,
-        };
-        TrackingControl {
-            animation_desired: decl_tracking_control.animation_desired,
-            target,
-        }
-    });
+    let tracking_controls =
+        decl_tracking_control
+            .targets
+            .into_iter()
+            .map(move |t| TrackingControl {
+                animation_desired: decl_tracking_control.animation_desired,
+                target: t.into(),
+            });
 
     success(tracking_controls)
 }
