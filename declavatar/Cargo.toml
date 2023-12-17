@@ -10,6 +10,7 @@ cdylib = []
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+either = { workspace = true }
 ketos = { workspace = true }
 rpds = { workspace = true }
 serde = { workspace = true }
