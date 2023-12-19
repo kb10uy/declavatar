@@ -1,12 +1,16 @@
 use crate::decl_v2::{
-    data::layer::DeclGroupOption,
+    data::layer::{DeclGroupOption, DeclGroupOptionKind},
     sexpr::{
         argument::SeparateArguments, da::layer::take_option_target, error::KetosResult,
-        register_function,
+        register_function, register_function_with_context,
     },
 };
 
-use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
+use ketos::{
+    exec::call_function,
+    rc_vec::{RcString, RcVec},
+    Arity, Context, Error, ExecError, Name, NameStore, Scope, Value,
+};
 
 pub fn register_internal_function(scope: &Scope) {
     register_function(
@@ -23,7 +27,7 @@ pub fn register_internal_function(scope: &Scope) {
         Arity::Exact(2),
         &[],
     );
-    register_function(
+    register_function_with_context(
         scope,
         "option-replace-targets",
         option_replace_targets,
@@ -32,7 +36,7 @@ pub fn register_internal_function(scope: &Scope) {
     )
 }
 
-pub fn option_prepend_targets(
+fn option_prepend_targets(
     _name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
@@ -63,7 +67,7 @@ pub fn option_prepend_targets(
     Ok(new_option.into())
 }
 
-pub fn option_extend_targets(
+fn option_extend_targets(
     _name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
@@ -92,7 +96,8 @@ pub fn option_extend_targets(
     Ok(new_option.into())
 }
 
-pub fn option_replace_targets(
+fn option_replace_targets(
+    ctx: &Context,
     _name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
@@ -100,14 +105,38 @@ pub fn option_replace_targets(
     let map_function: &Value = args.exact_arg(function_name, 0)?;
     let original_option: &DeclGroupOption = args.exact_arg(function_name, 1)?;
 
-    match map_function {
-        Value::Function(f) => todo!(),
-        _ => {
-            return Err(Error::ExecError(ExecError::TypeError {
-                expected: "map function",
-                found: map_function.type_name(),
-                value: None,
-            }))
-        }
+    let internal_kind = match &original_option.kind {
+        DeclGroupOptionKind::Boolean(v) => Value::Bool(*v),
+        DeclGroupOptionKind::Selection(None, _) => Value::Unit,
+        DeclGroupOptionKind::Selection(Some(v), _) => Value::String(RcString::new(v.clone())),
+        DeclGroupOptionKind::Keyframe(v) => Value::Float(*v),
+    };
+    let target_values: Vec<Value> = original_option
+        .targets
+        .iter()
+        .map(|t| t.clone().into())
+        .collect();
+
+    let mapped_targets = call_function(
+        ctx,
+        map_function.clone(),
+        vec![internal_kind, Value::List(RcVec::new(target_values))],
+    )?;
+    let Value::List(target_values) = mapped_targets else {
+        return Err(Error::ExecError(ExecError::TypeError {
+            expected: "target list",
+            found: mapped_targets.type_name(),
+            value: None,
+        }));
+    };
+    let mut targets = vec![];
+    for target_value in target_values.iter() {
+        targets.push(take_option_target(target_value)?);
     }
+
+    Ok(DeclGroupOption {
+        kind: original_option.kind.clone(),
+        targets,
+    }
+    .into())
 }

@@ -114,3 +114,22 @@ fn register_function<
         })
     });
 }
+
+fn register_function_with_context<
+    F: Any + for<'a> Fn(&'a Context, &'a NameStore, Name, SeparateArguments<'a>) -> KetosResult<Value>,
+>(
+    scope: &Scope,
+    name: &'static str,
+    f: F,
+    args_arity: Arity,
+    allowed_keywords: &'static [&'static str],
+) {
+    scope.add_value_with_name(name, |name| {
+        Value::new_foreign_fn(name, move |ctx, args| {
+            let name_store = ctx.scope().borrow_names();
+            let args =
+                SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
+            f(ctx, &name_store, name, args)
+        })
+    });
+}
