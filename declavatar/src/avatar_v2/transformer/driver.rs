@@ -1,13 +1,13 @@
 use crate::{
     avatar_v2::{
         data::{
-            driver::{ParameterDrive, TrackingControl, TrackingTarget},
+            driver::{ParameterDrive, TrackingControl},
             parameter::{ParameterScope, ParameterType},
         },
         logger::{Log, Logger},
         transformer::{failure, success, Compiled, FirstPassData, UnsetValue},
     },
-    decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl, DeclTrackingTarget},
+    decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl},
 };
 
 pub fn compile_parameter_drive(
