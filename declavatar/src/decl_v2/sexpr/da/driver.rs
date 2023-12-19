@@ -3,7 +3,7 @@ use crate::decl_v2::{
         DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive, DeclTrackingControl,
         DeclTrackingTarget,
     },
-    sexpr::{register_function, KetosResult, SeparateArguments},
+    sexpr::{argument::SeparateArguments, error::KetosResult, register_function},
 };
 
 use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};

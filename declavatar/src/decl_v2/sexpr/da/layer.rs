@@ -10,8 +10,11 @@ use crate::decl_v2::{
         },
         StaticTypeName,
     },
-    error::DeclSexprError,
-    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{
+        argument::SeparateArguments,
+        error::{DeclSexprError, KetosResult},
+        register_function, KetosValueExt,
+    },
 };
 
 use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
@@ -287,46 +290,51 @@ fn declare_option(
 
     let mut targets = vec![];
     for target_value in args.args_after(function_name, 1)? {
-        let target = match target_value.type_name() {
-            DeclGroupShapeTarget::TYPE_NAME => DeclGroupOptionTarget::Shape(
-                target_value
-                    .downcast_foreign_ref::<&DeclGroupShapeTarget>()?
-                    .clone(),
-            ),
-            DeclGroupObjectTarget::TYPE_NAME => DeclGroupOptionTarget::Object(
-                target_value
-                    .downcast_foreign_ref::<&DeclGroupObjectTarget>()?
-                    .clone(),
-            ),
-            DeclGroupMaterialTarget::TYPE_NAME => DeclGroupOptionTarget::Material(
-                target_value
-                    .downcast_foreign_ref::<&DeclGroupMaterialTarget>()?
-                    .clone(),
-            ),
-            DeclParameterDrive::TYPE_NAME => DeclGroupOptionTarget::ParameterDrive(
-                target_value
-                    .downcast_foreign_ref::<&DeclParameterDrive>()?
-                    .clone(),
-            ),
-            DeclTrackingControl::TYPE_NAME => DeclGroupOptionTarget::TrackingControl(
-                target_value
-                    .downcast_foreign_ref::<&DeclTrackingControl>()?
-                    .clone(),
-            ),
-            _ => {
-                return Err(Error::Custom(
-                    DeclSexprError::UnexpectedTypeValue(
-                        target_value.type_name().to_string(),
-                        "target".to_string(),
-                    )
-                    .into(),
-                ))
-            }
-        };
-        targets.push(target.clone());
+        targets.push(take_option_target(target_value)?);
     }
 
     Ok(DeclGroupOption { kind, targets }.into())
+}
+
+pub fn take_option_target(target_value: &Value) -> KetosResult<DeclGroupOptionTarget> {
+    let target = match target_value.type_name() {
+        DeclGroupShapeTarget::TYPE_NAME => DeclGroupOptionTarget::Shape(
+            target_value
+                .downcast_foreign_ref::<&DeclGroupShapeTarget>()?
+                .clone(),
+        ),
+        DeclGroupObjectTarget::TYPE_NAME => DeclGroupOptionTarget::Object(
+            target_value
+                .downcast_foreign_ref::<&DeclGroupObjectTarget>()?
+                .clone(),
+        ),
+        DeclGroupMaterialTarget::TYPE_NAME => DeclGroupOptionTarget::Material(
+            target_value
+                .downcast_foreign_ref::<&DeclGroupMaterialTarget>()?
+                .clone(),
+        ),
+        DeclParameterDrive::TYPE_NAME => DeclGroupOptionTarget::ParameterDrive(
+            target_value
+                .downcast_foreign_ref::<&DeclParameterDrive>()?
+                .clone(),
+        ),
+        DeclTrackingControl::TYPE_NAME => DeclGroupOptionTarget::TrackingControl(
+            target_value
+                .downcast_foreign_ref::<&DeclTrackingControl>()?
+                .clone(),
+        ),
+        _ => {
+            return Err(Error::Custom(
+                DeclSexprError::UnexpectedTypeValue(
+                    target_value.type_name().to_string(),
+                    "target".to_string(),
+                )
+                .into(),
+            ))
+        }
+    };
+
+    Ok(target)
 }
 
 fn declare_set_shape(

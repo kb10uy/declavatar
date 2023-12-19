@@ -1,6 +1,6 @@
 use crate::decl_v2::{
     data::asset::{DeclAsset, DeclAssets},
-    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
