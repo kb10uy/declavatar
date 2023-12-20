@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use crate::decl_v2::data::driver::DeclTrackingTarget;
+
 // TODO: parameter name should be combined, but separated for compatibility
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "content")]
@@ -36,7 +38,7 @@ impl ParameterDrive {
 #[derive(Debug, Clone, Serialize)]
 pub struct TrackingControl {
     pub animation_desired: bool,
-    pub targets: Vec<TrackingTarget>,
+    pub target: TrackingTarget,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -51,4 +53,21 @@ pub enum TrackingTarget {
     FoorRight,
     FingersLeft,
     FingersRight,
+}
+
+impl From<DeclTrackingTarget> for TrackingTarget {
+    fn from(value: DeclTrackingTarget) -> Self {
+        match value {
+            DeclTrackingTarget::Head => TrackingTarget::Head,
+            DeclTrackingTarget::Hip => TrackingTarget::Hip,
+            DeclTrackingTarget::Eyes => TrackingTarget::Eyes,
+            DeclTrackingTarget::Mouth => TrackingTarget::Mouth,
+            DeclTrackingTarget::HandLeft => TrackingTarget::HandLeft,
+            DeclTrackingTarget::HandRight => TrackingTarget::HandRight,
+            DeclTrackingTarget::FootLeft => TrackingTarget::FootLeft,
+            DeclTrackingTarget::FoorRight => TrackingTarget::FoorRight,
+            DeclTrackingTarget::FingersLeft => TrackingTarget::FingersLeft,
+            DeclTrackingTarget::FingersRight => TrackingTarget::FingersRight,
+        }
+    }
 }

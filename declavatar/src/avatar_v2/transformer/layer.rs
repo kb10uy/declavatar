@@ -23,7 +23,13 @@ use crate::{
     },
 };
 
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    iter::{once, Once},
+    vec::IntoIter as VecIntoIter,
+};
+
+use either::{Either, Left, Right};
 
 pub fn first_pass_group_layer(
     _logger: &Logger,
@@ -339,12 +345,14 @@ fn compile_group_option(
 
     let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
-        let Some(target) =
+        let Some(targets) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
         else {
             continue;
         };
-        compiled_targets.insert(target.driving_key(), target);
+        for target in targets.into_iter() {
+            compiled_targets.insert(target.driving_key(), target);
+        }
     }
 
     success((name, value, compiled_targets.into_values().collect()))
@@ -374,12 +382,14 @@ fn compile_switch_option(
 
     let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
-        let Some(target) =
+        let Some(targets) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
         else {
             continue;
         };
-        compiled_targets.insert(target.driving_key(), target);
+        for target in targets.into_iter() {
+            compiled_targets.insert(target.driving_key(), target);
+        }
     }
     success((value, compiled_targets.into_values().collect()))
 }
@@ -407,16 +417,18 @@ fn compile_puppet_option(
 
     let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
-        let Some(target) =
+        let Some(targets) =
             compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
         else {
             continue;
         };
-        if let Target::ParameterDrive(_) = target {
-            logger.log(Log::LayerPuppetCannotDrive);
-            continue;
+        for target in targets.into_iter() {
+            if let Target::ParameterDrive(_) = target {
+                logger.log(Log::LayerPuppetCannotDrive);
+                continue;
+            }
+            compiled_targets.insert(target.driving_key(), target);
         }
-        compiled_targets.insert(target.driving_key(), target);
     }
 
     success((value, compiled_targets.into_values().collect()))
@@ -428,41 +440,50 @@ fn compile_target(
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
     decl_target: DeclGroupOptionTarget,
-) -> Compiled<Target> {
+) -> Compiled<Either<Once<Target>, VecIntoIter<Target>>> {
     let target = match decl_target {
         DeclGroupOptionTarget::Shape(shape_target) => {
             let Some(mesh) = shape_target.mesh.as_deref().or(default_mesh) else {
                 logger.log(Log::LayerIndeterminateShapeChange(shape_target.shape));
                 return failure();
             };
-            Target::Shape {
+            Left(once(Target::Shape {
                 mesh: mesh.to_string(),
                 shape: shape_target.shape,
                 value: unset_value.replace_f64(shape_target.value),
-            }
+            }))
         }
-        DeclGroupOptionTarget::Object(object_target) => Target::Object {
+        DeclGroupOptionTarget::Object(object_target) => Left(once(Target::Object {
             object: object_target.object,
             value: unset_value.replace_bool(object_target.value),
-        },
+        })),
         DeclGroupOptionTarget::Material(material_target) => {
             let Some(mesh) = material_target.mesh.as_deref().or(default_mesh) else {
                 logger.log(Log::LayerIndeterminateMaterialChange(material_target.index));
                 return failure();
             };
             first_pass.find_asset(logger, &material_target.value, AssetType::Material)?;
-            Target::Material {
+            Left(once(Target::Material {
                 mesh: mesh.to_string(),
                 index: material_target.index,
                 asset: material_target.value,
-            }
+            }))
         }
-        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => Target::ParameterDrive(
-            compile_parameter_drive(logger, first_pass, unset_value, parameter_drive)?,
-        ),
-        DeclGroupOptionTarget::TrackingControl(tracking_control) => Target::TrackingControl(
-            compile_tracking_control(logger, first_pass, tracking_control)?,
-        ),
+        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => {
+            Left(once(Target::ParameterDrive(compile_parameter_drive(
+                logger,
+                first_pass,
+                unset_value,
+                parameter_drive,
+            )?)))
+        }
+        DeclGroupOptionTarget::TrackingControl(tracking_control) => {
+            let tracking_controls: Vec<_> =
+                compile_tracking_control(logger, first_pass, tracking_control)?
+                    .map(Target::TrackingControl)
+                    .collect();
+            Right(tracking_controls.into_iter())
+        }
     };
     success(target)
 }

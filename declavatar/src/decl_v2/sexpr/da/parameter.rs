@@ -1,7 +1,10 @@
 use crate::decl_v2::{
     data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
-    error::DeclSexprError,
-    sexpr::{register_function, KetosValueExt, SeparateArguments},
+    sexpr::{
+        argument::SeparateArguments,
+        error::{DeclSexprError, KetosResult},
+        register_function, KetosValueExt,
+    },
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
@@ -36,7 +39,7 @@ fn declare_parameters(
     _name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
-) -> Result<Value, Error> {
+) -> KetosResult<Value> {
     let mut parameters = vec![];
     for param_value in args.args_after(function_name, 0)? {
         let parameter: &DeclParameter = param_value.downcast_foreign_ref()?;
@@ -49,7 +52,7 @@ fn declare_bool(
     name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
-) -> Result<Value, Error> {
+) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<bool> = args.exact_kwarg("default")?;
@@ -68,7 +71,7 @@ fn declare_int(
     name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
-) -> Result<Value, Error> {
+) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<u8> = args.exact_kwarg("default")?;
@@ -87,7 +90,7 @@ fn declare_float(
     name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
-) -> Result<Value, Error> {
+) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<f64> = args.exact_kwarg("default")?;
@@ -102,7 +105,7 @@ fn declare_float(
     .into())
 }
 
-fn expect_scope(name_store: &NameStore, value: &Value) -> Result<DeclParameterScope, Error> {
+fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclParameterScope> {
     let Value::Name(name) = value else {
         return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
     };

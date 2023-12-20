@@ -130,7 +130,7 @@ impl Target {
             Target::Object { object, .. } => format!("object://{object}"),
             Target::Material { mesh, index, .. } => format!("material://{mesh}/{index}"),
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
-            Target::TrackingControl(tc) => format!("tracking://{tc:?}"),
+            Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
         }
     }
 }

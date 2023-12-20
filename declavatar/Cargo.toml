@@ -1,6 +1,6 @@
 [package]
 name = "declavatar"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2021"
 
 [features]
@@ -10,6 +10,7 @@ cdylib = []
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+either = { workspace = true }
 ketos = { workspace = true }
 rpds = { workspace = true }
 serde = { workspace = true }

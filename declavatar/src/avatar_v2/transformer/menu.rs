@@ -35,8 +35,8 @@ pub fn compile_menu(
     let mut elements = vec![];
     for (index, decl_menu) in decl_menu_blocks.into_iter().enumerate() {
         let logger = logger.with_context(Context(index));
-        let mut menu = compile_menu_group(&logger, first_pass, decl_menu)?;
-        elements.append(&mut menu.items);
+        let menu = compile_menu_group(&logger, first_pass, decl_menu)?;
+        elements.extend(menu.items);
     }
 
     success(elements)
@@ -115,7 +115,7 @@ fn compile_boolean(
 
             (
                 parameter.to_string(),
-                ParameterType::Bool(ds.value.unwrap_or(false)),
+                ParameterType::Bool(ds.value.unwrap_or(true)),
             )
         }
         DeclParameterDrive::Puppet(dp) => {

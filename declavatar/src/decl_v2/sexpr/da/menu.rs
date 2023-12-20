@@ -6,8 +6,11 @@ use crate::decl_v2::{
             DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
         },
     },
-    error::DeclSexprError,
-    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{
+        argument::SeparateArguments,
+        error::{DeclSexprError, KetosResult},
+        register_function, KetosValueExt,
+    },
 };
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};

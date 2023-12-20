@@ -1,6 +1,6 @@
 use crate::decl_v2::{
     data::{controller::DeclFxController, layer::DeclControllerLayer},
-    sexpr::{register_function, KetosResult, KetosValueExt, SeparateArguments},
+    sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
