@@ -12,7 +12,7 @@ use ketos::{
     Arity, Context, Error, ExecError, Name, NameStore, Scope, Value,
 };
 
-pub fn register_internal_function(scope: &Scope) {
+pub fn register_option_function(scope: &Scope) {
     register_function(
         scope,
         "option-prepend-targets",
