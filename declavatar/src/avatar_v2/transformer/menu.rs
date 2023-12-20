@@ -115,7 +115,7 @@ fn compile_boolean(
 
             (
                 parameter.to_string(),
-                ParameterType::Bool(ds.value.unwrap_or(false)),
+                ParameterType::Bool(ds.value.unwrap_or(true)),
             )
         }
         DeclParameterDrive::Puppet(dp) => {
