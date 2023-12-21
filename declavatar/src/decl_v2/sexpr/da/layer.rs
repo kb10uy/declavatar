@@ -40,7 +40,7 @@ pub fn register_layer_function(scope: &Scope) {
         "puppet-layer",
         declare_puppet_layer,
         Arity::Min(1),
-        &["driven-by", "default-mesh"],
+        &["driven-by", "default-mesh", "animation"],
     );
     register_function(
         scope,
@@ -216,6 +216,7 @@ fn declare_puppet_layer(
     let name: &str = args.exact_arg(function_name, 0)?;
     let driven_by: &str = args.exact_kwarg_expect("driven-by")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
+    let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut keyframes = vec![];
     for option_value in args.args_after(function_name, 1)? {
@@ -238,6 +239,7 @@ fn declare_puppet_layer(
         name: name.to_string(),
         driven_by: driven_by.to_string(),
         default_mesh: default_mesh.map(|dm| dm.to_string()),
+        animation_asset: animation_asset.map(|a| a.to_string()),
         keyframes,
     })
     .into())

@@ -100,6 +100,7 @@ pub enum Log {
     LayerIndeterminateShapeChange(String),
     LayerIndeterminateMaterialChange(usize),
     LayerPuppetCannotDrive,
+    LayerPuppetOptionMustBeInlined,
     LayerKeyframeOutOfRange(f64),
     LayerStateNotFound(String),
     LayerBlendTreeParameterNotFound(String),
@@ -185,6 +186,9 @@ impl Display for Log {
             }
             Log::LayerPuppetCannotDrive => {
                 write!(f, "puppet layer cannot drive parameters")
+            }
+            Log::LayerPuppetOptionMustBeInlined => {
+                write!(f, "puppet option cannot be external animation")
             }
             Log::LayerKeyframeOutOfRange(value) => {
                 write!(f, "puppet layer value out of range: {value}")

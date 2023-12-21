@@ -87,6 +87,7 @@ pub struct DeclPuppetLayer {
     pub name: String,
     pub driven_by: String,
     pub default_mesh: Option<String>,
+    pub animation_asset: Option<String>,
     pub keyframes: Vec<DeclGroupOption>,
 }
 static_type_name_impl!(DeclPuppetLayer);

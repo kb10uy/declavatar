@@ -228,32 +228,42 @@ pub fn compile_puppet_layer(
     )?;
     let default_mesh = decl_puppet_layer.default_mesh.as_deref();
 
-    let mut keyframes = vec![];
-    for decl_option in decl_puppet_layer.keyframes {
-        let Some((value, targets)) = compile_puppet_option(
-            &logger,
-            first_pass,
-            decl_option,
-            default_mesh,
-            UnsetValue::Active,
-        ) else {
-            continue;
-        };
-        if !(0.0..=1.0).contains(&value) {
-            logger.log(Log::LayerKeyframeOutOfRange(value));
-            continue;
+    let animation = if let Some(animation_asset) = decl_puppet_layer.animation_asset {
+        if !decl_puppet_layer.keyframes.is_empty() {
+            logger.log(Log::LayerOptionMustBeExclusive);
+            return failure();
         }
+        first_pass.find_asset(&logger, &animation_asset, AssetType::Animation)?;
+        LayerAnimation::External(animation_asset)
+    } else {
+        let mut keyframes = vec![];
+        for decl_option in decl_puppet_layer.keyframes {
+            let Some((value, targets)) = compile_puppet_option(
+                &logger,
+                first_pass,
+                decl_option,
+                default_mesh,
+                UnsetValue::Active,
+            ) else {
+                continue;
+            };
+            if !(0.0..=1.0).contains(&value) {
+                logger.log(Log::LayerKeyframeOutOfRange(value));
+                continue;
+            }
 
-        let keyframe = LayerPuppetKeyframe { value, targets };
-        keyframes.push(keyframe);
-    }
-    keyframes.sort_by(|lhs, rhs| lhs.value.total_cmp(&rhs.value));
+            let keyframe = LayerPuppetKeyframe { value, targets };
+            keyframes.push(keyframe);
+        }
+        keyframes.sort_by(|lhs, rhs| lhs.value.total_cmp(&rhs.value));
+        LayerAnimation::KeyedInline(keyframes)
+    };
 
     success(Layer {
         name: decl_puppet_layer.name,
         content: LayerContent::Puppet {
             parameter: bound_parameter.name.to_string(),
-            keyframes,
+            animation,
         },
     })
 }
@@ -435,6 +445,11 @@ fn compile_puppet_option(
         .as_keyframe()
         .expect("group option kind must be keyframe");
     let logger = logger.with_context(Context(value));
+
+    if decl_group_option.animation_asset.is_some() {
+        logger.log(Log::LayerPuppetOptionMustBeInlined);
+        return failure();
+    }
 
     let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {

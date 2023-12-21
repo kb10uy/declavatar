@@ -23,7 +23,7 @@ pub enum LayerContent {
     },
     Puppet {
         parameter: String,
-        keyframes: Vec<LayerPuppetKeyframe>,
+        animation: LayerAnimation,
     },
     Raw {
         default_index: usize,
@@ -127,6 +127,7 @@ pub enum LayerRawCondition {
 #[serde(tag = "type", content = "content")]
 pub enum LayerAnimation {
     Inline(Vec<Target>),
+    KeyedInline(Vec<LayerPuppetKeyframe>),
     External(String),
 }
 
