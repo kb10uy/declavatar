@@ -76,7 +76,7 @@ pub struct LayerRawState {
 #[serde(tag = "type")]
 pub enum LayerRawAnimation {
     Clip {
-        name: LayerAnimation,
+        animation: LayerAnimation,
         speed: Option<f64>,
         speed_by: Option<String>,
         time_by: Option<String>,
@@ -139,5 +139,11 @@ impl Target {
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
             Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
         }
+    }
+}
+
+impl Default for LayerAnimation {
+    fn default() -> Self {
+        LayerAnimation::Inline(vec![])
     }
 }

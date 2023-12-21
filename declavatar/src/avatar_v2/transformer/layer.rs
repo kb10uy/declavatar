@@ -120,7 +120,7 @@ pub fn compile_group_layer(
         _ => LayerGroupOption {
             name: "<default>".to_string(),
             value: 0,
-            animation: LayerAnimation::Inline(vec![]),
+            animation: LayerAnimation::default(),
         },
     };
 
@@ -348,6 +348,7 @@ fn compile_group_option(
             logger.log(Log::LayerOptionMustBeExclusive);
             return failure();
         }
+        first_pass.find_asset(&logger, &animation_asset, AssetType::Animation)?;
         LayerAnimation::External(animation_asset)
     } else {
         let mut compiled_targets = BTreeMap::new();
@@ -373,7 +374,7 @@ fn compile_switch_option(
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
-) -> Compiled<(bool, Vec<Target>)> {
+) -> Compiled<(bool, LayerAnimation)> {
     #[derive(Debug)]
     pub struct Context(bool);
     impl LoggerContext for Context {
@@ -389,18 +390,29 @@ fn compile_switch_option(
         .expect("group option kind must be boolean");
     let logger = logger.with_context(Context(value));
 
-    let mut compiled_targets = BTreeMap::new();
-    for decl_target in decl_group_option.targets {
-        let Some(targets) =
-            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
-        else {
-            continue;
-        };
-        for target in targets.into_iter() {
-            compiled_targets.insert(target.driving_key(), target);
+    let animation = if let Some(animation_asset) = decl_group_option.animation_asset {
+        if !decl_group_option.targets.is_empty() {
+            logger.log(Log::LayerOptionMustBeExclusive);
+            return failure();
         }
-    }
-    success((value, compiled_targets.into_values().collect()))
+        first_pass.find_asset(&logger, &animation_asset, AssetType::Animation)?;
+        LayerAnimation::External(animation_asset)
+    } else {
+        let mut compiled_targets = BTreeMap::new();
+        for decl_target in decl_group_option.targets {
+            let Some(targets) =
+                compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
+            else {
+                continue;
+            };
+            for target in targets.into_iter() {
+                compiled_targets.insert(target.driving_key(), target);
+            }
+        }
+        LayerAnimation::Inline(compiled_targets.into_values().collect())
+    };
+
+    success((value, animation))
 }
 
 fn compile_puppet_option(
@@ -506,7 +518,7 @@ fn compile_raw_animation(
         DeclRawLayerAnimation::Clip { name, speed, time } => {
             first_pass.find_asset(logger, &name, AssetType::Animation)?;
             LayerRawAnimation::Clip {
-                name,
+                animation: LayerAnimation::External(name),
                 speed: speed.0,
                 speed_by: speed.1,
                 time_by: time,
@@ -533,7 +545,7 @@ fn compile_raw_animation(
             for decl_field in decl_fields {
                 first_pass.find_asset(logger, &decl_field.name, AssetType::Animation)?;
                 fields.push(LayerRawField {
-                    animation: decl_field.name,
+                    animation: LayerAnimation::External(decl_field.name),
                     position: decl_field.values,
                 });
             }
