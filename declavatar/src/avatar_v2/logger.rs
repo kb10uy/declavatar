@@ -94,11 +94,13 @@ pub enum Log {
     LayerMustBePuppet(String),
     LayerMustBeRaw(String),
     LayerOptionNotFound(String),
+    LayerOptionMustBeExclusive,
     LayerDisabledTargetFailure(String),
     LayerMaterialFailure(usize),
     LayerIndeterminateShapeChange(String),
     LayerIndeterminateMaterialChange(usize),
     LayerPuppetCannotDrive,
+    LayerPuppetOptionMustBeInlined,
     LayerKeyframeOutOfRange(f64),
     LayerStateNotFound(String),
     LayerBlendTreeParameterNotFound(String),
@@ -164,6 +166,12 @@ impl Display for Log {
             Log::LayerOptionNotFound(option) => {
                 write!(f, "option '{option}' not found")
             }
+            Log::LayerOptionMustBeExclusive => {
+                write!(
+                    f,
+                    "external animation asset cannot be combined with targets"
+                )
+            }
             Log::LayerDisabledTargetFailure(target) => {
                 write!(f, "target '{target}' has no auto-generated disabled target")
             }
@@ -178,6 +186,9 @@ impl Display for Log {
             }
             Log::LayerPuppetCannotDrive => {
                 write!(f, "puppet layer cannot drive parameters")
+            }
+            Log::LayerPuppetOptionMustBeInlined => {
+                write!(f, "puppet option cannot be external animation")
             }
             Log::LayerKeyframeOutOfRange(value) => {
                 write!(f, "puppet layer value out of range: {value}")

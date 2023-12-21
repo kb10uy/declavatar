@@ -27,6 +27,7 @@ static_type_name_impl!(DeclGroupLayer);
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupOption {
     pub kind: DeclGroupOptionKind,
+    pub animation_asset: Option<String>,
     pub targets: Vec<DeclGroupOptionTarget>,
 }
 static_type_name_impl!(DeclGroupOption);
@@ -86,6 +87,7 @@ pub struct DeclPuppetLayer {
     pub name: String,
     pub driven_by: String,
     pub default_mesh: Option<String>,
+    pub animation_asset: Option<String>,
     pub keyframes: Vec<DeclGroupOption>,
 }
 static_type_name_impl!(DeclPuppetLayer);
@@ -101,15 +103,15 @@ static_type_name_impl!(DeclRawLayer);
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerState {
     pub name: String,
-    pub animation: DeclRawLayerAnimation,
+    pub kind: DeclRawLayerAnimationKind,
     pub transitions: Vec<DeclRawLayerTransition>,
 }
 static_type_name_impl!(DeclRawLayerState);
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub enum DeclRawLayerAnimation {
+pub enum DeclRawLayerAnimationKind {
     Clip {
-        name: String,
+        animation: DeclRawLayerAnimation,
         speed: (Option<f64>, Option<String>),
         time: Option<String>,
     },
@@ -130,10 +132,22 @@ pub enum DeclRawLayerBlendTreeType {
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerBlendTreeField {
-    pub name: String,
+    pub animation: DeclRawLayerAnimation,
     pub values: [f64; 2],
 }
 static_type_name_impl!(DeclRawLayerBlendTreeField);
+
+#[derive(Debug, Clone)]
+pub enum DeclRawLayerAnimation {
+    Inline(DeclLayerInlineAnimation),
+    External(String),
+}
+
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclLayerInlineAnimation {
+    pub targets: Vec<DeclGroupOptionTarget>,
+}
+static_type_name_impl!(DeclLayerInlineAnimation);
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerTransition {

@@ -18,12 +18,12 @@ pub enum LayerContent {
     },
     Switch {
         parameter: String,
-        disabled: Vec<Target>,
-        enabled: Vec<Target>,
+        disabled: LayerAnimation,
+        enabled: LayerAnimation,
     },
     Puppet {
         parameter: String,
-        keyframes: Vec<LayerPuppetKeyframe>,
+        animation: LayerAnimation,
     },
     Raw {
         default_index: usize,
@@ -36,7 +36,7 @@ pub enum LayerContent {
 pub struct LayerGroupOption {
     pub name: String,
     pub value: usize,
-    pub targets: Vec<Target>,
+    pub animation: LayerAnimation,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,14 +69,14 @@ pub enum Target {
 #[derive(Debug, Clone, Serialize)]
 pub struct LayerRawState {
     pub name: String,
-    pub animation: LayerRawAnimation,
+    pub animation: LayerRawAnimationKind,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type")]
-pub enum LayerRawAnimation {
+#[serde(tag = "type", content = "content")]
+pub enum LayerRawAnimationKind {
     Clip {
-        name: String,
+        animation: LayerAnimation,
         speed: Option<f64>,
         speed_by: Option<String>,
         time_by: Option<String>,
@@ -96,9 +96,9 @@ pub enum LayerRawBlendTreeType {
     Cartesian2D,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LayerRawField {
-    pub name: String,
+    pub animation: LayerAnimation,
     pub position: [f64; 2],
 }
 
@@ -123,6 +123,14 @@ pub enum LayerRawCondition {
     LeFloat(String, f64),
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "content")]
+pub enum LayerAnimation {
+    Inline(Vec<Target>),
+    KeyedInline(Vec<LayerPuppetKeyframe>),
+    External(String),
+}
+
 impl Target {
     pub fn driving_key(&self) -> String {
         match self {
@@ -132,5 +140,11 @@ impl Target {
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
             Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
         }
+    }
+}
+
+impl Default for LayerAnimation {
+    fn default() -> Self {
+        LayerAnimation::Inline(vec![])
     }
 }

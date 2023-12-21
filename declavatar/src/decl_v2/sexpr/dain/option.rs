@@ -136,6 +136,7 @@ fn option_replace_targets(
 
     Ok(DeclGroupOption {
         kind: original_option.kind.clone(),
+        animation_asset: original_option.animation_asset.clone(),
         targets,
     }
     .into())
