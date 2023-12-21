@@ -19,10 +19,18 @@ pub struct DeclGroupLayer {
     pub name: String,
     pub driven_by: String,
     pub default_mesh: Option<String>,
+    pub copy_mode: Option<DeclGroupCopyMode>,
     pub default: Option<DeclGroupOption>,
     pub options: Vec<DeclGroupOption>,
 }
 static_type_name_impl!(DeclGroupLayer);
+
+#[derive(Debug, Clone, Copy)]
+pub enum DeclGroupCopyMode {
+    ToDefaultZeroed,
+    ToOptionZeroed,
+    MutualZeroed,
+}
 
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupOption {
