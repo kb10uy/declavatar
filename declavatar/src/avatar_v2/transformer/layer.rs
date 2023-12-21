@@ -590,7 +590,7 @@ fn compile_raw_animation(
             let mut compiled_targets = BTreeMap::new();
             for decl_target in targets.targets {
                 let Some(targets) =
-                    compile_target(&logger, first_pass, None, UnsetValue::Active, decl_target)
+                    compile_target(logger, first_pass, None, UnsetValue::Active, decl_target)
                 else {
                     continue;
                 };
