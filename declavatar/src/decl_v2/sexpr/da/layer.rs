@@ -51,7 +51,13 @@ pub fn register_layer_function(scope: &Scope) {
     );
 
     // option functions
-    register_function(scope, "option", declare_option, Arity::Min(1), &["value"]);
+    register_function(
+        scope,
+        "option",
+        declare_option,
+        Arity::Min(1),
+        &["value", "animation"],
+    );
     register_function(scope, "state", declare_state, Arity::Min(2), &[]);
 
     // set-x functions
@@ -287,13 +293,19 @@ fn declare_option(
             }));
         }
     };
+    let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut targets = vec![];
     for target_value in args.args_after(function_name, 1)? {
         targets.push(take_option_target(target_value)?);
     }
 
-    Ok(DeclGroupOption { kind, targets }.into())
+    Ok(DeclGroupOption {
+        kind,
+        animation_asset: animation_asset.map(|a| a.to_string()),
+        targets,
+    }
+    .into())
 }
 
 pub fn take_option_target(target_value: &Value) -> KetosResult<DeclGroupOptionTarget> {

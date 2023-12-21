@@ -27,6 +27,7 @@ static_type_name_impl!(DeclGroupLayer);
 #[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupOption {
     pub kind: DeclGroupOptionKind,
+    pub animation_asset: Option<String>,
     pub targets: Vec<DeclGroupOptionTarget>,
 }
 static_type_name_impl!(DeclGroupOption);
