@@ -95,6 +95,7 @@ pub enum Log {
     LayerMustBeRaw(String),
     LayerOptionNotFound(String),
     LayerOptionMustBeExclusive,
+    LayerGroupInvalidCopy,
     LayerDisabledTargetFailure(String),
     LayerMaterialFailure(usize),
     LayerIndeterminateShapeChange(String),
@@ -171,6 +172,9 @@ impl Display for Log {
                     f,
                     "external animation asset cannot be combined with targets"
                 )
+            }
+            Log::LayerGroupInvalidCopy => {
+                write!(f, "group copy mode is invalid")
             }
             Log::LayerDisabledTargetFailure(target) => {
                 write!(f, "target '{target}' has no auto-generated disabled target")
