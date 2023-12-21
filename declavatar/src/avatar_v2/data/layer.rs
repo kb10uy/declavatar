@@ -18,8 +18,8 @@ pub enum LayerContent {
     },
     Switch {
         parameter: String,
-        disabled: Vec<Target>,
-        enabled: Vec<Target>,
+        disabled: LayerAnimation,
+        enabled: LayerAnimation,
     },
     Puppet {
         parameter: String,
@@ -36,7 +36,7 @@ pub enum LayerContent {
 pub struct LayerGroupOption {
     pub name: String,
     pub value: usize,
-    pub targets: Vec<Target>,
+    pub animation: LayerAnimation,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,7 +76,7 @@ pub struct LayerRawState {
 #[serde(tag = "type")]
 pub enum LayerRawAnimation {
     Clip {
-        name: String,
+        name: LayerAnimation,
         speed: Option<f64>,
         speed_by: Option<String>,
         time_by: Option<String>,
@@ -96,9 +96,9 @@ pub enum LayerRawBlendTreeType {
     Cartesian2D,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct LayerRawField {
-    pub name: String,
+    pub animation: LayerAnimation,
     pub position: [f64; 2],
 }
 
@@ -121,6 +121,13 @@ pub enum LayerRawCondition {
     LeInt(String, i64),
     GtFloat(String, f64),
     LeFloat(String, f64),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "content")]
+pub enum LayerAnimation {
+    Inline(Vec<Target>),
+    External(String),
 }
 
 impl Target {

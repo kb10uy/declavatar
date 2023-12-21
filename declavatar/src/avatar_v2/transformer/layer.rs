@@ -115,12 +115,12 @@ pub fn compile_group_layer(
         Some(Some((None, None, targets))) => LayerGroupOption {
             name: "<default>".to_string(),
             value: 0,
-            targets,
+            animation: targets,
         },
         _ => LayerGroupOption {
             name: "<default>".to_string(),
             value: 0,
-            targets: vec![],
+            animation: vec![],
         },
     };
 
@@ -138,7 +138,7 @@ pub fn compile_group_layer(
         options.push(LayerGroupOption {
             name,
             value: explicit_index.unwrap_or(index + 1),
-            targets,
+            animation: targets,
         });
     }
 
@@ -524,7 +524,7 @@ fn compile_raw_animation(
             for decl_field in decl_fields {
                 first_pass.find_asset(logger, &decl_field.name, AssetType::Animation)?;
                 fields.push(LayerRawField {
-                    name: decl_field.name,
+                    animation: decl_field.name,
                     position: decl_field.values,
                 });
             }
