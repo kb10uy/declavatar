@@ -73,7 +73,7 @@ pub struct LayerRawState {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 pub enum LayerRawAnimationKind {
     Clip {
         animation: LayerAnimation,
