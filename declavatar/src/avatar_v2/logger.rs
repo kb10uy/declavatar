@@ -94,6 +94,7 @@ pub enum Log {
     LayerMustBePuppet(String),
     LayerMustBeRaw(String),
     LayerOptionNotFound(String),
+    LayerOptionMustBeExclusive,
     LayerDisabledTargetFailure(String),
     LayerMaterialFailure(usize),
     LayerIndeterminateShapeChange(String),
@@ -163,6 +164,12 @@ impl Display for Log {
             }
             Log::LayerOptionNotFound(option) => {
                 write!(f, "option '{option}' not found")
+            }
+            Log::LayerOptionMustBeExclusive => {
+                write!(
+                    f,
+                    "external animation asset cannot be combined with targets"
+                )
             }
             Log::LayerDisabledTargetFailure(target) => {
                 write!(f, "target '{target}' has no auto-generated disabled target")

@@ -3,9 +3,9 @@ use crate::{
         data::{
             asset::AssetType,
             layer::{
-                Layer, LayerContent, LayerGroupOption, LayerPuppetKeyframe, LayerRawAnimation,
-                LayerRawBlendTreeType, LayerRawCondition, LayerRawField, LayerRawState,
-                LayerRawTransition, Target,
+                Layer, LayerAnimation, LayerContent, LayerGroupOption, LayerPuppetKeyframe,
+                LayerRawAnimation, LayerRawBlendTreeType, LayerRawCondition, LayerRawField,
+                LayerRawState, LayerRawTransition, Target,
             },
             parameter::{ParameterScope, ParameterType},
         },
@@ -112,21 +112,21 @@ pub fn compile_group_layer(
         .default
         .map(|d| compile_group_option(&logger, first_pass, d, default_mesh, UnsetValue::Inactive))
     {
-        Some(Some((None, None, targets))) => LayerGroupOption {
+        Some(Some((None, None, animation))) => LayerGroupOption {
             name: "<default>".to_string(),
             value: 0,
-            animation: targets,
+            animation,
         },
         _ => LayerGroupOption {
             name: "<default>".to_string(),
             value: 0,
-            animation: vec![],
+            animation: LayerAnimation::Inline(vec![]),
         },
     };
 
     let mut options = vec![];
     for (index, decl_option) in decl_group_layer.options.into_iter().enumerate() {
-        let Some((Some(name), explicit_index, targets)) = compile_group_option(
+        let Some((Some(name), explicit_index, animation)) = compile_group_option(
             &logger,
             first_pass,
             decl_option,
@@ -138,7 +138,7 @@ pub fn compile_group_layer(
         options.push(LayerGroupOption {
             name,
             value: explicit_index.unwrap_or(index + 1),
-            animation: targets,
+            animation,
         });
     }
 
@@ -324,7 +324,7 @@ fn compile_group_option(
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
-) -> Compiled<(Option<String>, Option<usize>, Vec<Target>)> {
+) -> Compiled<(Option<String>, Option<usize>, LayerAnimation)> {
     #[derive(Debug)]
     pub struct Context(Option<String>);
     impl LoggerContext for Context {
@@ -343,19 +343,28 @@ fn compile_group_option(
         .expect("group option kind must be selection");
     let logger = logger.with_context(Context(name.clone()));
 
-    let mut compiled_targets = BTreeMap::new();
-    for decl_target in decl_group_option.targets {
-        let Some(targets) =
-            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
-        else {
-            continue;
-        };
-        for target in targets.into_iter() {
-            compiled_targets.insert(target.driving_key(), target);
+    let animation = if let Some(animation_asset) = decl_group_option.animation_asset {
+        if !decl_group_option.targets.is_empty() {
+            logger.log(Log::LayerOptionMustBeExclusive);
+            return failure();
         }
-    }
+        LayerAnimation::External(animation_asset)
+    } else {
+        let mut compiled_targets = BTreeMap::new();
+        for decl_target in decl_group_option.targets {
+            let Some(targets) =
+                compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
+            else {
+                continue;
+            };
+            for target in targets.into_iter() {
+                compiled_targets.insert(target.driving_key(), target);
+            }
+        }
+        LayerAnimation::Inline(compiled_targets.into_values().collect())
+    };
 
-    success((name, value, compiled_targets.into_values().collect()))
+    success((name, value, animation))
 }
 
 fn compile_switch_option(
