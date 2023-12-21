@@ -1,0 +1,40 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "universal-animation"
+    (da/parameters
+        (da/int "group-index")
+        (da/bool "switch" :scope 'local)
+    )
+
+    (da/assets
+        (da/animation "group-animation-1")
+        (da/animation "group-animation-2")
+    )
+
+    (da/fx-controller
+        (da/group-layer "group-universal"
+            :driven-by "group-index"
+            (da/option "option1" :animation "group-animation-1")
+            (da/option "option2" :animation "group-animation-2")
+        )
+
+        (da/raw-layer "raw-universal"
+            :default "state1"
+            (da/state "state1"
+                (da/clip (da/inline-animation
+                    (da/set-tracking 'tracking 'mouth)
+                    (da/set-object "Hat" false)
+                ))
+                (da/transition-to "state2" '(= "switch" true))
+            )
+            (da/state "state2"
+                (da/clip (da/inline-animation
+                    (da/set-tracking 'animation 'mouth)
+                    (da/set-object "Hat" true)
+                ))
+                (da/transition-to "state1" '(= "switch" false))
+            )
+        )
+    )
+)
