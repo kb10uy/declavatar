@@ -132,6 +132,21 @@ pub enum LayerAnimation {
 }
 
 impl Target {
+    pub fn clone_as_zeroed(&self) -> Option<Target> {
+        match self {
+            Target::Shape { mesh, shape, .. } => Some(Target::Shape {
+                mesh: mesh.clone(),
+                shape: shape.clone(),
+                value: 0.0,
+            }),
+            Target::Object { object, .. } => Some(Target::Object {
+                object: object.clone(),
+                value: false,
+            }),
+            _ => None,
+        }
+    }
+
     pub fn driving_key(&self) -> String {
         match self {
             Target::Shape { mesh, shape, .. } => format!("shape://{mesh}/{shape}"),

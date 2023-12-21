@@ -17,8 +17,8 @@ use crate::{
         },
     },
     decl_v2::data::layer::{
-        DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer, DeclRawLayer,
-        DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeType,
+        DeclGroupCopyMode, DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer,
+        DeclRawLayer, DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeType,
         DeclRawLayerTransition, DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering,
         DeclSwitchLayer,
     },
@@ -109,7 +109,7 @@ pub fn compile_group_layer(
     )?;
     let default_mesh = decl_group_layer.default_mesh.as_deref();
 
-    let default = match decl_group_layer
+    let mut default = match decl_group_layer
         .default
         .map(|d| compile_group_option(&logger, first_pass, d, default_mesh, UnsetValue::Inactive))
     {
@@ -141,6 +141,61 @@ pub fn compile_group_layer(
             value: explicit_index.unwrap_or(index + 1),
             animation,
         });
+    }
+
+    match decl_group_layer.copy_mode {
+        Some(DeclGroupCopyMode::ToDefaultZeroed) => {
+            let LayerAnimation::Inline(default_targets) = default.animation else {
+                logger.log(Log::LayerGroupInvalidCopy);
+                return failure();
+            };
+
+            let mut zeroed_option_targets = BTreeMap::new();
+            for option in &options {
+                let LayerAnimation::Inline(targets) = &option.animation else {
+                    continue;
+                };
+                zeroed_option_targets.extend(
+                    targets
+                        .iter()
+                        .flat_map(|t| t.clone_as_zeroed())
+                        .map(|t| (t.driving_key(), t)),
+                );
+            }
+
+            zeroed_option_targets
+                .extend(default_targets.into_iter().map(|dt| (dt.driving_key(), dt)));
+            default.animation =
+                LayerAnimation::Inline(zeroed_option_targets.into_values().collect());
+        }
+        Some(DeclGroupCopyMode::ToOption) => {
+            let LayerAnimation::Inline(default_targets) = &default.animation else {
+                logger.log(Log::LayerGroupInvalidCopy);
+                return failure();
+            };
+
+            let mut copied_options = vec![];
+            for mut option in options {
+                let mut new_targets: BTreeMap<_, _> = default_targets
+                    .iter()
+                    .map(|dt| (dt.driving_key(), dt.clone()))
+                    .collect();
+                let LayerAnimation::Inline(option_targets) = option.animation else {
+                    return failure();
+                };
+                new_targets.extend(option_targets.into_iter().map(|t| (t.driving_key(), t)));
+                option.animation = LayerAnimation::Inline(new_targets.into_values().collect());
+
+                copied_options.push(option);
+            }
+            options = copied_options;
+        }
+        Some(DeclGroupCopyMode::MutualZeroed) => {
+            // TODO: implement this mode
+            logger.log(Log::LayerGroupInvalidCopy);
+            return failure();
+        }
+        None => (),
     }
 
     success(Layer {

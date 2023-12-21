@@ -2,12 +2,12 @@ use crate::decl_v2::{
     data::{
         driver::{DeclParameterDrive, DeclTrackingControl},
         layer::{
-            DeclControllerLayer, DeclGroupLayer, DeclGroupMaterialTarget, DeclGroupObjectTarget,
-            DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget, DeclGroupShapeTarget,
-            DeclLayerInlineAnimation, DeclPuppetLayer, DeclRawLayer, DeclRawLayerAnimation,
-            DeclRawLayerAnimationKind, DeclRawLayerBlendTreeField, DeclRawLayerBlendTreeType,
-            DeclRawLayerState, DeclRawLayerTransition, DeclRawLayerTransitionCondition,
-            DeclRawLayerTransitionOrdering, DeclSwitchLayer,
+            DeclControllerLayer, DeclGroupCopyMode, DeclGroupLayer, DeclGroupMaterialTarget,
+            DeclGroupObjectTarget, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
+            DeclGroupShapeTarget, DeclLayerInlineAnimation, DeclPuppetLayer, DeclRawLayer,
+            DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeField,
+            DeclRawLayerBlendTreeType, DeclRawLayerState, DeclRawLayerTransition,
+            DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering, DeclSwitchLayer,
         },
         StaticTypeName,
     },
@@ -27,7 +27,7 @@ pub fn register_layer_function(scope: &Scope) {
         "group-layer",
         declare_group_layer,
         Arity::Min(1),
-        &["driven-by", "default-mesh"],
+        &["driven-by", "default-mesh", "copy"],
     );
     register_function(
         scope,
@@ -123,13 +123,14 @@ pub fn register_layer_function(scope: &Scope) {
 }
 
 fn declare_group_layer(
-    _name_store: &NameStore,
+    name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let driven_by: &str = args.exact_kwarg_expect("driven-by")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
+    let copy_mode: Option<&Value> = args.exact_kwarg("copy")?;
 
     let mut default = None;
     let mut options = vec![];
@@ -158,6 +159,9 @@ fn declare_group_layer(
         name: name.to_string(),
         driven_by: driven_by.to_string(),
         default_mesh: default_mesh.map(|dm| dm.to_string()),
+        copy_mode: copy_mode
+            .map(|v| expect_copy_mode(name_store, v))
+            .transpose()?,
         default,
         options,
     })
@@ -316,6 +320,21 @@ fn declare_option(
         targets,
     }
     .into())
+}
+
+fn expect_copy_mode(name_store: &NameStore, value: &Value) -> KetosResult<DeclGroupCopyMode> {
+    let Value::Name(name) = value else {
+        return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
+    };
+
+    match name_store.get(*name) {
+        "to-default-zeroed" => Ok(DeclGroupCopyMode::ToDefaultZeroed),
+        "to-option" => Ok(DeclGroupCopyMode::ToOption),
+        "mutual-zeroed" => Ok(DeclGroupCopyMode::MutualZeroed),
+        n => Err(Error::Custom(
+            DeclSexprError::InvalidCopyMode(n.to_string()).into(),
+        )),
+    }
 }
 
 pub fn take_option_target(target_value: &Value) -> KetosResult<DeclGroupOptionTarget> {
