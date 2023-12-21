@@ -155,9 +155,12 @@ pub fn compile_group_layer(
                 let LayerAnimation::Inline(targets) = &option.animation else {
                     continue;
                 };
-                for target in targets.iter().flat_map(|t| t.clone_as_zeroed()) {
-                    zeroed_option_targets.insert(target.driving_key(), target);
-                }
+                zeroed_option_targets.extend(
+                    targets
+                        .iter()
+                        .flat_map(|t| t.clone_as_zeroed())
+                        .map(|t| (t.driving_key(), t)),
+                );
             }
 
             zeroed_option_targets
