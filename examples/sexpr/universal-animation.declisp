@@ -24,14 +24,14 @@
             (da/state "state1"
                 (da/clip (da/inline-animation
                     (da/set-tracking 'tracking 'mouth)
-                    (da/set-object "Hat" false)
+                    (da/set-object "Hat" :value false)
                 ))
                 (da/transition-to "state2" '(= "switch" true))
             )
             (da/state "state2"
                 (da/clip (da/inline-animation
                     (da/set-tracking 'animation 'mouth)
-                    (da/set-object "Hat" true)
+                    (da/set-object "Hat" :value true)
                 ))
                 (da/transition-to "state1" '(= "switch" false))
             )
