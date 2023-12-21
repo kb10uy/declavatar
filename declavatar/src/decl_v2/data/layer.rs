@@ -28,7 +28,7 @@ static_type_name_impl!(DeclGroupLayer);
 #[derive(Debug, Clone, Copy)]
 pub enum DeclGroupCopyMode {
     ToDefaultZeroed,
-    ToOptionZeroed,
+    ToOption,
     MutualZeroed,
 }
 

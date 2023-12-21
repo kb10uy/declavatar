@@ -329,7 +329,7 @@ fn expect_copy_mode(name_store: &NameStore, value: &Value) -> KetosResult<DeclGr
 
     match name_store.get(*name) {
         "to-default-zeroed" => Ok(DeclGroupCopyMode::ToDefaultZeroed),
-        "to-option-zeroed" => Ok(DeclGroupCopyMode::ToOptionZeroed),
+        "to-option" => Ok(DeclGroupCopyMode::ToOption),
         "mutual-zeroed" => Ok(DeclGroupCopyMode::MutualZeroed),
         n => Err(Error::Custom(
             DeclSexprError::InvalidCopyMode(n.to_string()).into(),
