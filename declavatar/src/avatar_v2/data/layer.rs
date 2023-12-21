@@ -69,12 +69,12 @@ pub enum Target {
 #[derive(Debug, Clone, Serialize)]
 pub struct LayerRawState {
     pub name: String,
-    pub animation: LayerRawAnimation,
+    pub animation: LayerRawAnimationKind,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
-pub enum LayerRawAnimation {
+pub enum LayerRawAnimationKind {
     Clip {
         animation: LayerAnimation,
         speed: Option<f64>,

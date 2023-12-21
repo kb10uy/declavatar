@@ -4,7 +4,7 @@ use crate::{
             asset::AssetType,
             layer::{
                 Layer, LayerAnimation, LayerContent, LayerGroupOption, LayerPuppetKeyframe,
-                LayerRawAnimation, LayerRawBlendTreeType, LayerRawCondition, LayerRawField,
+                LayerRawAnimationKind, LayerRawBlendTreeType, LayerRawCondition, LayerRawField,
                 LayerRawState, LayerRawTransition, Target,
             },
             parameter::{ParameterScope, ParameterType},
@@ -18,8 +18,9 @@ use crate::{
     },
     decl_v2::data::layer::{
         DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer, DeclRawLayer,
-        DeclRawLayerAnimation, DeclRawLayerBlendTreeType, DeclRawLayerTransition,
-        DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering, DeclSwitchLayer,
+        DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeType,
+        DeclRawLayerTransition, DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering,
+        DeclSwitchLayer,
     },
 };
 
@@ -288,7 +289,7 @@ pub fn compile_raw_layer(
     let mut transitions = vec![];
     for (index, decl_state) in decl_raw_layer.states.into_iter().enumerate() {
         // if it compiles, order will be preserved
-        let Some(animation) = compile_raw_animation(&logger, first_pass, decl_state.animation)
+        let Some(animation) = compile_raw_animation_kind(&logger, first_pass, decl_state.kind)
         else {
             continue;
         };
@@ -524,22 +525,26 @@ fn compile_target(
     success(target)
 }
 
-fn compile_raw_animation(
+fn compile_raw_animation_kind(
     logger: &Logger,
     first_pass: &FirstPassData,
-    decl_animation: DeclRawLayerAnimation,
-) -> Compiled<LayerRawAnimation> {
-    let animation = match decl_animation {
-        DeclRawLayerAnimation::Clip { name, speed, time } => {
-            first_pass.find_asset(logger, &name, AssetType::Animation)?;
-            LayerRawAnimation::Clip {
-                animation: LayerAnimation::External(name),
+    decl_animation_kind: DeclRawLayerAnimationKind,
+) -> Compiled<LayerRawAnimationKind> {
+    let animation = match decl_animation_kind {
+        DeclRawLayerAnimationKind::Clip {
+            animation,
+            speed,
+            time,
+        } => {
+            let animation = compile_raw_animation(logger, first_pass, animation)?;
+            LayerRawAnimationKind::Clip {
+                animation,
                 speed: speed.0,
                 speed_by: speed.1,
                 time_by: time,
             }
         }
-        DeclRawLayerAnimation::BlendTree {
+        DeclRawLayerAnimationKind::BlendTree {
             tree_type,
             fields: decl_fields,
         } => {
@@ -558,18 +563,50 @@ fn compile_raw_animation(
 
             let mut fields = vec![];
             for decl_field in decl_fields {
-                first_pass.find_asset(logger, &decl_field.name, AssetType::Animation)?;
                 fields.push(LayerRawField {
-                    animation: LayerAnimation::External(decl_field.name),
+                    animation: compile_raw_animation(logger, first_pass, decl_field.animation)?,
                     position: decl_field.values,
                 });
             }
 
-            LayerRawAnimation::BlendTree {
+            LayerRawAnimationKind::BlendTree {
                 blend_type,
                 params,
                 fields,
             }
+        }
+    };
+
+    success(animation)
+}
+
+fn compile_raw_animation(
+    logger: &Logger,
+    first_pass: &FirstPassData,
+    decl_animation: DeclRawLayerAnimation,
+) -> Compiled<LayerAnimation> {
+    let animation = match decl_animation {
+        DeclRawLayerAnimation::Inline(targets) => {
+            let mut compiled_targets = BTreeMap::new();
+            for decl_target in targets.targets {
+                let Some(targets) =
+                    compile_target(&logger, first_pass, None, UnsetValue::Active, decl_target)
+                else {
+                    continue;
+                };
+                for target in targets.into_iter() {
+                    if let Target::ParameterDrive(_) = target {
+                        logger.log(Log::LayerPuppetCannotDrive);
+                        continue;
+                    }
+                    compiled_targets.insert(target.driving_key(), target);
+                }
+            }
+            LayerAnimation::Inline(compiled_targets.into_values().collect())
+        }
+        DeclRawLayerAnimation::External(name) => {
+            first_pass.find_asset(logger, &name, AssetType::Animation)?;
+            LayerAnimation::External(name)
         }
     };
 

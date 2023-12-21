@@ -4,9 +4,10 @@ use crate::decl_v2::{
         layer::{
             DeclControllerLayer, DeclGroupLayer, DeclGroupMaterialTarget, DeclGroupObjectTarget,
             DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget, DeclGroupShapeTarget,
-            DeclPuppetLayer, DeclRawLayer, DeclRawLayerAnimation, DeclRawLayerBlendTreeField,
-            DeclRawLayerBlendTreeType, DeclRawLayerState, DeclRawLayerTransition,
-            DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering, DeclSwitchLayer,
+            DeclLayerInlineAnimation, DeclPuppetLayer, DeclRawLayer, DeclRawLayerAnimation,
+            DeclRawLayerAnimationKind, DeclRawLayerBlendTreeField, DeclRawLayerBlendTreeType,
+            DeclRawLayerState, DeclRawLayerTransition, DeclRawLayerTransitionCondition,
+            DeclRawLayerTransitionOrdering, DeclSwitchLayer,
         },
         StaticTypeName,
     },
@@ -57,6 +58,13 @@ pub fn register_layer_function(scope: &Scope) {
         declare_option,
         Arity::Min(1),
         &["value", "animation"],
+    );
+    register_function(
+        scope,
+        "inline-animation",
+        declare_inline_animation,
+        Arity::Min(0),
+        &[],
     );
     register_function(scope, "state", declare_state, Arity::Min(2), &[]);
 
@@ -406,7 +414,7 @@ fn declare_state(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let animation: &DeclRawLayerAnimation = args.exact_arg(function_name, 1)?;
+    let kind: &DeclRawLayerAnimationKind = args.exact_arg(function_name, 1)?;
 
     let mut transitions = vec![];
     for transition_value in args.args_after(function_name, 2)? {
@@ -416,10 +424,23 @@ fn declare_state(
 
     Ok(DeclRawLayerState {
         name: name.to_string(),
-        animation: animation.clone(),
+        kind: kind.clone(),
         transitions,
     }
     .into())
+}
+
+fn declare_inline_animation(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let mut targets = vec![];
+    for target_value in args.args_after(function_name, 0)? {
+        targets.push(take_option_target(target_value)?);
+    }
+
+    Ok(DeclLayerInlineAnimation { targets }.into())
 }
 
 fn declare_clip(
@@ -427,13 +448,13 @@ fn declare_clip(
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
-    let name: &str = args.exact_arg(function_name, 0)?;
+    let animation: &Value = args.exact_arg(function_name, 0)?;
     let speed: Option<f64> = args.exact_kwarg("speed")?;
     let speed_by: Option<&str> = args.exact_kwarg("speed-by")?;
     let time_by: Option<&str> = args.exact_kwarg("time-by")?;
 
-    Ok(DeclRawLayerAnimation::Clip {
-        name: name.to_string(),
+    Ok(DeclRawLayerAnimationKind::Clip {
+        animation: take_animation(animation)?,
         speed: (speed, speed_by.map(|s| s.to_string())),
         time: time_by.map(|t| t.to_string()),
     }
@@ -488,7 +509,7 @@ fn declare_blendtree(
         fields.push(field.clone());
     }
 
-    Ok(DeclRawLayerAnimation::BlendTree { tree_type, fields }.into())
+    Ok(DeclRawLayerAnimationKind::BlendTree { tree_type, fields }.into())
 }
 
 fn declare_blendtree_field(
@@ -496,15 +517,42 @@ fn declare_blendtree_field(
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
-    let name: &str = args.exact_arg(function_name, 0)?;
+    let animation: &Value = args.exact_arg(function_name, 0)?;
     let x_value: Option<f64> = args.try_exact_arg(1)?;
     let y_value: Option<f64> = args.try_exact_arg(2)?;
 
     Ok(DeclRawLayerBlendTreeField {
-        name: name.to_string(),
+        animation: take_animation(animation)?,
         values: [x_value.unwrap_or(0.0), y_value.unwrap_or(0.0)],
     }
     .into())
+}
+
+fn take_animation(animation_value: &Value) -> KetosResult<DeclRawLayerAnimation> {
+    let target = match animation_value.type_name() {
+        "string" => {
+            let Value::String(s) = animation_value else {
+                unreachable!("must be string")
+            };
+            DeclRawLayerAnimation::External(s.to_string())
+        }
+        DeclLayerInlineAnimation::TYPE_NAME => DeclRawLayerAnimation::Inline(
+            animation_value
+                .downcast_foreign_ref::<&DeclLayerInlineAnimation>()?
+                .clone(),
+        ),
+        _ => {
+            return Err(Error::Custom(
+                DeclSexprError::UnexpectedTypeValue(
+                    animation_value.type_name().to_string(),
+                    "string or inline animation".to_string(),
+                )
+                .into(),
+            ))
+        }
+    };
+
+    Ok(target)
 }
 
 fn declare_transition_to(
