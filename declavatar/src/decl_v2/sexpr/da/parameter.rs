@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
     sexpr::{
-        argument::{flatten_args_onestep, SeparateArguments},
+        argument::SeparateArguments,
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -41,13 +41,13 @@ fn declare_parameters(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut parameters = vec![];
-    flatten_args_onestep(args.args_after(function_name, 0)?, |v| {
+    for decl_parameter in args.args_after_recursive(function_name, 0)? {
         parameters.push(
-            v.downcast_foreign_ref::<&DeclParameter>()
+            decl_parameter
+                .downcast_foreign_ref::<&DeclParameter>()
                 .map(|p| p.clone())?,
         );
-        Ok(())
-    })?;
+    }
     Ok(DeclParameters { parameters }.into())
 }
 

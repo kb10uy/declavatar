@@ -1,10 +1,6 @@
 use crate::decl_v2::{
     data::{controller::DeclFxController, layer::DeclControllerLayer},
-    sexpr::{
-        argument::{flatten_args_onestep, SeparateArguments},
-        error::KetosResult,
-        register_function, KetosValueExt,
-    },
+    sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
@@ -25,9 +21,12 @@ fn declare_fx_controller(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut layers = vec![];
-    flatten_args_onestep(args.args_after(function_name, 0)?, |l| {
-        layers.push(l.downcast_foreign_ref::<&DeclControllerLayer>()?.clone());
-        Ok(())
-    })?;
+    for decl_layer in args.args_after_recursive(function_name, 0)? {
+        layers.push(
+            decl_layer
+                .downcast_foreign_ref::<&DeclControllerLayer>()?
+                .clone(),
+        );
+    }
     Ok(DeclFxController { layers }.into())
 }
