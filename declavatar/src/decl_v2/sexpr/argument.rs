@@ -1,7 +1,8 @@
 use crate::decl_v2::sexpr::{error::DeclSexprError, KetosResult};
 
-use std::collections::HashMap;
+use std::{collections::HashMap, iter::once};
 
+use either::Either::{Left, Right};
 use ketos::{Arity, Error, ExecError, FromValueRef, Name, NameStore, Value};
 
 pub struct SeparateArguments<'a> {
@@ -146,4 +147,45 @@ pub fn flatten_args_onestep<'a>(
         }
     }
     Ok(())
+}
+
+pub fn flatten_args_recursive<'a>(args: &'a [&'a Value]) -> impl Iterator<Item = &'a Value> {
+    args.iter().flat_map(|&v| match v {
+        Value::List(l) => Left(RecursiveFlatten { stack: vec![l] }),
+        _ => Right(once(v)),
+    })
+}
+
+pub struct RecursiveFlatten<'a> {
+    stack: Vec<&'a [Value]>,
+}
+
+impl<'a> Iterator for RecursiveFlatten<'a> {
+    type Item = &'a Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // pop trailing empties
+        loop {
+            let stack_top = self.stack.last()?;
+            if !stack_top.is_empty() {
+                break;
+            }
+            self.stack.pop();
+        }
+
+        // dig next item
+        let next_value = loop {
+            let top_list = self.stack.pop().expect("must not be empty");
+            let (top_first, top_rest) = top_list.split_first().expect("must not be empty");
+            self.stack.push(top_rest);
+            if let Value::List(top_first_list) = top_first {
+                self.stack.push(top_first_list);
+                continue;
+            } else {
+                break top_first;
+            }
+        };
+
+        Some(next_value)
+    }
 }
