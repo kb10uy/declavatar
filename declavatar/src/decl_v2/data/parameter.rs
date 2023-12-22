@@ -11,9 +11,10 @@ static_type_name_impl!(DeclParameters);
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclParameter {
     pub ty: DeclParameterType,
+    pub name: String,
     pub scope: Option<DeclParameterScope>,
     pub save: Option<bool>,
-    pub name: String,
+    pub unique: Option<bool>,
 }
 static_type_name_impl!(DeclParameter);
 
