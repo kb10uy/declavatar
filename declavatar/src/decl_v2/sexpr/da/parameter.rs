@@ -10,7 +10,7 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_parameter_function(scope: &Scope) {
-    const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope"];
+    const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope", "unique"];
     register_function(scope, "parameters", declare_parameters, Arity::Min(0), &[]);
     register_function(
         scope,
@@ -57,12 +57,14 @@ fn declare_bool(
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<bool> = args.exact_kwarg("default")?;
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
+    let unique: Option<bool> = args.exact_kwarg("unique")?;
 
     Ok(DeclParameter {
         ty: DeclParameterType::Bool(default),
+        name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
-        name: name.to_string(),
+        unique,
     }
     .into())
 }
@@ -76,12 +78,14 @@ fn declare_int(
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<u8> = args.exact_kwarg("default")?;
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
+    let unique: Option<bool> = args.exact_kwarg("unique")?;
 
     Ok(DeclParameter {
         ty: DeclParameterType::Int(default),
+        name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
-        name: name.to_string(),
+        unique,
     }
     .into())
 }
@@ -95,12 +99,14 @@ fn declare_float(
     let save: Option<bool> = args.exact_kwarg("save")?;
     let default: Option<f64> = args.exact_kwarg("default")?;
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
+    let unique: Option<bool> = args.exact_kwarg("unique")?;
 
     Ok(DeclParameter {
         ty: DeclParameterType::Float(default),
+        name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
-        name: name.to_string(),
+        unique,
     }
     .into())
 }

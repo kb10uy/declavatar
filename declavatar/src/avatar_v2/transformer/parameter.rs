@@ -70,5 +70,6 @@ fn compile_parameter(
         name,
         value_type,
         scope,
+        unique: decl_parameter.unique.unwrap_or(false),
     })
 }
