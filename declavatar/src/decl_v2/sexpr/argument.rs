@@ -146,22 +146,6 @@ impl<'a> SeparateArguments<'a> {
     }
 }
 
-pub fn flatten_args_onestep<'a>(
-    args: &'a [&'a Value],
-    mut f: impl FnMut(&'a Value) -> KetosResult<()>,
-) -> KetosResult<()> {
-    for arg in args {
-        if let Value::List(arg_list) = arg {
-            for list_value in arg_list {
-                f(list_value)?;
-            }
-        } else {
-            f(arg)?;
-        }
-    }
-    Ok(())
-}
-
 pub struct RecursiveFlatten<'a> {
     stack: Vec<&'a [Value]>,
 }
