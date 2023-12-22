@@ -7,7 +7,7 @@ use crate::decl_v2::{
         },
     },
     sexpr::{
-        argument::{flatten_args, SeparateArguments},
+        argument::{flatten_args_onestep, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -44,7 +44,7 @@ fn declare_menu(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut elements = vec![];
-    flatten_args(args.args_after(function_name, 0)?, |element_value| {
+    flatten_args_onestep(args.args_after(function_name, 0)?, |element_value| {
         elements.push(
             element_value
                 .downcast_foreign_ref::<&DeclMenuElement>()?
@@ -68,7 +68,7 @@ fn declare_submenu(
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut elements = vec![];
-    flatten_args(args.args_after(function_name, 0)?, |element_value| {
+    flatten_args_onestep(args.args_after(function_name, 0)?, |element_value| {
         elements.push(
             element_value
                 .downcast_foreign_ref::<&DeclMenuElement>()?

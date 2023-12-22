@@ -12,7 +12,7 @@ use crate::decl_v2::{
         StaticTypeName,
     },
     sexpr::{
-        argument::{flatten_args, SeparateArguments},
+        argument::{flatten_args_onestep, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -134,7 +134,7 @@ fn declare_group_layer(
 
     let mut default = None;
     let mut options = vec![];
-    flatten_args(args.args_after(function_name, 1)?, |option_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
         match option.kind {
             DeclGroupOptionKind::Selection(None, None) => {
@@ -179,7 +179,7 @@ fn declare_switch_layer(
 
     let mut disabled = None;
     let mut enabled = None;
-    flatten_args(args.args_after(function_name, 1)?, |option_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
         match option.kind {
             DeclGroupOptionKind::Boolean(false) => {
@@ -231,7 +231,7 @@ fn declare_puppet_layer(
     let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut keyframes = vec![];
-    flatten_args(args.args_after(function_name, 1)?, |option_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
         match option.kind {
             DeclGroupOptionKind::Keyframe(_) => {
@@ -266,7 +266,7 @@ fn declare_raw_layer(
     let default: Option<&str> = args.exact_kwarg("default")?;
 
     let mut states = vec![];
-    flatten_args(args.args_after(function_name, 1)?, |state_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |state_value| {
         states.push(
             state_value
                 .downcast_foreign_ref::<&DeclRawLayerState>()?
@@ -314,7 +314,7 @@ fn declare_option(
     let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut targets = vec![];
-    flatten_args(args.args_after(function_name, 1)?, |target_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |target_value| {
         targets.push(take_option_target(target_value)?);
         Ok(())
     })?;
@@ -441,7 +441,7 @@ fn declare_state(
     let kind: &DeclRawLayerAnimationKind = args.exact_arg(function_name, 1)?;
 
     let mut transitions = vec![];
-    flatten_args(args.args_after(function_name, 2)?, |transition_value| {
+    flatten_args_onestep(args.args_after(function_name, 2)?, |transition_value| {
         transitions.push(
             transition_value
                 .downcast_foreign_ref::<&DeclRawLayerTransition>()?
@@ -464,7 +464,7 @@ fn declare_inline_animation(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut targets = vec![];
-    flatten_args(args.args_after(function_name, 0)?, |target_value| {
+    flatten_args_onestep(args.args_after(function_name, 0)?, |target_value| {
         targets.push(take_option_target(target_value)?);
         Ok(())
     })?;
@@ -533,7 +533,7 @@ fn declare_blendtree(
     };
 
     let mut fields = vec![];
-    flatten_args(args.args_after(function_name, 0)?, |field_value| {
+    flatten_args_onestep(args.args_after(function_name, 0)?, |field_value| {
         fields.push(
             field_value
                 .downcast_foreign_ref::<&DeclRawLayerBlendTreeField>()?
@@ -597,7 +597,7 @@ fn declare_transition_to(
     let duration: Option<f64> = args.exact_kwarg("duration")?;
 
     let mut and_terms = vec![];
-    flatten_args(args.args_after(function_name, 1)?, |condition_value| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |condition_value| {
         let Value::List(condition_list) = condition_value else {
             return Err(Error::ExecError(ExecError::TypeError {
                 expected: "list that expresses condition",

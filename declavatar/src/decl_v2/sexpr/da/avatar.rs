@@ -4,7 +4,7 @@ use crate::decl_v2::{
         parameter::DeclParameters, StaticTypeName,
     },
     sexpr::{
-        argument::{flatten_args, SeparateArguments},
+        argument::{flatten_args_onestep, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -30,7 +30,7 @@ fn declare_avatar(
         fx_controllers: vec![],
         menu_blocks: vec![],
     };
-    flatten_args(args.args_after(function_name, 1)?, |b| {
+    flatten_args_onestep(args.args_after(function_name, 1)?, |b| {
         match b.type_name() {
             DeclParameters::TYPE_NAME => {
                 let value_ref: &DeclParameters = b.downcast_foreign_ref()?;

@@ -132,26 +132,18 @@ impl<'a> SeparateArguments<'a> {
     }
 }
 
-pub fn flatten_args(
-    args: &[&Value],
-    mut f: impl FnMut(&Value) -> KetosResult<()>,
+pub fn flatten_args_onestep<'a>(
+    args: &'a [&'a Value],
+    mut f: impl FnMut(&'a Value) -> KetosResult<()>,
 ) -> KetosResult<()> {
-    fn flatten_arg(
-        arg_value: &Value,
-        mut f: impl FnMut(&Value) -> KetosResult<()>,
-    ) -> KetosResult<()> {
-        if let Value::List(arg_list) = arg_value {
+    for arg in args {
+        if let Value::List(arg_list) = arg {
             for list_value in arg_list {
-                flatten_arg(list_value, &mut f)?;
+                f(list_value)?;
             }
         } else {
-            f(arg_value)?;
+            f(arg)?;
         }
-        Ok(())
-    }
-
-    for arg in args {
-        flatten_arg(arg, &mut f)?;
     }
     Ok(())
 }
