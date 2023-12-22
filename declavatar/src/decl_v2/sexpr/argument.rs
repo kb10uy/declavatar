@@ -5,15 +5,15 @@ use std::collections::HashMap;
 use ketos::{Arity, Error, ExecError, FromValueRef, Name, NameStore, Value};
 
 pub struct SeparateArguments<'a> {
-    args: Vec<&'a mut Value>,
-    kwargs: HashMap<&'a str, &'a mut Value>,
+    args: Vec<&'a Value>,
+    kwargs: HashMap<&'a str, &'a Value>,
 }
 
 impl<'a> SeparateArguments<'a> {
     pub fn new(
         name_store: &'a NameStore,
         function_name: Name,
-        raw_args: &'a mut [Value],
+        raw_args: &'a [Value],
         args_arity: Arity,
         allowed_keywords: &'static [&'static str],
     ) -> KetosResult<SeparateArguments<'a>> {
@@ -57,11 +57,7 @@ impl<'a> SeparateArguments<'a> {
         Ok(Some(value))
     }
 
-    pub fn args_after(
-        &'a self,
-        function_name: Name,
-        index: usize,
-    ) -> KetosResult<&'a [&'a mut Value]> {
+    pub fn args_after(&'a self, function_name: Name, index: usize) -> KetosResult<&'a [&'a Value]> {
         if self.args.len() < index {
             return Err(Error::ExecError(ExecError::ArityError {
                 name: Some(function_name),
@@ -95,14 +91,14 @@ impl<'a> SeparateArguments<'a> {
     fn separate_args(
         name_store: &'a NameStore,
         function_name: Name,
-        values: &'a mut [Value],
+        values: &'a [Value],
         args_arity: Arity,
         allowed_keywords: &'static [&'static str],
-    ) -> KetosResult<(Vec<&'a mut Value>, HashMap<&'a str, &'a mut Value>)> {
+    ) -> KetosResult<(Vec<&'a Value>, HashMap<&'a str, &'a Value>)> {
         let mut args = vec![];
         let mut kwargs = HashMap::new();
 
-        let mut values_iter = values.iter_mut();
+        let mut values_iter = values.iter();
         while let Some(value) = values_iter.next() {
             match value {
                 Value::Keyword(name) => {
@@ -134,4 +130,21 @@ impl<'a> SeparateArguments<'a> {
 
         Ok((args, kwargs))
     }
+}
+
+pub fn flatten_args<T>(
+    args: &[&Value],
+    mut f: impl FnMut(&Value) -> KetosResult<T>,
+) -> KetosResult<Vec<T>> {
+    let mut values = vec![];
+    for arg in args {
+        if let Value::List(arg_list) = arg {
+            for list_value in arg_list {
+                values.push(f(list_value)?);
+            }
+        } else {
+            values.push(f(arg)?);
+        }
+    }
+    Ok(values)
 }
