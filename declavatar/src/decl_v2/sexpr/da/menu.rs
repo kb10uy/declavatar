@@ -7,7 +7,7 @@ use crate::decl_v2::{
         },
     },
     sexpr::{
-        argument::SeparateArguments,
+        argument::{flatten_args, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -44,10 +44,14 @@ fn declare_menu(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut elements = vec![];
-    for element_value in args.args_after(function_name, 0)? {
-        let element: &DeclMenuElement = element_value.downcast_foreign_ref()?;
-        elements.push(element.clone());
-    }
+    flatten_args(args.args_after(function_name, 0)?, |element_value| {
+        elements.push(
+            element_value
+                .downcast_foreign_ref::<&DeclMenuElement>()?
+                .clone(),
+        );
+        Ok(())
+    })?;
 
     Ok(DeclSubMenu {
         name: "".into(),
@@ -64,10 +68,14 @@ fn declare_submenu(
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut elements = vec![];
-    for element_value in args.args_after(function_name, 1)? {
-        let element: &DeclMenuElement = element_value.downcast_foreign_ref()?;
-        elements.push(element.clone());
-    }
+    flatten_args(args.args_after(function_name, 0)?, |element_value| {
+        elements.push(
+            element_value
+                .downcast_foreign_ref::<&DeclMenuElement>()?
+                .clone(),
+        );
+        Ok(())
+    })?;
 
     Ok(DeclMenuElement::SubMenu(DeclSubMenu {
         name: name.to_string(),

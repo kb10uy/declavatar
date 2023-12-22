@@ -1,6 +1,10 @@
 use crate::decl_v2::{
     data::asset::{DeclAsset, DeclAssets},
-    sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
+    sexpr::{
+        argument::{flatten_args, SeparateArguments},
+        error::KetosResult,
+        register_function, KetosValueExt,
+    },
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
@@ -17,10 +21,10 @@ fn declare_assets(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut assets = vec![];
-    for asset_value in args.args_after(function_name, 0)? {
-        let parameter: &DeclAsset = asset_value.downcast_foreign_ref()?;
-        assets.push(parameter.clone());
-    }
+    flatten_args(args.args_after(function_name, 0)?, |v| {
+        assets.push(v.downcast_foreign_ref::<&DeclAsset>().map(|a| a.clone())?);
+        Ok(())
+    })?;
     Ok(DeclAssets { assets }.into())
 }
 

@@ -12,7 +12,7 @@ use crate::decl_v2::{
         StaticTypeName,
     },
     sexpr::{
-        argument::SeparateArguments,
+        argument::{flatten_args, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -134,9 +134,8 @@ fn declare_group_layer(
 
     let mut default = None;
     let mut options = vec![];
-    for option_value in args.args_after(function_name, 1)? {
+    flatten_args(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
-
         match option.kind {
             DeclGroupOptionKind::Selection(None, None) => {
                 if default.is_some() {
@@ -153,7 +152,8 @@ fn declare_group_layer(
                 ));
             }
         }
-    }
+        Ok(())
+    })?;
 
     Ok(DeclControllerLayer::Group(DeclGroupLayer {
         name: name.to_string(),
@@ -179,9 +179,8 @@ fn declare_switch_layer(
 
     let mut disabled = None;
     let mut enabled = None;
-    for option_value in args.args_after(function_name, 1)? {
+    flatten_args(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
-
         match option.kind {
             DeclGroupOptionKind::Boolean(false) => {
                 if disabled.is_some() {
@@ -201,7 +200,8 @@ fn declare_switch_layer(
                 ));
             }
         }
-    }
+        Ok(())
+    })?;
 
     let (Some(disabled), Some(enabled)) = (disabled, enabled) else {
         // TODO fill exact error
@@ -231,9 +231,8 @@ fn declare_puppet_layer(
     let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut keyframes = vec![];
-    for option_value in args.args_after(function_name, 1)? {
+    flatten_args(args.args_after(function_name, 1)?, |option_value| {
         let option: &DeclGroupOption = option_value.downcast_foreign_ref()?;
-
         match option.kind {
             DeclGroupOptionKind::Keyframe(_) => {
                 keyframes.push(option.clone());
@@ -245,7 +244,8 @@ fn declare_puppet_layer(
                 ));
             }
         }
-    }
+        Ok(())
+    })?;
 
     Ok(DeclControllerLayer::Puppet(DeclPuppetLayer {
         name: name.to_string(),
@@ -266,10 +266,14 @@ fn declare_raw_layer(
     let default: Option<&str> = args.exact_kwarg("default")?;
 
     let mut states = vec![];
-    for state_value in args.args_after(function_name, 1)? {
-        let state: &DeclRawLayerState = state_value.downcast_foreign_ref()?;
-        states.push(state.clone());
-    }
+    flatten_args(args.args_after(function_name, 1)?, |state_value| {
+        states.push(
+            state_value
+                .downcast_foreign_ref::<&DeclRawLayerState>()?
+                .clone(),
+        );
+        Ok(())
+    })?;
     Ok(DeclControllerLayer::Raw(DeclRawLayer {
         name: name.to_string(),
         default: default.map(|d| d.to_string()),
@@ -310,9 +314,10 @@ fn declare_option(
     let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
     let mut targets = vec![];
-    for target_value in args.args_after(function_name, 1)? {
+    flatten_args(args.args_after(function_name, 1)?, |target_value| {
         targets.push(take_option_target(target_value)?);
-    }
+        Ok(())
+    })?;
 
     Ok(DeclGroupOption {
         kind,
@@ -436,10 +441,14 @@ fn declare_state(
     let kind: &DeclRawLayerAnimationKind = args.exact_arg(function_name, 1)?;
 
     let mut transitions = vec![];
-    for transition_value in args.args_after(function_name, 2)? {
-        let transition: &DeclRawLayerTransition = transition_value.downcast_foreign_ref()?;
-        transitions.push(transition.clone());
-    }
+    flatten_args(args.args_after(function_name, 2)?, |transition_value| {
+        transitions.push(
+            transition_value
+                .downcast_foreign_ref::<&DeclRawLayerTransition>()?
+                .clone(),
+        );
+        Ok(())
+    })?;
 
     Ok(DeclRawLayerState {
         name: name.to_string(),
@@ -455,9 +464,10 @@ fn declare_inline_animation(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut targets = vec![];
-    for target_value in args.args_after(function_name, 0)? {
+    flatten_args(args.args_after(function_name, 0)?, |target_value| {
         targets.push(take_option_target(target_value)?);
-    }
+        Ok(())
+    })?;
 
     Ok(DeclLayerInlineAnimation { targets }.into())
 }
@@ -523,10 +533,14 @@ fn declare_blendtree(
     };
 
     let mut fields = vec![];
-    for field_value in args.args_after(function_name, 0)? {
-        let field: &DeclRawLayerBlendTreeField = field_value.downcast_foreign_ref()?;
-        fields.push(field.clone());
-    }
+    flatten_args(args.args_after(function_name, 0)?, |field_value| {
+        fields.push(
+            field_value
+                .downcast_foreign_ref::<&DeclRawLayerBlendTreeField>()?
+                .clone(),
+        );
+        Ok(())
+    })?;
 
     Ok(DeclRawLayerAnimationKind::BlendTree { tree_type, fields }.into())
 }
@@ -583,7 +597,7 @@ fn declare_transition_to(
     let duration: Option<f64> = args.exact_kwarg("duration")?;
 
     let mut and_terms = vec![];
-    for condition_value in args.args_after(function_name, 1)? {
+    flatten_args(args.args_after(function_name, 1)?, |condition_value| {
         let Value::List(condition_list) = condition_value else {
             return Err(Error::ExecError(ExecError::TypeError {
                 expected: "list that expresses condition",
@@ -593,7 +607,8 @@ fn declare_transition_to(
         };
         let condition = parse_condition(name_store, condition_list)?;
         and_terms.push(condition);
-    }
+        Ok(())
+    })?;
 
     Ok(DeclRawLayerTransition {
         target: target.to_string(),

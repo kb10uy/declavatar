@@ -4,7 +4,7 @@ use crate::decl_v2::{
         parameter::DeclParameters, StaticTypeName,
     },
     sexpr::{
-        argument::SeparateArguments,
+        argument::{flatten_args, SeparateArguments},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -30,35 +30,36 @@ fn declare_avatar(
         fx_controllers: vec![],
         menu_blocks: vec![],
     };
-    for child_block in args.args_after(function_name, 1)? {
-        match child_block.type_name() {
+    flatten_args(args.args_after(function_name, 1)?, |b| {
+        match b.type_name() {
             DeclParameters::TYPE_NAME => {
-                let value_ref: &DeclParameters = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclParameters = b.downcast_foreign_ref()?;
                 avatar.parameters_blocks.push(value_ref.clone());
             }
             DeclAssets::TYPE_NAME => {
-                let value_ref: &DeclAssets = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclAssets = b.downcast_foreign_ref()?;
                 avatar.assets_blocks.push(value_ref.clone());
             }
             DeclFxController::TYPE_NAME => {
-                let value_ref: &DeclFxController = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclFxController = b.downcast_foreign_ref()?;
                 avatar.fx_controllers.push(value_ref.clone());
             }
             DeclSubMenu::TYPE_NAME => {
-                let value_ref: &DeclSubMenu = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclSubMenu = b.downcast_foreign_ref()?;
                 avatar.menu_blocks.push(value_ref.clone());
             }
             _ => {
                 return Err(Error::Custom(
                     DeclSexprError::UnexpectedTypeValue(
-                        child_block.type_name().to_string(),
+                        b.type_name().to_string(),
                         "avatar element".to_string(),
                     )
                     .into(),
                 ))
             }
         }
-    }
+        Ok(())
+    })?;
 
     Ok(avatar.into())
 }
