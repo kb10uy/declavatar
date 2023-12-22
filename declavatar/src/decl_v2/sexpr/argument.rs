@@ -69,6 +69,19 @@ impl<'a> SeparateArguments<'a> {
         Ok(&self.args[index..])
     }
 
+    pub fn args_after_recursive(
+        &'a self,
+        function_name: Name,
+        index: usize,
+    ) -> KetosResult<impl Iterator<Item = &'a Value>> {
+        let args = self.args_after(function_name, index)?;
+        let iter = args.iter().flat_map(|&v| match v {
+            Value::List(l) => Left(RecursiveFlatten { stack: vec![l] }),
+            _ => Right(once(v)),
+        });
+        Ok(iter)
+    }
+
     pub fn exact_kwarg<T: FromValueRef<'a>>(&'a self, keyword: &str) -> KetosResult<Option<T>> {
         let Some(value) = self.kwargs.get(keyword) else {
             return Ok(None);
@@ -147,13 +160,6 @@ pub fn flatten_args_onestep<'a>(
         }
     }
     Ok(())
-}
-
-pub fn flatten_args_recursive<'a>(args: &'a [&'a Value]) -> impl Iterator<Item = &'a Value> {
-    args.iter().flat_map(|&v| match v {
-        Value::List(l) => Left(RecursiveFlatten { stack: vec![l] }),
-        _ => Right(once(v)),
-    })
 }
 
 pub struct RecursiveFlatten<'a> {
