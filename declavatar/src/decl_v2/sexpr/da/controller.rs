@@ -21,9 +21,12 @@ fn declare_fx_controller(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut layers = vec![];
-    for layer_value in args.args_after(function_name, 0)? {
-        let layer: &DeclControllerLayer = layer_value.downcast_foreign_ref()?;
-        layers.push(layer.clone());
+    for decl_layer in args.args_after_recursive(function_name, 0)? {
+        layers.push(
+            decl_layer
+                .downcast_foreign_ref::<&DeclControllerLayer>()?
+                .clone(),
+        );
     }
     Ok(DeclFxController { layers }.into())
 }

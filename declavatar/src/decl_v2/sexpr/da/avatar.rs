@@ -30,28 +30,28 @@ fn declare_avatar(
         fx_controllers: vec![],
         menu_blocks: vec![],
     };
-    for child_block in args.args_after(function_name, 1)? {
-        match child_block.type_name() {
+    for block in args.args_after_recursive(function_name, 1)? {
+        match block.type_name() {
             DeclParameters::TYPE_NAME => {
-                let value_ref: &DeclParameters = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclParameters = block.downcast_foreign_ref()?;
                 avatar.parameters_blocks.push(value_ref.clone());
             }
             DeclAssets::TYPE_NAME => {
-                let value_ref: &DeclAssets = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclAssets = block.downcast_foreign_ref()?;
                 avatar.assets_blocks.push(value_ref.clone());
             }
             DeclFxController::TYPE_NAME => {
-                let value_ref: &DeclFxController = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclFxController = block.downcast_foreign_ref()?;
                 avatar.fx_controllers.push(value_ref.clone());
             }
             DeclSubMenu::TYPE_NAME => {
-                let value_ref: &DeclSubMenu = child_block.downcast_foreign_ref()?;
+                let value_ref: &DeclSubMenu = block.downcast_foreign_ref()?;
                 avatar.menu_blocks.push(value_ref.clone());
             }
             _ => {
                 return Err(Error::Custom(
                     DeclSexprError::UnexpectedTypeValue(
-                        child_block.type_name().to_string(),
+                        block.type_name().to_string(),
                         "avatar element".to_string(),
                     )
                     .into(),

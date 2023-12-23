@@ -41,9 +41,12 @@ fn declare_parameters(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut parameters = vec![];
-    for param_value in args.args_after(function_name, 0)? {
-        let parameter: &DeclParameter = param_value.downcast_foreign_ref()?;
-        parameters.push(parameter.clone());
+    for decl_parameter in args.args_after_recursive(function_name, 0)? {
+        parameters.push(
+            decl_parameter
+                .downcast_foreign_ref::<&DeclParameter>()
+                .map(|p| p.clone())?,
+        );
     }
     Ok(DeclParameters { parameters }.into())
 }

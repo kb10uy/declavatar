@@ -44,9 +44,12 @@ fn declare_menu(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let mut elements = vec![];
-    for element_value in args.args_after(function_name, 0)? {
-        let element: &DeclMenuElement = element_value.downcast_foreign_ref()?;
-        elements.push(element.clone());
+    for element_value in args.args_after_recursive(function_name, 0)? {
+        elements.push(
+            element_value
+                .downcast_foreign_ref::<&DeclMenuElement>()?
+                .clone(),
+        );
     }
 
     Ok(DeclSubMenu {
@@ -64,9 +67,12 @@ fn declare_submenu(
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut elements = vec![];
-    for element_value in args.args_after(function_name, 1)? {
-        let element: &DeclMenuElement = element_value.downcast_foreign_ref()?;
-        elements.push(element.clone());
+    for element_value in args.args_after_recursive(function_name, 0)? {
+        elements.push(
+            element_value
+                .downcast_foreign_ref::<&DeclMenuElement>()?
+                .clone(),
+        );
     }
 
     Ok(DeclMenuElement::SubMenu(DeclSubMenu {
