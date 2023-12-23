@@ -1,0 +1,28 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "flatten"
+    (da/parameters)
+    (da/fx-controller)
+
+    (list
+        (da/parameters)
+        (da/fx-controller)
+    )
+
+    (list
+        (da/parameters)
+        (list (da/fx-controller))
+        (da/menu)
+    )
+
+    (list)
+
+    (list
+        (list)
+        (list
+            (list)
+            (list (da/parameters))
+        )
+    )
+)
