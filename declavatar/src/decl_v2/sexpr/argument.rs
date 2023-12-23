@@ -77,6 +77,7 @@ impl<'a> SeparateArguments<'a> {
         let args = self.args_after(function_name, index)?;
         let iter = args.iter().flat_map(|&v| match v {
             Value::List(l) => Left(RecursiveFlatten { stack: vec![l] }),
+            Value::Unit => Left(RecursiveFlatten { stack: vec![] }),
             _ => Right(once(v)),
         });
         Ok(iter)
@@ -154,25 +155,29 @@ impl<'a> Iterator for RecursiveFlatten<'a> {
     type Item = &'a Value;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // pop trailing empties
-        loop {
-            let stack_top = self.stack.last()?;
-            if !stack_top.is_empty() {
-                break;
-            }
-            self.stack.pop();
-        }
-
-        // dig next item
         let next_value = loop {
+            // pop trailing empties
+            loop {
+                let stack_top = self.stack.last()?;
+                if !stack_top.is_empty() {
+                    break;
+                }
+                self.stack.pop();
+            }
+
             let top_list = self.stack.pop().expect("must not be empty");
             let (top_first, top_rest) = top_list.split_first().expect("must not be empty");
             self.stack.push(top_rest);
-            if let Value::List(top_first_list) = top_first {
-                self.stack.push(top_first_list);
-                continue;
-            } else {
-                break top_first;
+            match top_first {
+                Value::List(top_first_list) => {
+                    self.stack.push(top_first_list);
+                    continue;
+                }
+                Value::Unit => {
+                    self.stack.push(&[]);
+                    continue;
+                }
+                value => break value,
             }
         };
 
