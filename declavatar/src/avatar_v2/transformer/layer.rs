@@ -680,7 +680,7 @@ fn compile_raw_transition(
         .position(|s| s == &decl_transition.target)?;
 
     let mut conditions = vec![];
-    for decl_condition in decl_transition.and_terms {
+    for decl_condition in decl_transition.conditions {
         let Some(condition) = compile_raw_condition(logger, first_pass, decl_condition) else {
             continue;
         };

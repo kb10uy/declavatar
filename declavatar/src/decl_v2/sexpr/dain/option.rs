@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::layer::{DeclGroupOption, DeclGroupOptionKind},
     sexpr::{
-        argument::SeparateArguments, da::layer::take_option_target, error::KetosResult,
+        argument::SeparateArguments, da::layer_basic::take_option_target, error::KetosResult,
         register_function, register_function_with_context,
     },
 };

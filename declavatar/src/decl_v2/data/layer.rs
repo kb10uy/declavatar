@@ -161,16 +161,17 @@ static_type_name_impl!(DeclLayerInlineAnimation);
 pub struct DeclRawLayerTransition {
     pub target: String,
     pub duration: Option<f64>,
-    pub and_terms: Vec<DeclRawLayerTransitionCondition>,
+    pub conditions: Vec<DeclRawLayerTransitionCondition>,
 }
 static_type_name_impl!(DeclRawLayerTransition);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclRawLayerTransitionCondition {
     Bool(String, bool),
     Int(String, DeclRawLayerTransitionOrdering, i64),
     Float(String, DeclRawLayerTransitionOrdering, f64),
 }
+static_type_name_impl!(DeclRawLayerTransitionCondition);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeclRawLayerTransitionOrdering {
