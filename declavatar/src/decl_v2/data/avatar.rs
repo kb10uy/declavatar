@@ -8,7 +8,7 @@ use crate::{
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAvatar {
     pub name: String,
     pub parameters_blocks: Vec<DeclParameters>,

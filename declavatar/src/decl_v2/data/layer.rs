@@ -5,7 +5,7 @@ use crate::{
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclControllerLayer {
     Group(DeclGroupLayer),
     Switch(DeclSwitchLayer),
@@ -14,7 +14,7 @@ pub enum DeclControllerLayer {
 }
 static_type_name_impl!(DeclControllerLayer);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupLayer {
     pub name: String,
     pub driven_by: String,
@@ -25,14 +25,14 @@ pub struct DeclGroupLayer {
 }
 static_type_name_impl!(DeclGroupLayer);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeclGroupCopyMode {
     ToDefaultZeroed,
     ToOption,
     MutualZeroed,
 }
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupOption {
     pub kind: DeclGroupOptionKind,
     pub animation_asset: Option<String>,
@@ -47,7 +47,7 @@ pub enum DeclGroupOptionKind {
     Keyframe(f64),
 }
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclGroupOptionTarget {
     Shape(DeclGroupShapeTarget),
     Object(DeclGroupObjectTarget),
@@ -57,7 +57,7 @@ pub enum DeclGroupOptionTarget {
 }
 static_type_name_impl!(DeclGroupOptionTarget);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupShapeTarget {
     pub shape: String,
     pub value: Option<f64>,
@@ -65,14 +65,14 @@ pub struct DeclGroupShapeTarget {
 }
 static_type_name_impl!(DeclGroupShapeTarget);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupObjectTarget {
     pub object: String,
     pub value: Option<bool>,
 }
 static_type_name_impl!(DeclGroupObjectTarget);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupMaterialTarget {
     pub index: usize,
     pub value: String,
@@ -80,7 +80,7 @@ pub struct DeclGroupMaterialTarget {
 }
 static_type_name_impl!(DeclGroupMaterialTarget);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclSwitchLayer {
     pub name: String,
     pub driven_by: String,
@@ -90,7 +90,7 @@ pub struct DeclSwitchLayer {
 }
 static_type_name_impl!(DeclSwitchLayer);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclPuppetLayer {
     pub name: String,
     pub driven_by: String,
@@ -100,7 +100,7 @@ pub struct DeclPuppetLayer {
 }
 static_type_name_impl!(DeclPuppetLayer);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayer {
     pub name: String,
     pub default: Option<String>,
@@ -108,7 +108,7 @@ pub struct DeclRawLayer {
 }
 static_type_name_impl!(DeclRawLayer);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerState {
     pub name: String,
     pub kind: DeclRawLayerAnimationKind,
@@ -116,7 +116,7 @@ pub struct DeclRawLayerState {
 }
 static_type_name_impl!(DeclRawLayerState);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclRawLayerAnimationKind {
     Clip {
         animation: DeclRawLayerAnimation,
@@ -130,7 +130,7 @@ pub enum DeclRawLayerAnimationKind {
 }
 static_type_name_impl!(DeclRawLayerAnimation);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeclRawLayerBlendTreeType {
     Linear(String),
     Simple2D(String, String),
@@ -138,26 +138,26 @@ pub enum DeclRawLayerBlendTreeType {
     Cartesian2D(String, String),
 }
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerBlendTreeField {
     pub animation: DeclRawLayerAnimation,
     pub values: [f64; 2],
 }
 static_type_name_impl!(DeclRawLayerBlendTreeField);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DeclRawLayerAnimation {
     Inline(DeclLayerInlineAnimation),
     External(String),
 }
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclLayerInlineAnimation {
     pub targets: Vec<DeclGroupOptionTarget>,
 }
 static_type_name_impl!(DeclLayerInlineAnimation);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclRawLayerTransition {
     pub target: String,
     pub duration: Option<f64>,
@@ -165,7 +165,7 @@ pub struct DeclRawLayerTransition {
 }
 static_type_name_impl!(DeclRawLayerTransition);
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclRawLayerTransitionCondition {
     Bool(String, bool),
     Int(String, DeclRawLayerTransitionOrdering, i64),
