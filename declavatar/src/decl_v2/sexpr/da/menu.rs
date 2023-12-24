@@ -206,7 +206,16 @@ fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPupp
 
 #[cfg(test)]
 mod test {
-    use crate::decl_v2::{data::menu::DeclSubMenu, sexpr::test::eval_da_value};
+    use crate::decl_v2::{
+        data::{
+            driver::{DeclDriveGroup, DeclDrivePuppet, DeclParameterDrive},
+            menu::{
+                DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl,
+                DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
+            },
+        },
+        sexpr::test::eval_da_value,
+    };
 
     use pretty_assertions::assert_eq;
 
@@ -216,17 +225,61 @@ mod test {
     #[test]
     fn reads_submenu() {
         assert_eq!(
-            eval_da_value::<DeclSubMenu>(r#"(da/submenu "hoge")"#),
-            DeclSubMenu {
+            eval_da_value::<DeclMenuElement>(r#"(da/submenu "hoge")"#),
+            DeclMenuElement::SubMenu(DeclSubMenu {
                 name: "hoge".to_string(),
                 elements: vec![]
-            }
+            })
         );
     }
 
     #[test]
-    fn reads_button() {}
+    fn reads_button() {
+        assert_eq!(
+            eval_da_value::<DeclMenuElement>(r#"(da/button "hoge" (da/drive-group "foo" "bar"))"#),
+            DeclMenuElement::Boolean(DeclBooleanControl {
+                name: "hoge".to_string(),
+                hold: false,
+                parameter_drive: DeclParameterDrive::Group(DeclDriveGroup {
+                    group: "foo".to_string(),
+                    option: "bar".to_string()
+                })
+            })
+        );
+    }
 
     #[test]
-    fn reads_toggle() {}
+    fn reads_toggle() {
+        assert_eq!(
+            eval_da_value::<DeclMenuElement>(r#"(da/toggle "hoge" (da/drive-group "foo" "bar"))"#),
+            DeclMenuElement::Boolean(DeclBooleanControl {
+                name: "hoge".to_string(),
+                hold: true,
+                parameter_drive: DeclParameterDrive::Group(DeclDriveGroup {
+                    group: "foo".to_string(),
+                    option: "bar".to_string()
+                })
+            })
+        );
+    }
+
+    #[test]
+    fn reads_radial() {
+        assert_eq!(
+            eval_da_value::<DeclMenuElement>(
+                r#"(da/radial "hoge" (da/axis (da/drive-puppet "foo")))"#
+            ),
+            DeclMenuElement::Puppet(DeclPuppetControl {
+                name: "hoge".to_string(),
+                puppet_type: Box::new(DeclPuppetType::Radial(DeclPuppetAxis {
+                    target: DeclPuppetTarget::Puppet(DeclDrivePuppet {
+                        puppet: "foo".to_string(),
+                        value: None
+                    }),
+                    label_positive: None,
+                    label_negative: None
+                }))
+            })
+        );
+    }
 }
