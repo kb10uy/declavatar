@@ -744,6 +744,30 @@ fn compile_raw_condition(
                 }
             }
         }
+        DeclRawLayerTransitionCondition::Zero(name, not_zero) => {
+            let parameter =
+                first_pass.find_parameter_untyped(logger, &name, ParameterScope::MAYBE_INTERNAL)?;
+            match parameter.value_type {
+                ParameterType::Int(_) => {
+                    if not_zero {
+                        LayerRawCondition::NeqInt(name, 0)
+                    } else {
+                        LayerRawCondition::EqInt(name, 0)
+                    }
+                }
+                ParameterType::Bool(_) => {
+                    if not_zero {
+                        LayerRawCondition::Be(name)
+                    } else {
+                        LayerRawCondition::Not(name)
+                    }
+                }
+                _ => {
+                    logger.log(Log::LayerInvalidCondition);
+                    return failure();
+                }
+            }
+        }
     };
 
     success(condition)
