@@ -132,11 +132,36 @@ fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclParame
 #[cfg(test)]
 mod test {
     use crate::decl_v2::{
-        data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType},
+        data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
         sexpr::test::eval_da_value,
     };
 
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn reads_parameters() {
+        assert_eq!(
+            eval_da_value::<DeclParameters>(r#"(da/parameters)"#)
+                .expect("should compile")
+                .parameters
+                .len(),
+            0
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameters>(r#"(da/parameters (da/bool "hoge"))"#)
+                .expect("should compile")
+                .parameters
+                .len(),
+            1
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameters>(r#"(da/parameters (list (da/bool "hoge") (da/int "fuga")))"#)
+                .expect("should compile")
+                .parameters
+                .len(),
+            2
+        );
+    }
 
     #[test]
     fn reads_int() {

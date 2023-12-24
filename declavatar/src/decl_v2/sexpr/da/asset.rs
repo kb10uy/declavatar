@@ -44,3 +44,56 @@ fn declare_animation(
     let key: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclAsset::Animation(key.to_string()).into())
 }
+
+#[cfg(test)]
+mod test {
+    use crate::decl_v2::{
+        data::asset::{DeclAsset, DeclAssets},
+        sexpr::test::eval_da_value,
+    };
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn reads_assets() {
+        assert_eq!(
+            eval_da_value::<DeclAssets>(r#"(da/assets)"#)
+                .expect("should compile")
+                .assets
+                .len(),
+            0
+        );
+        assert_eq!(
+            eval_da_value::<DeclAssets>(r#"(da/assets (da/material "hoge"))"#)
+                .expect("should compile")
+                .assets
+                .len(),
+            1
+        );
+        assert_eq!(
+            eval_da_value::<DeclAssets>(
+                r#"(da/assets (list (da/material "hoge") (da/animation "fuga")))"#
+            )
+            .expect("should compile")
+            .assets
+            .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn reads_material() {
+        assert_eq!(
+            eval_da_value::<DeclAsset>(r#"(da/material "hoge")"#).expect("should compile"),
+            DeclAsset::Material("hoge".to_string())
+        );
+    }
+
+    #[test]
+    fn reads_animation() {
+        assert_eq!(
+            eval_da_value::<DeclAsset>(r#"(da/animation "hoge")"#).expect("should compile"),
+            DeclAsset::Animation("hoge".to_string())
+        );
+    }
+}
