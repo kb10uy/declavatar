@@ -128,3 +128,137 @@ fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclParame
         )),
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::decl_v2::{
+        data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
+        sexpr::test::eval_da_value,
+    };
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn reads_parameters() {
+        assert_eq!(
+            eval_da_value::<DeclParameters>(r#"(da/parameters)"#)
+                .parameters
+                .len(),
+            0
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameters>(r#"(da/parameters (da/bool "hoge"))"#)
+                .parameters
+                .len(),
+            1
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameters>(
+                r#"(da/parameters (list (da/bool "hoge") (da/int "fuga")))"#
+            )
+            .parameters
+            .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn reads_int() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge")"#),
+            expected_type(DeclParameterType::Int(None))
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :default 1)"#),
+            expected_type(DeclParameterType::Int(Some(1)))
+        );
+    }
+
+    #[test]
+    fn reads_bool() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/bool "hoge")"#),
+            expected_type(DeclParameterType::Bool(None))
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/bool "hoge" :default false)"#),
+            expected_type(DeclParameterType::Bool(Some(false)))
+        );
+    }
+
+    #[test]
+    fn reads_float() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/float "hoge")"#),
+            expected_type(DeclParameterType::Float(None))
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/float "hoge" :default 1.5)"#),
+            expected_type(DeclParameterType::Float(Some(1.5)))
+        );
+    }
+
+    #[test]
+    fn parses_scope() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'internal)"#),
+            expected_scope(DeclParameterScope::Internal)
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'local)"#),
+            expected_scope(DeclParameterScope::Local)
+        );
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'synced)"#),
+            expected_scope(DeclParameterScope::Synced)
+        );
+    }
+
+    #[test]
+    fn parses_save() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :save true)"#),
+            DeclParameter {
+                ty: DeclParameterType::Int(None),
+                name: "hoge".to_string(),
+                scope: None,
+                save: Some(true),
+                unique: None,
+            }
+        );
+    }
+
+    #[test]
+    fn parses_unique() {
+        assert_eq!(
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :unique true)"#),
+            DeclParameter {
+                ty: DeclParameterType::Int(None),
+                name: "hoge".to_string(),
+                scope: None,
+                save: None,
+                unique: Some(true),
+            }
+        );
+    }
+
+    fn expected_type(ty: DeclParameterType) -> DeclParameter {
+        DeclParameter {
+            ty,
+            name: "hoge".to_string(),
+            scope: None,
+            save: None,
+            unique: None,
+        }
+    }
+
+    fn expected_scope(s: DeclParameterScope) -> DeclParameter {
+        DeclParameter {
+            ty: DeclParameterType::Int(None),
+            name: "hoge".to_string(),
+            scope: Some(s),
+            save: None,
+            unique: None,
+        }
+    }
+}

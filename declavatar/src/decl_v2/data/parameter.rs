@@ -2,7 +2,7 @@ use crate::static_type_name_impl;
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
-#[derive(Debug, Clone, ForeignValue, FromValue, FromValueRef, IntoValue)]
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclParameters {
     pub parameters: Vec<DeclParameter>,
 }
