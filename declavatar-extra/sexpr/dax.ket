@@ -1,3 +1,33 @@
-(define foo 42)
+; vim: set ft=commonlisp
+(use da :self)
 
-(export (foo))
+(define (foldl f i l)
+    (if (null l)
+        i
+        (call-self f (f i (first l)) (tail l))
+    )
+)
+
+(define (map f l)
+    (foldl (lambda (a x) (append a (f x))) () l)
+)
+
+(define (tracking-layer name targets parameters)
+    (da/raw-layer name
+        :default "Tracking"
+        (da/state "Tracking"
+            (da/clip (da/inline-animation (da/set-tracking 'tracking targets)))
+            (da/transition-to "Animation"
+                (map (lambda (p) (da/cond-nz p)) parameters)
+            )
+        )
+        (da/state "Animation"
+            (da/clip (da/inline-animation (da/set-tracking 'animation targets)))
+            (map (lambda (p)
+                (da/transition-to "Tracking" (da/cond-ze p))
+            ) parameters)
+        )
+    )
+)
+
+(export (tracking-layer))

@@ -69,6 +69,8 @@ pub fn register_layer_raw_function(scope: &Scope) {
     register_function(scope, "cond-ne", declare_cond_ne, Arity::Exact(2), &[]);
     register_function(scope, "cond-gt", declare_cond_gt, Arity::Exact(2), &[]);
     register_function(scope, "cond-lt", declare_cond_lt, Arity::Exact(2), &[]);
+    register_function(scope, "cond-ze", declare_cond_ze, Arity::Exact(1), &[]);
+    register_function(scope, "cond-nz", declare_cond_nz, Arity::Exact(1), &[]);
 }
 
 fn declare_raw_layer(
@@ -332,6 +334,24 @@ fn declare_cond_lt(
         value,
     )?;
     Ok(condition.into())
+}
+
+fn declare_cond_ze(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    Ok(DeclRawLayerTransitionCondition::Zero(parameter.to_string(), false).into())
+}
+
+fn declare_cond_nz(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let parameter: &str = args.exact_arg(function_name, 0)?;
+    Ok(DeclRawLayerTransitionCondition::Zero(parameter.to_string(), true).into())
 }
 
 fn expect_condition(
