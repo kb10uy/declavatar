@@ -17,5 +17,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+rstest = { workspace = true }
+
 [build-dependencies]
 static_vcruntime = { workspace = true }
