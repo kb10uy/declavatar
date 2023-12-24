@@ -57,22 +57,25 @@ mod test {
     #[test]
     fn reads_assets() {
         assert_eq!(
-            eval_da_value::<DeclAssets>(r#"(da/assets)"#).assets.len(),
-            0
+            eval_da_value::<DeclAssets>(r#"(da/assets)"#),
+            DeclAssets { assets: vec![] }
         );
         assert_eq!(
-            eval_da_value::<DeclAssets>(r#"(da/assets (da/material "hoge"))"#)
-                .assets
-                .len(),
-            1
+            eval_da_value::<DeclAssets>(r#"(da/assets (da/material "hoge"))"#),
+            DeclAssets {
+                assets: vec![DeclAsset::Material("hoge".to_string())]
+            }
         );
         assert_eq!(
             eval_da_value::<DeclAssets>(
                 r#"(da/assets (list (da/material "hoge") (da/animation "fuga")))"#
-            )
-            .assets
-            .len(),
-            2
+            ),
+            DeclAssets {
+                assets: vec![
+                    DeclAsset::Material("hoge".to_string()),
+                    DeclAsset::Animation("fuga".to_string())
+                ]
+            }
         );
     }
 
