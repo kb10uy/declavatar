@@ -332,7 +332,7 @@ fn declare_set_tracking(
     };
 
     let mut targets = vec![];
-    for target_value in args.args_after(function_name, 1)? {
+    for target_value in args.args_after_recursive(function_name, 1)? {
         let target_str = match target_value {
             Value::Name(n) => name_store.get(*n),
             v => {

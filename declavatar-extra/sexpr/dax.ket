@@ -23,9 +23,9 @@
         )
         (da/state "Animation"
             (da/clip (da/inline-animation (da/set-tracking 'animation targets)))
-            (map (lambda (p) (
+            (map (lambda (p)
                 (da/transition-to "Tracking" (da/cond-ze p))
-            )) parameters)
+            ) parameters)
         )
     )
 )

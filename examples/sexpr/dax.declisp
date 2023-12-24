@@ -4,6 +4,10 @@
 
 (da/avatar "dax"
     (da/parameters
-        (da/int "dax-parameter" :default dax/foo)
+        (da/int "dax-parameter")
+    )
+
+    (da/fx-controller
+        (dax/tracking-layer "EyePrevention" '(eyes) '("dax-parameter"))
     )
 )
