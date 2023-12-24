@@ -67,7 +67,7 @@ fn declare_submenu(
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut elements = vec![];
-    for element_value in args.args_after_recursive(function_name, 0)? {
+    for element_value in args.args_after_recursive(function_name, 1)? {
         elements.push(
             element_value
                 .downcast_foreign_ref::<&DeclMenuElement>()?
