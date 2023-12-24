@@ -1,0 +1,30 @@
+; vim: set ft=commonlisp
+
+(define (foldl f i l)
+    (if (null l)
+        i
+        (call-self f (f i (first l)) (tail l))
+    )
+)
+
+(define (foldr f l i)
+    (if (null l)
+        i
+        (call-self f (init l) (f (last l) i))
+    )
+)
+
+(define (map f l)
+    (foldl (lambda (a x) (append a (f x))) () l)
+)
+
+(define (filter p l)
+    (foldl (lambda (a x) (if (p x) (append a x) a)) () l)
+)
+
+(export (
+    foldl
+    foldr
+    map
+    filter
+))

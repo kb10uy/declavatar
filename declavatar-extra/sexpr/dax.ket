@@ -1,16 +1,6 @@
 ; vim: set ft=commonlisp
 (use da :self)
-
-(define (foldl f i l)
-    (if (null l)
-        i
-        (call-self f (f i (first l)) (tail l))
-    )
-)
-
-(define (map f l)
-    (foldl (lambda (a x) (append a (f x))) () l)
-)
+(use lm (map))
 
 (define (tracking-layer name targets parameters)
     (da/raw-layer name
@@ -23,9 +13,7 @@
         )
         (da/state "Animation"
             (da/clip (da/inline-animation (da/set-tracking 'animation targets)))
-            (map (lambda (p)
-                (da/transition-to "Tracking" (da/cond-ze p))
-            ) parameters)
+            (map (lambda (p) (da/transition-to "Tracking" (da/cond-ze p))) parameters)
         )
     )
 )
