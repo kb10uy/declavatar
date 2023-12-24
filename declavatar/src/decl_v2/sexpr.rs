@@ -136,21 +136,24 @@ fn register_function_with_context<
 
 #[cfg(test)]
 mod test {
-    use super::{error::KetosResult, DeclavatarModuleLoader};
+    use super::DeclavatarModuleLoader;
     use crate::decl_v2::data::StaticTypeName;
 
     use ketos::{BuiltinModuleLoader, FromValue, Interpreter, ModuleLoader};
 
-    pub fn eval_da_value<T: StaticTypeName + FromValue>(source: &str) -> KetosResult<T> {
+    pub fn eval_da_value<T: StaticTypeName + FromValue>(source: &str) -> T {
         let da_loader = DeclavatarModuleLoader;
         let builtin_loader = BuiltinModuleLoader;
 
         let loader = Box::new(da_loader.chain(builtin_loader));
         let interpreter = Interpreter::with_loader(loader);
-        interpreter.run_code("(use da :self)", None)?;
+        interpreter
+            .run_code("(use da :self)", None)
+            .expect("failed to setup interpreter");
 
-        let value = interpreter.run_code(source, None)?;
-        let converted_value = T::from_value(value)?;
-        Ok(converted_value)
+        let value = interpreter
+            .run_code(source, None)
+            .expect("given source should compile");
+        T::from_value(value).expect("wrong type returned")
     }
 }

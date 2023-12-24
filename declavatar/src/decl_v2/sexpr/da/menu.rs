@@ -203,3 +203,30 @@ fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPupp
         )),
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::decl_v2::{data::menu::DeclSubMenu, sexpr::test::eval_da_value};
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn reads_menu() {}
+
+    #[test]
+    fn reads_submenu() {
+        assert_eq!(
+            eval_da_value::<DeclSubMenu>(r#"(da/submenu "hoge")"#),
+            DeclSubMenu {
+                name: "hoge".to_string(),
+                elements: vec![]
+            }
+        );
+    }
+
+    #[test]
+    fn reads_button() {}
+
+    #[test]
+    fn reads_toggle() {}
+}

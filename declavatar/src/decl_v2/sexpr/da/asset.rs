@@ -57,15 +57,11 @@ mod test {
     #[test]
     fn reads_assets() {
         assert_eq!(
-            eval_da_value::<DeclAssets>(r#"(da/assets)"#)
-                .expect("should compile")
-                .assets
-                .len(),
+            eval_da_value::<DeclAssets>(r#"(da/assets)"#).assets.len(),
             0
         );
         assert_eq!(
             eval_da_value::<DeclAssets>(r#"(da/assets (da/material "hoge"))"#)
-                .expect("should compile")
                 .assets
                 .len(),
             1
@@ -74,7 +70,6 @@ mod test {
             eval_da_value::<DeclAssets>(
                 r#"(da/assets (list (da/material "hoge") (da/animation "fuga")))"#
             )
-            .expect("should compile")
             .assets
             .len(),
             2
@@ -84,7 +79,7 @@ mod test {
     #[test]
     fn reads_material() {
         assert_eq!(
-            eval_da_value::<DeclAsset>(r#"(da/material "hoge")"#).expect("should compile"),
+            eval_da_value::<DeclAsset>(r#"(da/material "hoge")"#),
             DeclAsset::Material("hoge".to_string())
         );
     }
@@ -92,7 +87,7 @@ mod test {
     #[test]
     fn reads_animation() {
         assert_eq!(
-            eval_da_value::<DeclAsset>(r#"(da/animation "hoge")"#).expect("should compile"),
+            eval_da_value::<DeclAsset>(r#"(da/animation "hoge")"#),
             DeclAsset::Animation("hoge".to_string())
         );
     }
