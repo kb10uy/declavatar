@@ -1,16 +1,6 @@
 ; vim: set ft=commonlisp
 (use da :self)
-
-(define (foldl f i l)
-    (if (null l)
-        i
-        (call-self f (f i (first l)) (tail l))
-    )
-)
-
-(define (map f l)
-    (foldl (lambda (a x) (append a (f x))) () l)
-)
+(use lm (map))
 
 (define (tracking-layer name targets parameters)
     (da/raw-layer name
@@ -23,11 +13,46 @@
         )
         (da/state "Animation"
             (da/clip (da/inline-animation (da/set-tracking 'animation targets)))
-            (map (lambda (p)
-                (da/transition-to "Tracking" (da/cond-ze p))
-            ) parameters)
+            (map (lambda (p) (da/transition-to "Tracking" (da/cond-ze p))) parameters)
         )
     )
 )
 
-(export (tracking-layer))
+(define (switch-objects name parameter object-pairs)
+    (da/switch-layer name
+        :driven-by parameter
+        (da/option 'disabled
+            (map (lambda (pair)
+                (da/set-object (first pair) :value (not (second pair)))
+            ) object-pairs)
+        )
+        (da/option 'enabled
+            (map (lambda (pair)
+                (da/set-object (first pair) :value (second pair))
+            ) object-pairs)
+        )
+    )
+)
+
+(define (switch-shapes name parameter mesh shape-pairs)
+    (da/switch-layer name
+        :driven-by parameter
+        :default-mesh mesh
+        (da/option 'disabled
+            (map (lambda (pair)
+                (da/set-shape (first pair) :value (elt pair 1))
+            ) shape-pairs)
+        )
+        (da/option 'enabled
+            (map (lambda (pair)
+                (da/set-shape (first pair) :value (elt pair 2))
+            ) shape-pairs)
+        )
+    )
+)
+
+(export (
+    tracking-layer
+    switch-objects
+    switch-shapes
+))
