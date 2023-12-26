@@ -5,9 +5,13 @@
 (da/avatar "dax"
     (da/parameters
         (da/int "dax-parameter")
+        (da/bool "Hat")
+        (da/bool "Smile")
     )
 
     (da/fx-controller
         (dax/tracking-layer "EyePrevention" '(eyes) '("dax-parameter"))
+        (dax/switch-objects "HatSwitch" "Hat" '(("hat" true)))
+        (dax/switch-shapes "SmileSwitch" "Smile" "Body" '(("mouth_笑顔" 0.0 1.0) ("eye_笑顔" 0.0 1.0)))
     )
 )

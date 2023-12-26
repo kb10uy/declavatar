@@ -18,4 +18,41 @@
     )
 )
 
-(export (tracking-layer))
+(define (switch-objects name parameter object-pairs)
+    (da/switch-layer name
+        :driven-by parameter
+        (da/option 'disabled
+            (map (lambda (pair)
+                (da/set-object (first pair) :value (not (second pair)))
+            ) object-pairs)
+        )
+        (da/option 'enabled
+            (map (lambda (pair)
+                (da/set-object (first pair) :value (second pair))
+            ) object-pairs)
+        )
+    )
+)
+
+(define (switch-shapes name parameter mesh shape-pairs)
+    (da/switch-layer name
+        :driven-by parameter
+        :default-mesh mesh
+        (da/option 'disabled
+            (map (lambda (pair)
+                (da/set-shape (first pair) :value (elt pair 1))
+            ) shape-pairs)
+        )
+        (da/option 'enabled
+            (map (lambda (pair)
+                (da/set-shape (first pair) :value (elt pair 2))
+            ) shape-pairs)
+        )
+    )
+)
+
+(export (
+    tracking-layer
+    switch-objects
+    switch-shapes
+))
