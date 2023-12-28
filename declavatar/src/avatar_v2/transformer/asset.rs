@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::asset::{Asset, AssetType},
-        logger::Log,
+        log::Log,
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::asset::{DeclAsset, DeclAssets},

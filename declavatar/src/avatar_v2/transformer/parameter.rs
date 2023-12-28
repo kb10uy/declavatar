@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::parameter::{Parameter, ParameterScope, ParameterType},
-        logger::Log,
+        log::Log,
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::parameter::{

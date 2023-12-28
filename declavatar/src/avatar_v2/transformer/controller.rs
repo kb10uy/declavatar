@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::layer::Layer,
-        logger::Log,
+        log::Log,
         transformer::{
             layer::{
                 compile_group_layer, compile_puppet_layer, compile_raw_layer, compile_switch_layer,

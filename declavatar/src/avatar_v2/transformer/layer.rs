@@ -9,7 +9,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::Log,
+        log::Log,
         transformer::{
             driver::{compile_parameter_drive, compile_tracking_control},
             failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,

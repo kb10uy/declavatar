@@ -7,7 +7,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::Log,
+        log::Log,
         transformer::{failure, success, Compiled, FirstPassData},
     },
     decl_v2::data::{

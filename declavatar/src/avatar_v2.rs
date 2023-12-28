@@ -1,5 +1,5 @@
 pub mod data;
-pub mod logger;
+pub mod log;
 pub mod transformer;
 
 use crate::{

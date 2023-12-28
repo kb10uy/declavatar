@@ -12,7 +12,7 @@ use crate::{
             asset::{Asset, AssetType},
             parameter::{Parameter, ParameterScope, ParameterType},
         },
-        logger::Log,
+        log::Log,
     },
     log::Logger,
 };
