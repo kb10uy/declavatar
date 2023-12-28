@@ -1,9 +1,7 @@
-use rpds::Stack;
-
 use crate::{
     avatar_v2::{data::avatar::Avatar, transform_avatar},
     decl_v2::{load_declaration, DeclarationFormat},
-    log::{Context, Log},
+    log::Log,
 };
 
 use std::path::{Path, PathBuf};

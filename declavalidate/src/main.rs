@@ -46,8 +46,9 @@ fn main() -> Result<()> {
                 }?;
                 println!("{json}");
             } else {
-                for (severity, message) in avatar_result.logs {
-                    println!("{severity:?}: {message}");
+                for log in avatar_result.logs {
+                    println!("{:?}: {}", log.severity, log.kind);
+                    println!();
                 }
             }
         }

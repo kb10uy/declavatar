@@ -367,7 +367,7 @@ fn compile_group_option(
     let logger = logger.with_context(if let Some(n) = &name {
         format!("option '{}'", n)
     } else {
-        format!("default option")
+        "default option".to_string()
     });
 
     let animation = if let Some(animation_asset) = decl_group_option.animation_asset {

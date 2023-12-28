@@ -60,7 +60,10 @@ impl<L: Log> Default for Logger<L> {
 
 pub trait Log {
     fn erroneous(&self) -> bool;
-    fn serialize_log<'a, C: IntoIterator<Item = &'a dyn Context>>(&self, context: C) -> SerializedLog;
+    fn serialize_log<'a, C: IntoIterator<Item = &'a dyn Context>>(
+        &self,
+        context: C,
+    ) -> SerializedLog;
 }
 
 impl Log for String {
@@ -68,7 +71,10 @@ impl Log for String {
         true
     }
 
-    fn serialize_log<'a, C: IntoIterator<Item = &'a dyn Context>>(&self, context: C) -> SerializedLog {
+    fn serialize_log<'a, C: IntoIterator<Item = &'a dyn Context>>(
+        &self,
+        context: C,
+    ) -> SerializedLog {
         SerializedLog {
             severity: Severity::Error,
             kind: "".into(),
