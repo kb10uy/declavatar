@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, LitStr};
 
 #[proc_macro_derive(EnumLog, attributes(log_error, log_warn, log_info))]
@@ -22,19 +22,42 @@ fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
             ))
         }
     };
-    let (impl_generics, _, impl_where) = derive_input.generics.split_for_impl();
+    let enum_name = &derive_input.ident;
+    let (impl_generics, ty_generics, where_where) = derive_input.generics.split_for_impl();
 
+    if enum_tree.variants.is_empty() {
+        return Ok(quote! {
+            impl #impl_generics crate::log::Log for #enum_name #ty_generics #where_where {
+                fn erroneous(&self) -> bool {
+                    unreachable!("no variant generated");
+                }
+
+                fn serialize_log<'a, C: std::iter::Iterator<Item = &'a dyn crate::log::Context>>(&self, context: C) -> crate::log::SerializedLog {
+                    unreachable!("no variant generated");
+                }
+            }
+        }.into());
+    }
+
+    let mut erroneous_arms = vec![];
+    let mut serialize_log_arms = vec![];
     for variant in &enum_tree.variants {
-        let Some((key_literal, severity_ts2, erroneous)) = enum_log_attribute(&variant.attrs)?
+        let variant_ident = &variant.ident;
+        let Some((key_literal, severity_ts2, erroneous_ts2)) = enum_log_attribute(&variant.attrs)?
         else {
             return Err(SynError::new_spanned(
                 &variant.ident,
                 "variant must have one of log_error, log_warn, log_info attr",
             ));
         };
-        let fields_length = match &variant.fields {
-            Fields::Unnamed(un) => un.unnamed.len(),
-            Fields::Unit => 0,
+        let field_captures: Vec<_> = match &variant.fields {
+            Fields::Unnamed(un) => un
+                .unnamed
+                .iter()
+                .enumerate()
+                .map(|(i, _)| format_ident!("f{i}"))
+                .collect(),
+            Fields::Unit => vec![],
             Fields::Named(_) => {
                 return Err(SynError::new_spanned(
                     &variant.ident,
@@ -42,22 +65,55 @@ fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
                 ))
             }
         };
+        erroneous_arms.push(quote!(Self::#variant_ident => #erroneous_ts2));
+        serialize_log_arms.push(quote!(
+            Self::#variant_ident => (
+                crate::log::Severity::#severity_ts2,
+                #key_literal,
+                vec![#(#field_captures.to_string()),*],
+            )
+        ));
     }
 
-    let expanded = quote! {};
+    let expanded = quote! {
+        impl #impl_generics crate::log::Log for #enum_name #ty_generics #where_where {
+            fn erroneous(&self) -> bool {
+                match self {
+                    #(#erroneous_arms),*
+                }
+            }
+
+            fn serialize_log<'a, C: std::iter::Iterator<Item = &'a dyn crate::log::Context>>(&self, context: C) -> crate::log::SerializedLog {
+                let (severity, kind, args) = match self {
+                    #(#serialize_log_arms),*
+                };
+                let context = context.into_iter().map(|c| c.to_string()).collect();
+                crate::log::SerializedLog {
+                    severity,
+                    kind: kind.into(),
+                    args,
+                    context,
+                }
+            }
+        }
+    };
     Ok(expanded.into())
 }
 
 fn enum_log_attribute(
     attrs: &[Attribute],
-) -> Result<Option<(LitStr, TokenStream2, bool)>, SynError> {
+) -> Result<Option<(LitStr, TokenStream2, TokenStream2)>, SynError> {
     for attr in attrs {
         if attr.path().is_ident("log_error") {
-            return Ok(Some((attr.parse_args()?, quote!(Error), true)));
+            return Ok(Some((attr.parse_args()?, quote!(Error), quote!(true))));
         } else if attr.path().is_ident("log_warn") {
-            return Ok(Some((attr.parse_args()?, quote!(Warning), false)));
+            return Ok(Some((attr.parse_args()?, quote!(Warning), quote!(false))));
         } else if attr.path().is_ident("log_info") {
-            return Ok(Some((attr.parse_args()?, quote!(Information), false)));
+            return Ok(Some((
+                attr.parse_args()?,
+                quote!(Information),
+                quote!(false),
+            )));
         } else {
             continue;
         }
