@@ -1,7 +1,10 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, LitStr};
+use syn::{
+    parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, FieldsUnnamed,
+    LitStr,
+};
 
 #[proc_macro_derive(EnumLog, attributes(log_error, log_warn, log_info))]
 pub fn enum_log_derive(input: TokenStream) -> TokenStream {
@@ -43,21 +46,40 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
     let mut serialize_log_arms = vec![];
     for variant in &enum_tree.variants {
         let variant_ident = &variant.ident;
-        let Some((key_literal, severity_ts2, erroneous_ts2)) = enum_log_find_attribute(&variant.attrs)?
+        let Some((key_literal, severity_ts2, erroneous_ts2)) =
+            enum_log_find_attribute(&variant.attrs)?
         else {
             return Err(SynError::new_spanned(
                 &variant.ident,
                 "variant must have one of log_error, log_warn, log_info attr",
             ));
         };
-        let field_captures: Vec<_> = match &variant.fields {
-            Fields::Unnamed(un) => un
-                .unnamed
-                .iter()
-                .enumerate()
-                .map(|(i, _)| format_ident!("f{i}"))
-                .collect(),
-            Fields::Unit => vec![],
+        match &variant.fields {
+            Fields::Unnamed(FieldsUnnamed { unnamed, .. }) => {
+                let fields: Vec<_> = unnamed
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| format_ident!("_f{i}",))
+                    .collect();
+                erroneous_arms.push(quote!(Self::#variant_ident(#(#fields),*) => #erroneous_ts2));
+                serialize_log_arms.push(quote!(
+                    Self::#variant_ident(#(#fields),*) => (
+                        crate::log::Severity::#severity_ts2,
+                        #key_literal,
+                        vec![(#(#fields.to_string()),*)],
+                    )
+                ));
+            }
+            Fields::Unit => {
+                erroneous_arms.push(quote!(Self::#variant_ident => #erroneous_ts2));
+                serialize_log_arms.push(quote!(
+                    Self::#variant_ident => (
+                        crate::log::Severity::#severity_ts2,
+                        #key_literal,
+                        vec![],
+                    )
+                ));
+            }
             Fields::Named(_) => {
                 return Err(SynError::new_spanned(
                     &variant.ident,
@@ -65,14 +87,6 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
                 ))
             }
         };
-        erroneous_arms.push(quote!(Self::#variant_ident => #erroneous_ts2));
-        serialize_log_arms.push(quote!(
-            Self::#variant_ident => (
-                crate::log::Severity::#severity_ts2,
-                #key_literal,
-                vec![#(#field_captures.to_string()),*],
-            )
-        ));
     }
 
     let expanded = quote! {
