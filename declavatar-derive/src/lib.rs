@@ -6,13 +6,13 @@ use syn::{parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fi
 #[proc_macro_derive(EnumLog, attributes(log_error, log_warn, log_info))]
 pub fn enum_log_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    match enum_log_impl(&input) {
+    match enum_log_generate(&input) {
         Ok(ts) => ts,
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
+fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
     let enum_tree = match &derive_input.data {
         Data::Enum(e) => e,
         _ => {
@@ -43,7 +43,7 @@ fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
     let mut serialize_log_arms = vec![];
     for variant in &enum_tree.variants {
         let variant_ident = &variant.ident;
-        let Some((key_literal, severity_ts2, erroneous_ts2)) = enum_log_attribute(&variant.attrs)?
+        let Some((key_literal, severity_ts2, erroneous_ts2)) = enum_log_find_attribute(&variant.attrs)?
         else {
             return Err(SynError::new_spanned(
                 &variant.ident,
@@ -100,7 +100,7 @@ fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
     Ok(expanded.into())
 }
 
-fn enum_log_attribute(
+fn enum_log_find_attribute(
     attrs: &[Attribute],
 ) -> Result<Option<(LitStr, TokenStream2, TokenStream2)>, SynError> {
     for attr in attrs {
