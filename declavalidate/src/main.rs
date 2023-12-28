@@ -47,7 +47,11 @@ fn main() -> Result<()> {
                 println!("{json}");
             } else {
                 for log in avatar_result.logs {
-                    println!("{:?}: {}", log.severity, log.kind);
+                    let args = log.args.join(", ");
+                    println!("{:?}: {} ({args})", log.severity, log.kind);
+                    for ctx in log.context {
+                        println!("@ {ctx}");
+                    }
                     println!();
                 }
             }
