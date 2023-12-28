@@ -66,7 +66,7 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
                     Self::#variant_ident(#(#fields),*) => (
                         crate::log::Severity::#severity_ts2,
                         #key_literal,
-                        vec![(#(#fields.to_string()),*)],
+                        vec![#(#fields.to_string()),*],
                     )
                 ));
             }

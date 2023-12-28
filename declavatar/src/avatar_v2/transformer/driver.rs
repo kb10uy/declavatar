@@ -4,14 +4,15 @@ use crate::{
             driver::{ParameterDrive, TrackingControl},
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger},
+        logger::Log,
         transformer::{failure, success, Compiled, FirstPassData, UnsetValue},
     },
     decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl},
+    log::Logger,
 };
 
 pub fn compile_parameter_drive(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     unset_value: UnsetValue,
     decl_parameter_drive: DeclParameterDrive,
@@ -132,7 +133,7 @@ pub fn compile_parameter_drive(
 }
 
 pub fn compile_tracking_control(
-    _logger: &Logger,
+    _logger: &Logger<Log>,
     _first_pass: &FirstPassData,
     decl_tracking_control: DeclTrackingControl,
 ) -> Compiled<impl Iterator<Item = TrackingControl>> {

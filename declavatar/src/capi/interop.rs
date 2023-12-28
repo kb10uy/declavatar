@@ -1,6 +1,7 @@
 use crate::{
-    avatar_v2::{data::avatar::Avatar, logger::Severity, transform_avatar},
+    avatar_v2::{data::avatar::Avatar, transform_avatar},
     decl_v2::{load_declaration, DeclarationFormat},
+    log::Severity,
 };
 
 use std::path::{Path, PathBuf};
@@ -86,6 +87,8 @@ impl Declavatar {
         let avatar = match transformed.avatar {
             Some(avatar) => avatar,
             None => {
+                todo!();
+                /*
                 for (level, message) in transformed.logs {
                     let error_kind = match level {
                         Severity::Information => ErrorKind::SemanticInfo,
@@ -94,6 +97,7 @@ impl Declavatar {
                     };
                     self.errors.push((error_kind, message));
                 }
+                */
                 return Err(StatusCode::CompileError);
             }
         };

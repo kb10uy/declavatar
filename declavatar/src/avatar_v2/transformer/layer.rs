@@ -9,7 +9,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger, LoggerContext},
+        logger::Log,
         transformer::{
             driver::{compile_parameter_drive, compile_tracking_control},
             failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,
@@ -22,6 +22,7 @@ use crate::{
         DeclRawLayerTransition, DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering,
         DeclSwitchLayer,
     },
+    log::Logger,
 };
 
 use std::{
@@ -33,7 +34,7 @@ use std::{
 use either::{Either, Left, Right};
 
 pub fn first_pass_group_layer(
-    _logger: &Logger,
+    _logger: &Logger<Log>,
     decl_group_layer: &DeclGroupLayer,
 ) -> Compiled<DeclaredLayer> {
     // if it compiles, order will be preserved
@@ -50,7 +51,7 @@ pub fn first_pass_group_layer(
 }
 
 pub fn first_pass_switch_layer(
-    _logger: &Logger,
+    _logger: &Logger<Log>,
     decl_switch_layer: &DeclSwitchLayer,
 ) -> Compiled<DeclaredLayer> {
     success(DeclaredLayer {
@@ -60,7 +61,7 @@ pub fn first_pass_switch_layer(
 }
 
 pub fn first_pass_puppet_layer(
-    _logger: &Logger,
+    _logger: &Logger<Log>,
     decl_puppet_layer: &DeclPuppetLayer,
 ) -> Compiled<DeclaredLayer> {
     success(DeclaredLayer {
@@ -70,7 +71,7 @@ pub fn first_pass_puppet_layer(
 }
 
 pub fn first_pass_raw_layer(
-    _logger: &Logger,
+    _logger: &Logger<Log>,
     decl_raw_layer: &DeclRawLayer,
 ) -> Compiled<DeclaredLayer> {
     // if it compiles, order will be preserved
@@ -87,19 +88,11 @@ pub fn first_pass_raw_layer(
 }
 
 pub fn compile_group_layer(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_group_layer: DeclGroupLayer,
 ) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("group layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_group_layer.name.clone()));
+    let logger = logger.with_context(format!("group layer '{}'", decl_group_layer.name));
 
     let bound_parameter = first_pass.find_parameter(
         &logger,
@@ -209,19 +202,11 @@ pub fn compile_group_layer(
 }
 
 pub fn compile_switch_layer(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_switch_layer: DeclSwitchLayer,
 ) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("switch layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_switch_layer.name.clone()));
+    let logger = logger.with_context(format!("switch layer '{}'", decl_switch_layer.name));
 
     let bound_parameter = first_pass.find_parameter(
         &logger,
@@ -262,19 +247,11 @@ pub fn compile_switch_layer(
 }
 
 pub fn compile_puppet_layer(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_puppet_layer: DeclPuppetLayer,
 ) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("puppet layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_puppet_layer.name.clone()));
+    let logger = logger.with_context(format!("puppet layer '{}'", decl_puppet_layer.name));
 
     let bound_parameter = first_pass.find_parameter(
         &logger,
@@ -325,19 +302,11 @@ pub fn compile_puppet_layer(
 }
 
 pub fn compile_raw_layer(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_raw_layer: DeclRawLayer,
 ) -> Compiled<Layer> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("raw layer '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(decl_raw_layer.name.clone()));
+    let logger = logger.with_context(format!("raw layer '{}'", decl_raw_layer.name));
     let layer_names = first_pass.find_raw(&logger, &decl_raw_layer.name)?;
 
     let mut states = vec![];
@@ -385,29 +354,21 @@ pub fn compile_raw_layer(
 }
 
 fn compile_group_option(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
 ) -> Compiled<(Option<String>, Option<usize>, LayerAnimation)> {
-    #[derive(Debug)]
-    pub struct Context(Option<String>);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            if let Some(name) = &self.0 {
-                format!("option '{}' > {}", name, inner)
-            } else {
-                format!("default option > {}", inner)
-            }
-        }
-    }
-
     let (name, value) = decl_group_option
         .kind
         .as_all_selection()
         .expect("group option kind must be selection");
-    let logger = logger.with_context(Context(name.clone()));
+    let logger = logger.with_context(if let Some(n) = &name {
+        format!("option '{}'", n)
+    } else {
+        format!("default option")
+    });
 
     let animation = if let Some(animation_asset) = decl_group_option.animation_asset {
         if !decl_group_option.targets.is_empty() {
@@ -435,26 +396,21 @@ fn compile_group_option(
 }
 
 fn compile_switch_option(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
 ) -> Compiled<(bool, LayerAnimation)> {
-    #[derive(Debug)]
-    pub struct Context(bool);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            let name = if self.0 { "enabled" } else { "disabled" };
-            format!("{} option > {}", name, inner)
-        }
-    }
-
     let value = decl_group_option
         .kind
         .as_boolean()
         .expect("group option kind must be boolean");
-    let logger = logger.with_context(Context(value));
+    let logger = logger.with_context(if value {
+        "enabled option"
+    } else {
+        "disabled option"
+    });
 
     let animation = if let Some(animation_asset) = decl_group_option.animation_asset {
         if !decl_group_option.targets.is_empty() {
@@ -482,25 +438,17 @@ fn compile_switch_option(
 }
 
 fn compile_puppet_option(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_group_option: DeclGroupOption,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
 ) -> Compiled<(f64, Vec<Target>)> {
-    #[derive(Debug)]
-    pub struct Context(f64);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("keyframe {} > {}", self.0, inner)
-        }
-    }
-
     let value = decl_group_option
         .kind
         .as_keyframe()
         .expect("group option kind must be keyframe");
-    let logger = logger.with_context(Context(value));
+    let logger = logger.with_context(format!("keyframe {value}"));
 
     if decl_group_option.animation_asset.is_some() {
         logger.log(Log::LayerPuppetOptionMustBeInlined);
@@ -527,7 +475,7 @@ fn compile_puppet_option(
 }
 
 fn compile_target(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     default_mesh: Option<&str>,
     unset_value: UnsetValue,
@@ -581,7 +529,7 @@ fn compile_target(
 }
 
 fn compile_raw_animation_kind(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_animation_kind: DeclRawLayerAnimationKind,
 ) -> Compiled<LayerRawAnimationKind> {
@@ -636,7 +584,7 @@ fn compile_raw_animation_kind(
 }
 
 fn compile_raw_animation(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_animation: DeclRawLayerAnimation,
 ) -> Compiled<LayerAnimation> {
@@ -669,7 +617,7 @@ fn compile_raw_animation(
 }
 
 fn compile_raw_transition(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_transition: DeclRawLayerTransition,
     from_index: usize,
@@ -696,7 +644,7 @@ fn compile_raw_transition(
 }
 
 fn compile_raw_condition(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_condition: DeclRawLayerTransitionCondition,
 ) -> Compiled<LayerRawCondition> {

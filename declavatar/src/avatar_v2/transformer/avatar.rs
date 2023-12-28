@@ -1,7 +1,7 @@
 use crate::{
     avatar_v2::{
         data::avatar::Avatar,
-        logger::{Log, Logger, LoggerContext},
+        logger::Log,
         transformer::{
             asset::compile_assets_blocks,
             controller::{compile_fx_controller_blocks, first_pass_fx_controller_blocks},
@@ -12,18 +12,11 @@ use crate::{
         },
     },
     decl_v2::data::avatar::DeclAvatar,
+    log::Logger,
 };
 
-pub fn compile_avatar(logger: &Logger, avatar: DeclAvatar) -> Compiled<Avatar> {
-    #[derive(Debug)]
-    pub struct Context;
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            inner
-        }
-    }
-
-    let logger = logger.with_context(Context);
+pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avatar> {
+    let logger = logger.with_context("avatar");
 
     let name = {
         let decl_name = avatar.name.trim().to_string();
