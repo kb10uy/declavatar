@@ -1,29 +1,22 @@
 use crate::{
     avatar_v2::{
         data::parameter::{Parameter, ParameterScope, ParameterType},
-        logger::{Log, Logger, LoggerContext},
+        log::Log,
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::parameter::{
         DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters,
     },
+    log::Logger,
 };
 
 pub fn compile_parameters_blocks(
-    logger: &Logger,
+    logger: &Logger<Log>,
     parameters_blocks: Vec<DeclParameters>,
 ) -> Compiled<Vec<Parameter>> {
-    #[derive(Debug)]
-    pub struct Context(usize);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("parameters block {} > {}", self.0, inner)
-        }
-    }
-
     let mut parameters = vec![];
     for (index, decl_parameters) in parameters_blocks.into_iter().enumerate() {
-        let logger = logger.with_context(Context(index));
+        let logger = logger.with_context(format!("parameters block {index}"));
         for parameter in decl_parameters.parameters {
             let Some(parameter) = compile_parameter(&logger, parameter, &parameters) else {
                 continue;
@@ -36,7 +29,7 @@ pub fn compile_parameters_blocks(
 }
 
 fn compile_parameter(
-    logger: &Logger,
+    logger: &Logger<Log>,
     decl_parameter: DeclParameter,
     declared: &[Parameter],
 ) -> Compiled<Parameter> {

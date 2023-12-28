@@ -1,6 +1,6 @@
 [package]
 name = "declavatar"
-version = "0.24.0"
+version = "0.25.0"
 edition = "2021"
 
 [features]
@@ -16,6 +16,8 @@ rpds = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+
+declavatar-derive = { workspace = true }
 
 [dev-dependencies]
 once_cell = { workspace = true }

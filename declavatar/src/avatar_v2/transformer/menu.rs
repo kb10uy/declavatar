@@ -7,7 +7,7 @@ use crate::{
             },
             parameter::{ParameterScope, ParameterType},
         },
-        logger::{Log, Logger, LoggerContext},
+        log::Log,
         transformer::{failure, success, Compiled, FirstPassData},
     },
     decl_v2::data::{
@@ -17,24 +17,17 @@ use crate::{
             DeclPuppetType, DeclSubMenu,
         },
     },
+    log::Logger,
 };
 
 pub fn compile_menu(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     decl_menu_blocks: Vec<DeclSubMenu>,
 ) -> Compiled<Vec<MenuItem>> {
-    #[derive(Debug)]
-    pub struct Context(usize);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("menu block {} > {}", self.0, inner)
-        }
-    }
-
     let mut elements = vec![];
     for (index, decl_menu) in decl_menu_blocks.into_iter().enumerate() {
-        let logger = logger.with_context(Context(index));
+        let logger = logger.with_context(format!("menu block {index}"));
         let menu = compile_menu_group(&logger, first_pass, decl_menu)?;
         elements.extend(menu.items);
     }
@@ -43,23 +36,15 @@ pub fn compile_menu(
 }
 
 fn compile_menu_group(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     submenu: DeclSubMenu,
 ) -> Compiled<MenuGroup> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            if self.0.is_empty() {
-                inner
-            } else {
-                format!("menu group '{}' > {}", self.0, inner)
-            }
-        }
-    }
-
-    let logger = logger.with_context(Context(submenu.name.clone()));
+    let logger = if submenu.name.is_empty() {
+        logger.clone()
+    } else {
+        logger.with_context(format!("submenu {}", submenu.name))
+    };
     let mut items = vec![];
     for menu_element in submenu.elements {
         let Some(menu_item) = (match menu_element {
@@ -81,23 +66,15 @@ fn compile_menu_group(
 }
 
 fn compile_boolean(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     control: DeclBooleanControl,
 ) -> Compiled<MenuItem> {
-    #[derive(Debug)]
-    pub struct Context(bool, String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            if self.0 {
-                format!("toggle '{}' > {}", self.0, inner)
-            } else {
-                format!("button '{}' > {}", self.0, inner)
-            }
-        }
-    }
-
-    let logger = logger.with_context(Context(control.hold, control.name.clone()));
+    let logger = logger.with_context(if control.hold {
+        format!("toggle '{}'", control.name)
+    } else {
+        format!("button '{}'", control.name)
+    });
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
             let (parameter, options) =
@@ -176,19 +153,11 @@ fn compile_boolean(
 }
 
 fn compile_puppet(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     control: DeclPuppetControl,
 ) -> Compiled<MenuItem> {
-    #[derive(Debug)]
-    pub struct Context(String);
-    impl LoggerContext for Context {
-        fn write_context(&self, inner: String) -> String {
-            format!("puppet '{}' > {}", self.0, inner)
-        }
-    }
-
-    let logger = logger.with_context(Context(control.name.clone()));
+    let logger = logger.with_context(format!("puppet '{}'", control.name));
     let puppet_type = *control.puppet_type;
     let puppet = match puppet_type {
         DeclPuppetType::Radial(pt) => MenuItem::Radial(MenuRadial {
@@ -241,7 +210,7 @@ fn compile_puppet(
 }
 
 fn take_puppet_parameter(
-    logger: &Logger,
+    logger: &Logger<Log>,
     first_pass: &FirstPassData,
     dpt: DeclPuppetTarget,
 ) -> Compiled<String> {

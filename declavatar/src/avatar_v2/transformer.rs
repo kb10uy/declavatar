@@ -6,12 +6,15 @@ pub mod layer;
 pub mod menu;
 pub mod parameter;
 
-use crate::avatar_v2::{
-    data::{
-        asset::{Asset, AssetType},
-        parameter::{Parameter, ParameterScope, ParameterType},
+use crate::{
+    avatar_v2::{
+        data::{
+            asset::{Asset, AssetType},
+            parameter::{Parameter, ParameterScope, ParameterType},
+        },
+        log::Log,
     },
-    logger::{Log, Logger},
+    log::Logger,
 };
 
 pub(super) use self::avatar::compile_avatar;
@@ -70,7 +73,7 @@ impl FirstPassData {
 
     pub fn find_parameter(
         &self,
-        logger: &Logger,
+        logger: &Logger<Log>,
         name: &str,
         ty: ParameterType,
         scope: ParameterScope,
@@ -88,7 +91,7 @@ impl FirstPassData {
 
     pub fn find_parameter_untyped(
         &self,
-        logger: &Logger,
+        logger: &Logger<Log>,
         name: &str,
         scope: ParameterScope,
     ) -> Compiled<&Parameter> {
@@ -109,7 +112,7 @@ impl FirstPassData {
         success(parameter)
     }
 
-    pub fn find_asset(&self, logger: &Logger, name: &str, ty: AssetType) -> Compiled<&Asset> {
+    pub fn find_asset(&self, logger: &Logger<Log>, name: &str, ty: AssetType) -> Compiled<&Asset> {
         let asset = match self.assets.iter().find(|p| p.key == name) {
             Some(p) => p,
             None => {
@@ -129,7 +132,7 @@ impl FirstPassData {
 
     pub fn find_group(
         &self,
-        logger: &Logger,
+        logger: &Logger<Log>,
         name: &str,
         scope: ParameterScope,
     ) -> Compiled<(&str, &[(String, usize)])> {
@@ -144,7 +147,7 @@ impl FirstPassData {
 
     pub fn find_switch(
         &self,
-        logger: &Logger,
+        logger: &Logger<Log>,
         name: &str,
         scope: ParameterScope,
     ) -> Compiled<&str> {
@@ -159,7 +162,7 @@ impl FirstPassData {
 
     pub fn find_puppet(
         &self,
-        logger: &Logger,
+        logger: &Logger<Log>,
         name: &str,
         scope: ParameterScope,
     ) -> Compiled<&str> {
@@ -172,7 +175,7 @@ impl FirstPassData {
         success(parameter)
     }
 
-    pub fn find_raw(&self, logger: &Logger, name: &str) -> Compiled<&[String]> {
+    pub fn find_raw(&self, logger: &Logger<Log>, name: &str) -> Compiled<&[String]> {
         let layer = self.find_layer(logger, name)?;
         let DeclaredLayerType::Raw(state_names) = layer else {
             logger.log(Log::LayerMustBeRaw(name.to_string()));
@@ -181,7 +184,7 @@ impl FirstPassData {
         success(state_names)
     }
 
-    fn find_layer(&self, logger: &Logger, name: &str) -> Compiled<&DeclaredLayerType> {
+    fn find_layer(&self, logger: &Logger<Log>, name: &str) -> Compiled<&DeclaredLayerType> {
         if let Some(dl) = self.layers.iter().find(|a| a.name == name) {
             success(&dl.layer_type)
         } else {
