@@ -2,14 +2,17 @@ mod application;
 
 use crate::application::{Arguments, FileOption, Subcommand};
 
-use std::{fs::read_to_string, path::PathBuf};
+use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
 
 use anyhow::{bail, Result};
 use clap::Parser;
 use declavatar::{
     avatar_v2::transform_avatar,
     decl_v2::{data::avatar::DeclAvatar, load_declaration, DeclarationFormat},
+    i18n::get_log_messages,
 };
+use strfmt::Format;
+use sys_locale::get_locale;
 
 fn main() -> Result<()> {
     let args = Arguments::parse();
@@ -46,9 +49,10 @@ fn main() -> Result<()> {
                 }?;
                 println!("{json}");
             } else {
+                let i18n_log = I18nLog::load_current_locale();
                 for log in avatar_result.logs {
-                    let args = log.args.join(", ");
-                    println!("{:?}: {} ({args})", log.severity, log.kind);
+                    let message = i18n_log.localize(log.kind, log.args);
+                    println!("{:?}: {message}", log.severity);
                     for ctx in log.context {
                         println!("@ {ctx}");
                     }
@@ -74,4 +78,34 @@ fn load_declaration_auto(file: PathBuf, paths: Vec<PathBuf>) -> Result<DeclAvata
     let text = read_to_string(file)?;
     let decl_avatar = load_declaration(&text, format)?;
     Ok(decl_avatar)
+}
+
+struct I18nLog {
+    localization: HashMap<String, String>,
+}
+
+impl I18nLog {
+    fn load_current_locale() -> I18nLog {
+        let locale = get_locale().unwrap_or("en_US".to_string());
+        let i18n_json = get_log_messages(&locale)
+            .or(get_log_messages("en_US"))
+            .expect("en_US should exist");
+        let localization = serde_json::from_str(i18n_json).expect("should deserialize");
+
+        I18nLog { localization }
+    }
+
+    fn localize(&self, kind: String, args: Vec<String>) -> String {
+        let Some(base) = self.localization.get(&kind) else {
+            return kind;
+        };
+        base.format(
+            &args
+                .into_iter()
+                .enumerate()
+                .map(|(i, a)| (i.to_string(), a))
+                .collect(),
+        )
+        .expect("failed to localize")
+    }
 }

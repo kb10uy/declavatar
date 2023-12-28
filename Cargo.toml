@@ -16,7 +16,9 @@ rstest = "0.18.2"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 static_vcruntime = { version = "2.0.0" }
+strfmt = { version = "0.2.4" }
 syn = "2.0.43"
+sys-locale = "0.3.1"
 thiserror = "1.0.50"
 
 declavatar = { path = "./declavatar" }

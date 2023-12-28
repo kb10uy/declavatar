@@ -1,6 +1,6 @@
 use crate::{
     capi::interop::{Declavatar, StatusCode},
-    i18n::{LOG_MESSAGES_EN_US, LOG_MESSAGES_JA_JP},
+    i18n::get_log_messages,
 };
 
 use std::{ffi::c_char, slice::from_raw_parts, str::from_utf8};
@@ -171,10 +171,13 @@ pub extern "system" fn DeclavatarGetI18n(
     as_ref!(i18n_json, &mut *const c_char);
     as_ref!(i18n_len, &mut u32);
 
-    let json = match i18n_key {
-        "log.en-us" => LOG_MESSAGES_EN_US,
-        "log.ja-jp" => LOG_MESSAGES_JA_JP,
-        _ => return StatusCode::InvalidPointer,
+    let json = if let Some(log_locale) = i18n_key.strip_prefix("log.") {
+        match get_log_messages(log_locale) {
+            Some(j) => j,
+            None => return StatusCode::InvalidPointer,
+        }
+    } else {
+        return StatusCode::InvalidPointer;
     };
 
     *i18n_json = json.as_ptr() as *const i8;
