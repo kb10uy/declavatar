@@ -163,7 +163,7 @@ pub extern "system" fn DeclavatarGetLogJson(
 #[no_mangle]
 pub extern "system" fn DeclavatarGetI18n(
     i18n_key: *const c_char,
-    i18n_key_len: *const c_char,
+    i18n_key_len: u32,
     i18n_json: *mut *const c_char,
     i18n_len: *mut u32,
 ) -> StatusCode {
