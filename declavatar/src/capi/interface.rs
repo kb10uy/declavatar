@@ -1,4 +1,7 @@
-use crate::capi::interop::{Declavatar, StatusCode};
+use crate::{
+    capi::interop::{Declavatar, StatusCode},
+    i18n::{LOG_MESSAGES_EN_US, LOG_MESSAGES_JA_JP},
+};
 
 use std::{ffi::c_char, slice::from_raw_parts, str::from_utf8};
 
@@ -153,6 +156,29 @@ pub extern "system" fn DeclavatarGetLogJson(
 
     *error_str = log_json.as_ptr() as *const i8;
     *error_len = log_json.len() as u32;
+
+    StatusCode::Success
+}
+
+#[no_mangle]
+pub extern "system" fn DeclavatarGetI18n(
+    i18n_key: *const c_char,
+    i18n_key_len: *const c_char,
+    i18n_json: *mut *const c_char,
+    i18n_len: *mut u32,
+) -> StatusCode {
+    as_ref!(i18n_key, &str, i18n_key_len);
+    as_ref!(i18n_json, &mut *const c_char);
+    as_ref!(i18n_len, &mut u32);
+
+    let json = match i18n_key {
+        "log.en-us" => LOG_MESSAGES_EN_US,
+        "log.ja-jp" => LOG_MESSAGES_JA_JP,
+        _ => return StatusCode::InvalidPointer,
+    };
+
+    *i18n_json = json.as_ptr() as *const i8;
+    *i18n_len = json.len() as u32;
 
     StatusCode::Success
 }

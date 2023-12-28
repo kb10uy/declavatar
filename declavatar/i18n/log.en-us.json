@@ -1,0 +1,37 @@
+{
+    "decl.unsupported": "specified format is currently unsupported",
+    "decl.internal": "internal error on declaration parsing: {0}",
+    "decl.not_returned": "cannot fetch declaration object: {0}",
+
+    "avatar.invalid_name": "invalid avatar name: '{0}'",
+
+    "parameter.internal_must_transient": "parameter '{0}' must be transient",
+    "parameter.incompatible_declaration": "parameter '{0}' has incompatible definition",
+    "parameter.not_found": "parameter '{0}' not found",
+    "parameter.type_requirement": "parameter '{0}' must have type {1}",
+    "parameter.scope_requirement": "parameter '{0}' must have scope {1}",
+
+    "asset.incompatible_declaration": "asset '{0}' has incompatible definition",
+    "asset.not_found": "asset '{0}' not found",
+    "asset.type_requirement": "asset '{0}' must have type {1}",
+
+    "layer.not_found": "layer '{0}' not found",
+    "layer.duplicate_name": "layer name '{0}' is duplicate",
+    "layer.must_group": "layer '{0}' must be group-layer",
+    "layer.must_switch": "layer '{0}' must be switch-layer",
+    "layer.must_puppet": "layer '{0}' must be puppet-layer",
+    "layer.must_raw": "layer '{0}' must be raw-layer",
+    "layer.group.invalid_copy": "group layer has invalid copy specification",
+    "layer.puppet.cant_drive": "puppet layer cannot drive parameters",
+    "layer.puppet.must_inlined": "puppet layer animation must be inline",
+    "layer.puppet.out_of_range": "puppet layer has out-of-range ({0}) keyframe",
+    "layer.raw.state_not_found": "state '{0}' not found",
+    "layer.raw.invalid_condition": "transition has invalid condition",
+    "layer.option.not_found": "option '{0}' not found",
+    "layer.option_must_exclusive": "options must be exclusive",
+
+    "menu.invalid_drive": "menu has invalid drive specification",
+
+    "driver.shape_indeterminate_change": "shape '{0}' must have determinate target mesh",
+    "driver.material_indeterminate_change": "material slot {0} must have determinate target mesh"
+}
