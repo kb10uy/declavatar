@@ -3,7 +3,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, LitStr};
 
-#[proc_macro_derive(EnumLog)]
+#[proc_macro_derive(EnumLog, attributes(log_error, log_warn, log_info))]
 pub fn enum_log_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match enum_log_impl(&input) {
@@ -44,8 +44,7 @@ fn enum_log_impl(derive_input: &DeriveInput) -> Result<TokenStream, SynError> {
         };
     }
 
-    let expanded = quote! {
-    };
+    let expanded = quote! {};
     Ok(expanded.into())
 }
 

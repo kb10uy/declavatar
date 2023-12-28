@@ -216,6 +216,7 @@ dependencies = [
 name = "declavatar"
 version = "0.24.0"
 dependencies = [
+ "declavatar-derive",
  "either",
  "ketos",
  "once_cell",
