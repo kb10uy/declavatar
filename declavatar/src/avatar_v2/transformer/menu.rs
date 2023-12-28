@@ -40,7 +40,11 @@ fn compile_menu_group(
     first_pass: &FirstPassData,
     submenu: DeclSubMenu,
 ) -> Compiled<MenuGroup> {
-    let logger = logger.with_context(format!("menu block {}", submenu.name));
+    let logger = if submenu.name.is_empty() {
+        logger.clone()
+    } else {
+        logger.with_context(format!("submenu {}", submenu.name))
+    };
     let mut items = vec![];
     for menu_element in submenu.elements {
         let Some(menu_item) = (match menu_element {

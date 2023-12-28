@@ -9,7 +9,7 @@ use serde::Serialize;
 
 type ContextChain = Stack<Box<dyn Context>>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Logger<L> {
     logs: Rc<RefCell<Vec<(L, ContextChain)>>>,
     erroneous: Rc<Cell<bool>>,
