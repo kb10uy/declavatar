@@ -70,10 +70,9 @@ impl Declavatar {
         let decl_avatar = match load_declaration(source, format) {
             Ok(decl_avatar) => decl_avatar,
             Err(report) => {
-                let report_serialized = report
-                    .serialize_log(Stack::<Box<dyn Context>>::new().iter().map(|v| v.as_ref()));
                 self.json_errors.push(
-                    serde_json::to_string(&report_serialized).expect("should serialize into JSON"),
+                    serde_json::to_string(&report.serialize_log([]))
+                        .expect("should serialize into JSON"),
                 );
                 return Err(StatusCode::CompileError);
             }
