@@ -43,7 +43,7 @@ pub fn load_avatar_sexpr(text: &str, paths: Vec<PathBuf>) -> Result<DeclAvatar, 
         Ok(avatar) => Ok(avatar.clone()),
         Err(e) => {
             let error_text = e.to_string();
-            Err(DeclError::DelclarationNotReturned(Some(error_text)))
+            Err(DeclError::DelclarationNotReturned(error_text))
         }
     }
 }

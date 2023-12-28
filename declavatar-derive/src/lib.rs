@@ -97,7 +97,7 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
                 }
             }
 
-            fn serialize_log<'a, C: std::iter::Iterator<Item = &'a dyn crate::log::Context>>(&self, context: C) -> crate::log::SerializedLog {
+            fn serialize_log<'a, C: std::iter::IntoIterator<Item = &'a dyn crate::log::Context>>(&self, context: C) -> crate::log::SerializedLog {
                 let (severity, kind, args) = match self {
                     #(#serialize_log_arms),*
                 };

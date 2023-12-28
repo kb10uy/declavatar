@@ -123,42 +123,36 @@ pub extern "system" fn DeclavatarGetAvatarJson(
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarGetErrorsCount(
-    da: *mut Declavatar,
-    errors: *mut u32,
-) -> StatusCode {
+pub extern "system" fn DeclavatarGetLogsCount(da: *mut Declavatar, errors: *mut u32) -> StatusCode {
     as_ref!(da, &mut Declavatar);
     as_ref!(errors, &mut u32);
 
-    *errors = da.errors().len() as u32;
+    *errors = da.log_jsons().len() as u32;
 
     StatusCode::Success
 }
 
 #[no_mangle]
-pub extern "system" fn DeclavatarGetError(
+pub extern "system" fn DeclavatarGetLogJson(
     da: *mut Declavatar,
     index: u32,
-    error_kind: *mut u32,
     error_str: *mut *const c_char,
     error_len: *mut u32,
 ) -> StatusCode {
     as_ref!(da, &mut Declavatar);
-    as_ref!(error_kind, &mut u32);
     as_ref!(error_str, &mut *const c_char);
     as_ref!(error_len, &mut u32);
 
     let index = index as usize;
-    let errors = da.errors();
-    let (kind, message) = if index < errors.len() {
+    let errors = da.log_jsons();
+    let log_json = if index < errors.len() {
         &errors[index]
     } else {
         return StatusCode::InvalidPointer;
     };
 
-    *error_kind = *kind as u32;
-    *error_str = message.as_ptr() as *const i8;
-    *error_len = message.len() as u32;
+    *error_str = log_json.as_ptr() as *const i8;
+    *error_len = log_json.len() as u32;
 
     StatusCode::Success
 }

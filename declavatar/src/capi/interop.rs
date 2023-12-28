@@ -1,7 +1,9 @@
+use rpds::Stack;
+
 use crate::{
     avatar_v2::{data::avatar::Avatar, transform_avatar},
     decl_v2::{load_declaration, DeclarationFormat},
-    log::Severity,
+    log::{Context, Log},
 };
 
 use std::path::{Path, PathBuf};
@@ -17,20 +19,11 @@ pub enum StatusCode {
     InvalidPointer = 128,
 }
 
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ErrorKind {
-    SyntaxError = 1,
-    SemanticError = 2,
-    SemanticInfo = 3,
-    SemanticWarning = 4,
-}
-
 pub struct Declavatar {
     in_use: bool,
     compiled_avatar: Option<Avatar>,
     compiled_avatar_json: Option<String>,
-    errors: Vec<(ErrorKind, String)>,
+    json_errors: Vec<String>,
     library_paths: Vec<PathBuf>,
 }
 
@@ -40,7 +33,7 @@ impl Declavatar {
             in_use: false,
             compiled_avatar: None,
             compiled_avatar_json: None,
-            errors: vec![],
+            json_errors: vec![],
             library_paths: vec![],
         }
     }
@@ -49,7 +42,7 @@ impl Declavatar {
         self.in_use = false;
         self.compiled_avatar = None;
         self.compiled_avatar_json = None;
-        self.errors.clear();
+        self.json_errors.clear();
         self.library_paths.clear();
     }
 
@@ -57,8 +50,8 @@ impl Declavatar {
         self.library_paths.push(path.as_ref().to_owned());
     }
 
-    pub fn errors(&self) -> &[(ErrorKind, String)] {
-        &self.errors
+    pub fn log_jsons(&self) -> &[String] {
+        &self.json_errors
     }
 
     pub fn compile(&mut self, source: &str, kind: u32) -> Result<(), StatusCode> {
@@ -77,8 +70,11 @@ impl Declavatar {
         let decl_avatar = match load_declaration(source, format) {
             Ok(decl_avatar) => decl_avatar,
             Err(report) => {
-                self.errors
-                    .push((ErrorKind::SyntaxError, report.to_string()));
+                let report_serialized = report
+                    .serialize_log(Stack::<Box<dyn Context>>::new().iter().map(|v| v.as_ref()));
+                self.json_errors.push(
+                    serde_json::to_string(&report_serialized).expect("should serialize into JSON"),
+                );
                 return Err(StatusCode::CompileError);
             }
         };
@@ -87,17 +83,12 @@ impl Declavatar {
         let avatar = match transformed.avatar {
             Some(avatar) => avatar,
             None => {
-                todo!();
-                /*
-                for (level, message) in transformed.logs {
-                    let error_kind = match level {
-                        Severity::Information => ErrorKind::SemanticInfo,
-                        Severity::Warning => ErrorKind::SemanticWarning,
-                        Severity::Error => ErrorKind::SemanticError,
-                    };
-                    self.errors.push((error_kind, message));
-                }
-                */
+                self.json_errors.extend(
+                    transformed
+                        .logs
+                        .iter()
+                        .map(|f| serde_json::to_string(f).expect("should serialize into JSON")),
+                );
                 return Err(StatusCode::CompileError);
             }
         };
