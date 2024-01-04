@@ -13,8 +13,8 @@
     )
 
     (da/fx-controller
-        (da/gate-layer "Heel"
-            :driven-by "HeelGate"
+        (da/switch-layer "Heel"
+            :with-gate "HeelGate"
             :default-mesh "Body"
             (da/option 'disabled (da/set-option "foot_heel" :value 0.0))
             (da/option 'enabled (da/set-option "foot_heel" :value 1.0))
