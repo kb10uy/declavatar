@@ -15,6 +15,8 @@
     "asset.not_found": "Asset Error",
     "asset.type_requirement": "Asset Error",
 
+    "gate.not_found": "Export Error",
+
     "layer.not_found": "Layer Error",
     "layer.duplicate_name": "Layer Error",
     "layer.must_group": "Layer Error",
@@ -50,6 +52,8 @@
     "asset.incompatible_declaration:description": "asset '{0}' has incompatible definition",
     "asset.not_found:description": "asset '{0}' not found",
     "asset.type_requirement:description": "asset '{0}' must have type {1}",
+
+    "gate.not_found:description": "gate '{0}' not found",
 
     "layer.not_found:description": "layer '{0}' not found",
     "layer.duplicate_name:description": "layer name '{0}' is duplicate",
