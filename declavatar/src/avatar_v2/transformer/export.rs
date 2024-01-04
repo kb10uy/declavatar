@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub fn first_pass_exports_blocks(
-    logger: &Logger<Log>,
+    _logger: &Logger<Log>,
     exports_blocks: &[DeclExports],
 ) -> Compiled<Vec<String>> {
     let mut declared_gates = vec![];
