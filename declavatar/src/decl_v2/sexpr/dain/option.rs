@@ -114,7 +114,8 @@ fn option_replace_targets(
     let target_values: Vec<Value> = original_option
         .targets
         .iter()
-        .map(|t| t.clone().into())
+        .cloned()
+        .map(|t| t.into())
         .collect();
 
     let mapped_targets = call_function(

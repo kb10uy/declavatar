@@ -45,7 +45,7 @@ fn declare_parameters(
         parameters.push(
             decl_parameter
                 .downcast_foreign_ref::<&DeclParameter>()
-                .map(|p| p.clone())?,
+                .cloned()?,
         );
     }
     Ok(DeclParameters { parameters }.into())
