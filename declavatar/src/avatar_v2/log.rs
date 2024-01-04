@@ -40,6 +40,8 @@ pub enum Log {
     LayerMustBeRaw(String),
     #[log_error("layer.group.invalid_copy")]
     LayerGroupInvalidCopy,
+    #[log_error("layer.switch.indeterminate")]
+    LayerSwitchIndeterminateSource,
     #[log_error("layer.puppet.cant_drive")]
     LayerPuppetCannotDrive,
     #[log_error("layer.puppet.must_inlined")]
