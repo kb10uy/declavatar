@@ -25,6 +25,7 @@ fn declare_avatar(
 
     let mut avatar = DeclAvatar {
         name: name.to_string(),
+        exports_blocks: vec![],
         parameters_blocks: vec![],
         assets_blocks: vec![],
         fx_controllers: vec![],
