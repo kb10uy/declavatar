@@ -2,6 +2,7 @@ pub(super) mod asset;
 pub(super) mod avatar;
 pub(super) mod controller;
 pub(super) mod driver;
+pub(super) mod export;
 pub(super) mod layer_basic;
 pub(super) mod layer_raw;
 pub(super) mod menu;
@@ -13,6 +14,7 @@ pub const MODULE_NAME_DA: &str = "da";
 
 pub fn define_da_module(scope: Scope) -> Module {
     avatar::register_avatar_function(&scope);
+    export::register_export_function(&scope);
     parameter::register_parameter_function(&scope);
     asset::register_asset_function(&scope);
     controller::register_controller_function(&scope);

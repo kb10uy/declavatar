@@ -3,7 +3,7 @@
 
 (da/avatar "gate"
     (da/parameters
-        (da/bool "Heel" :scope 'local)
+        (da/bool "Heel")
         (da/bool "Shoes")
     )
 
