@@ -25,6 +25,11 @@ pub enum LayerContent {
         parameter: String,
         animation: LayerAnimation,
     },
+    SwitchGate {
+        gate: String,
+        disabled: LayerAnimation,
+        enabled: LayerAnimation,
+    },
     Raw {
         default_index: usize,
         states: Vec<LayerRawState>,

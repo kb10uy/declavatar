@@ -54,10 +54,17 @@ pub fn first_pass_switch_layer(
     _logger: &Logger<Log>,
     decl_switch_layer: &DeclSwitchLayer,
 ) -> Compiled<DeclaredLayer> {
-    success(DeclaredLayer {
-        name: decl_switch_layer.name.clone(),
-        layer_type: DeclaredLayerType::Switch(decl_switch_layer.driven_by.clone()),
-    })
+    match (&decl_switch_layer.driven_by, &decl_switch_layer.with_gate) {
+        (Some(db), None) => success(DeclaredLayer {
+            name: decl_switch_layer.name.clone(),
+            layer_type: DeclaredLayerType::Switch(db.clone()),
+        }),
+        (None, Some(wg)) => success(DeclaredLayer {
+            name: decl_switch_layer.name.clone(),
+            layer_type: DeclaredLayerType::SwitchGate(wg.clone()),
+        }),
+        _ => failure(),
+    }
 }
 
 pub fn first_pass_puppet_layer(
@@ -208,12 +215,6 @@ pub fn compile_switch_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("switch layer '{}'", decl_switch_layer.name));
 
-    let bound_parameter = first_pass.find_parameter(
-        &logger,
-        &decl_switch_layer.driven_by,
-        ParameterType::BOOL_TYPE,
-        ParameterScope::MAYBE_INTERNAL,
-    )?;
     let default_mesh = decl_switch_layer.default_mesh.as_deref();
 
     let disabled = compile_switch_option(
@@ -236,14 +237,39 @@ pub fn compile_switch_layer(
     .map(|(_, t)| t)
     .unwrap_or_default();
 
-    success(Layer {
-        name: decl_switch_layer.name,
-        content: LayerContent::Switch {
-            parameter: bound_parameter.name.to_string(),
-            disabled,
-            enabled,
-        },
-    })
+    match (decl_switch_layer.driven_by, decl_switch_layer.with_gate) {
+        (Some(db), None) => {
+            let bound_parameter = first_pass.find_parameter(
+                &logger,
+                &db,
+                ParameterType::BOOL_TYPE,
+                ParameterScope::MAYBE_INTERNAL,
+            )?;
+            success(Layer {
+                name: decl_switch_layer.name,
+                content: LayerContent::Switch {
+                    parameter: bound_parameter.name.to_string(),
+                    disabled,
+                    enabled,
+                },
+            })
+        }
+        (None, Some(wg)) => {
+            let bound_gate = first_pass.find_gate(&logger, &wg)?;
+            success(Layer {
+                name: decl_switch_layer.name,
+                content: LayerContent::SwitchGate {
+                    gate: bound_gate.to_string(),
+                    disabled,
+                    enabled,
+                },
+            })
+        }
+        _ => {
+            logger.log(Log::LayerSwitchIndeterminateSource);
+            failure()
+        }
+    }
 }
 
 pub fn compile_puppet_layer(
