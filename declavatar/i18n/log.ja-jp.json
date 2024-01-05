@@ -16,6 +16,7 @@
     "asset.type_requirement": "アセット定義エラー",
 
     "gate.not_found": "ゲート定義エラー",
+    "gate.invalid_parameter": "ゲート定義エラー",
 
     "layer.not_found": "レイヤー定義エラー",
     "layer.duplicate_name": "レイヤー定義エラー",
@@ -55,6 +56,7 @@
     "asset.type_requirement:description": "アセット '{0}' の種別は {1} でなければなりません",
 
     "gate.not_found:description": "ゲート '{0}' が存在しません",
+    "gate.invalid_parameter:description": "パラメーター '{0}' はユニークであってはなりません",
 
     "layer.not_found:description": "レイヤー '{0}' が存在しません",
     "layer.duplicate_name:description": "レイヤー名 '{0}' は重複しています",

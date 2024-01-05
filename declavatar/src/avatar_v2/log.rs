@@ -25,6 +25,8 @@ pub enum Log {
 
     #[log_error("gate.not_found")]
     GateNotFound(String),
+    #[log_error("gate.invalid_parameter")]
+    GateInvalidParameter(String),
 
     #[log_error("layer.not_found")]
     LayerNotFound(String),

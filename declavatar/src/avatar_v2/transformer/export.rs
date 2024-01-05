@@ -5,7 +5,7 @@ use crate::{
             parameter::{ParameterScope, ParameterType},
         },
         log::Log,
-        transformer::{success, Compiled, FirstPassData},
+        transformer::{failure, success, Compiled, FirstPassData},
     },
     decl_v2::data::export::{DeclExport, DeclExports},
     log::Logger,
@@ -54,12 +54,16 @@ fn compile_export(
     match decl_export {
         DeclExport::Gate(name) => success(ExportItem::Gate { name }),
         DeclExport::Guard(gate, parameter) => {
-            first_pass.find_parameter(
+            let bound_parameter = first_pass.find_parameter(
                 logger,
                 &parameter,
                 ParameterType::BOOL_TYPE,
                 ParameterScope::MAYBE_INTERNAL,
             )?;
+            if bound_parameter.unique {
+                logger.log(Log::GateInvalidParameter(parameter.clone()));
+                return failure();
+            }
             success(ExportItem::Guard { gate, parameter })
         }
     }

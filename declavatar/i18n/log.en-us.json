@@ -16,6 +16,7 @@
     "asset.type_requirement": "Asset Error",
 
     "gate.not_found": "Export Error",
+    "gate.invalid_parameter": "Export Error",
 
     "layer.not_found": "Layer Error",
     "layer.duplicate_name": "Layer Error",
@@ -55,6 +56,7 @@
     "asset.type_requirement:description": "asset '{0}' must have type {1}",
 
     "gate.not_found:description": "gate '{0}' not found",
+    "gate.invalid_parameter:description": "parameter '{0}' must not be unique",
 
     "layer.not_found:description": "layer '{0}' not found",
     "layer.duplicate_name:description": "layer name '{0}' is duplicate",
