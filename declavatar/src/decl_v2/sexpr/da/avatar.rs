@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::{
-        asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, menu::DeclSubMenu,
-        parameter::DeclParameters, StaticTypeName,
+        asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, export::DeclExports,
+        menu::DeclSubMenu, parameter::DeclParameters, StaticTypeName,
     },
     sexpr::{
         argument::SeparateArguments,
@@ -25,6 +25,7 @@ fn declare_avatar(
 
     let mut avatar = DeclAvatar {
         name: name.to_string(),
+        exports_blocks: vec![],
         parameters_blocks: vec![],
         assets_blocks: vec![],
         fx_controllers: vec![],
@@ -32,6 +33,10 @@ fn declare_avatar(
     };
     for block in args.args_after_recursive(function_name, 1)? {
         match block.type_name() {
+            DeclExports::TYPE_NAME => {
+                let value_ref: &DeclExports = block.downcast_foreign_ref()?;
+                avatar.exports_blocks.push(value_ref.clone());
+            }
             DeclParameters::TYPE_NAME => {
                 let value_ref: &DeclParameters = block.downcast_foreign_ref()?;
                 avatar.parameters_blocks.push(value_ref.clone());

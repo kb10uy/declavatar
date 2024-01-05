@@ -23,6 +23,11 @@ pub enum Log {
     #[log_error("asset.type_requirement")]
     AssetTypeRequirement(String, String),
 
+    #[log_error("gate.not_found")]
+    GateNotFound(String),
+    #[log_error("gate.invalid_parameter")]
+    GateInvalidParameter(String),
+
     #[log_error("layer.not_found")]
     LayerNotFound(String),
     #[log_error("layer.duplicate_name")]
@@ -37,6 +42,8 @@ pub enum Log {
     LayerMustBeRaw(String),
     #[log_error("layer.group.invalid_copy")]
     LayerGroupInvalidCopy,
+    #[log_error("layer.switch.indeterminate")]
+    LayerSwitchIndeterminateSource,
     #[log_error("layer.puppet.cant_drive")]
     LayerPuppetCannotDrive,
     #[log_error("layer.puppet.must_inlined")]

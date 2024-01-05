@@ -1,0 +1,23 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "gate"
+    (da/parameters
+        (da/bool "Heel")
+        (da/bool "Shoes")
+    )
+
+    (da/exports
+        (da/gate "HeelGate")
+        (da/guard "HeelGate" "Shoes")
+    )
+
+    (da/fx-controller
+        (da/switch-layer "Heel"
+            :with-gate "HeelGate"
+            :default-mesh "Body"
+            (da/option 'disabled (da/set-shape "foot_heel" :value 0.0))
+            (da/option 'enabled (da/set-shape "foot_heel" :value 1.0))
+        )
+    )
+)

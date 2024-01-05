@@ -31,7 +31,7 @@ pub fn register_layer_basic_function(scope: &Scope) {
         "switch-layer",
         declare_switch_layer,
         Arity::Min(1),
-        &["driven-by", "default-mesh"],
+        &["driven-by", "with-gate", "default-mesh"],
     );
     register_function(
         scope,
@@ -125,7 +125,8 @@ fn declare_switch_layer(
     args: SeparateArguments,
 ) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let driven_by: &str = args.exact_kwarg_expect("driven-by")?;
+    let driven_by: Option<&str> = args.exact_kwarg("driven-by")?;
+    let with_gate: Option<&str> = args.exact_kwarg("with-gate")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
 
     let mut disabled = None;
@@ -162,7 +163,8 @@ fn declare_switch_layer(
 
     Ok(DeclControllerLayer::Switch(DeclSwitchLayer {
         name: name.to_string(),
-        driven_by: driven_by.to_string(),
+        driven_by: driven_by.map(|s| s.to_string()),
+        with_gate: with_gate.map(|s| s.to_string()),
         default_mesh: default_mesh.map(|dm| dm.to_string()),
         disabled,
         enabled,

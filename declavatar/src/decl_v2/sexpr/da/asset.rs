@@ -18,11 +18,7 @@ fn declare_assets(
 ) -> KetosResult<Value> {
     let mut assets = vec![];
     for asset_value in args.args_after_recursive(function_name, 0)? {
-        assets.push(
-            asset_value
-                .downcast_foreign_ref::<&DeclAsset>()
-                .map(|a| a.clone())?,
-        );
+        assets.push(asset_value.downcast_foreign_ref::<&DeclAsset>().cloned()?);
     }
     Ok(DeclAssets { assets }.into())
 }

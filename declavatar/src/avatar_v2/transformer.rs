@@ -2,6 +2,7 @@ pub mod asset;
 pub mod avatar;
 pub mod controller;
 pub mod driver;
+pub mod export;
 pub mod layer;
 pub mod menu;
 pub mod parameter;
@@ -45,12 +46,14 @@ pub enum DeclaredLayerType {
     Group(String, Vec<(String, usize)>),
     Switch(String),
     Puppet(String),
+    SwitchGate(String),
     Raw(Vec<String>),
 }
 
 pub struct FirstPassData {
     parameters: Vec<Parameter>,
     assets: Vec<Asset>,
+    exported_gates: Vec<String>,
     layers: Vec<DeclaredLayer>,
 }
 
@@ -58,11 +61,13 @@ impl FirstPassData {
     pub fn new(
         parameters: Vec<Parameter>,
         assets: Vec<Asset>,
+        exported_gates: Vec<String>,
         layers: Vec<DeclaredLayer>,
     ) -> FirstPassData {
         FirstPassData {
             parameters,
             assets,
+            exported_gates,
             layers,
         }
     }
@@ -182,6 +187,15 @@ impl FirstPassData {
             return failure();
         };
         success(state_names)
+    }
+
+    fn find_gate(&self, logger: &Logger<Log>, name: &str) -> Compiled<&str> {
+        if let Some(gate) = self.exported_gates.iter().find(|a| a == &name) {
+            success(gate)
+        } else {
+            logger.log(Log::GateNotFound(name.to_string()));
+            failure()
+        }
     }
 
     fn find_layer(&self, logger: &Logger<Log>, name: &str) -> Compiled<&DeclaredLayerType> {

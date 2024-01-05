@@ -83,7 +83,8 @@ static_type_name_impl!(DeclGroupMaterialTarget);
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclSwitchLayer {
     pub name: String,
-    pub driven_by: String,
+    pub driven_by: Option<String>,
+    pub with_gate: Option<String>,
     pub default_mesh: Option<String>,
     pub disabled: DeclGroupOption,
     pub enabled: DeclGroupOption,
