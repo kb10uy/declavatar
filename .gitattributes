@@ -1,2 +1,1 @@
-/ffi/*.c linguist-vendored
-/ffi/*.h linguist-vendored
+/ffi/* linguist-vendored

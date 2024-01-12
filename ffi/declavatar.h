@@ -34,5 +34,6 @@ DeclavatarStatusCode DeclavatarReset(Declavatar *da);
 DeclavatarStatusCode DeclavatarAddLibraryPath(Declavatar *da, const char *path, uint32_t pathLength);
 DeclavatarStatusCode DeclavatarCompile(Declavatar *da, const char *source, uint32_t sourceLength, DeclavatarFormat format);
 DeclavatarStatusCode DeclavatarGetAvatarJson(Declavatar *da, const char **json, uint32_t *jsonLength);
-DeclavatarStatusCode DeclavatarGetErrorsCount(Declavatar *da, uint32_t *errorCount);
-DeclavatarStatusCode DeclavatarGetError(Declavatar *da, uint32_t index, DeclavatarStatusCode *errorKind, const char **json, uint32_t *errorLength);
+DeclavatarStatusCode DeclavatarGetLogsCount(Declavatar *da, uint32_t *errorCount);
+DeclavatarStatusCode DeclavatarGetLogJson(Declavatar *da, uint32_t index, const char **json, uint32_t *errorLength);
+DeclavatarStatusCode DeclavatarGetI18n(const char *i18nKey, uint32_t i18nKeyLength, const char **i18nJson, uint32_t *i18nJsonLength);
