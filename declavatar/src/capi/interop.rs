@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{data::avatar::Avatar, transform_avatar},
-    decl_v2::{load_declaration, DeclarationFormat},
+    decl_v2::{load_declaration, DeclarationFormat, PreprocessData},
     log::Log,
 };
 
@@ -17,12 +17,14 @@ pub enum StatusCode {
     InvalidPointer = 128,
 }
 
+#[derive(Debug)]
 pub struct Declavatar {
     in_use: bool,
     compiled_avatar: Option<Avatar>,
     compiled_avatar_json: Option<String>,
     json_errors: Vec<String>,
     library_paths: Vec<PathBuf>,
+    preprocess: PreprocessData,
 }
 
 impl Declavatar {
@@ -33,6 +35,7 @@ impl Declavatar {
             compiled_avatar_json: None,
             json_errors: vec![],
             library_paths: vec![],
+            preprocess: PreprocessData::default(),
         }
     }
 
@@ -42,14 +45,22 @@ impl Declavatar {
         self.compiled_avatar_json = None;
         self.json_errors.clear();
         self.library_paths.clear();
+        self.preprocess.symbols.clear();
+        self.preprocess.localizations.clear();
     }
 
     pub fn add_library_path(&mut self, path: impl AsRef<Path>) {
         self.library_paths.push(path.as_ref().to_owned());
     }
 
-    pub fn log_jsons(&self) -> &[String] {
-        &self.json_errors
+    pub fn define_symbol(&mut self, symbol: impl Into<String>) {
+        self.preprocess.symbols.insert(symbol.into());
+    }
+
+    pub fn define_localization(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.preprocess
+            .localizations
+            .insert(key.into(), value.into());
     }
 
     pub fn compile(&mut self, source: &str, kind: u32) -> Result<(), StatusCode> {
@@ -65,7 +76,7 @@ impl Declavatar {
             _ => return Err(StatusCode::CompileError),
         };
 
-        let decl_avatar = match load_declaration(source, format) {
+        let decl_avatar = match load_declaration(source, format, self.preprocess.clone()) {
             Ok(decl_avatar) => decl_avatar,
             Err(report) => {
                 self.json_errors.push(
@@ -103,5 +114,9 @@ impl Declavatar {
         };
 
         Ok(json)
+    }
+
+    pub fn log_jsons(&self) -> &[String] {
+        &self.json_errors
     }
 }
