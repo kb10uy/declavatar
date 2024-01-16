@@ -1,6 +1,6 @@
 mod application;
 
-use crate::application::{Arguments, FileOption, Subcommand};
+use crate::application::{Arguments, Subcommand};
 
 use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
 
@@ -8,7 +8,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 use declavatar::{
     avatar_v2::transform_avatar,
-    decl_v2::{data::avatar::DeclAvatar, load_declaration, DeclarationFormat},
+    decl_v2::{data::avatar::DeclAvatar, load_declaration, DeclarationFormat, PreprocessData},
     i18n::get_log_messages,
 };
 use strfmt::Format;
@@ -18,31 +18,34 @@ fn main() -> Result<()> {
     let args = Arguments::parse();
 
     match args.subcommand {
-        Subcommand::Load(FileOption {
-            file,
-            indented,
-            library_paths,
-        }) => match load_declaration_auto(file, library_paths) {
-            Ok(a) => {
-                if indented {
-                    println!("{a:#?}");
-                } else {
-                    println!("{a:?}");
+        Subcommand::Load(fo) => {
+            let preprocess = PreprocessData {
+                symbols: fo.symbols.into_iter().collect(),
+                localizations: fo.localizations.into_iter().collect(),
+            };
+            let decl_avatar = load_declaration_auto(fo.file, fo.library_paths, preprocess);
+            match decl_avatar {
+                Ok(a) => {
+                    if fo.indented {
+                        println!("{a:#?}");
+                    } else {
+                        println!("{a:?}");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error: {e}");
                 }
             }
-            Err(e) => {
-                eprintln!("Error: {e}");
-            }
-        },
-        Subcommand::Compile(FileOption {
-            file,
-            indented,
-            library_paths,
-        }) => {
-            let decl_avatar = load_declaration_auto(file, library_paths)?;
+        }
+        Subcommand::Compile(fo) => {
+            let preprocess = PreprocessData {
+                symbols: fo.symbols.into_iter().collect(),
+                localizations: fo.localizations.into_iter().collect(),
+            };
+            let decl_avatar = load_declaration_auto(fo.file, fo.library_paths, preprocess)?;
             let avatar_result = transform_avatar(decl_avatar);
             if let Some(avatar) = avatar_result.avatar {
-                let json = if indented {
+                let json = if fo.indented {
                     serde_json::to_string_pretty(&avatar)
                 } else {
                     serde_json::to_string(&avatar)
@@ -64,7 +67,11 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn load_declaration_auto(file: PathBuf, paths: Vec<PathBuf>) -> Result<DeclAvatar> {
+fn load_declaration_auto(
+    file: PathBuf,
+    paths: Vec<PathBuf>,
+    preprocess: PreprocessData,
+) -> Result<DeclAvatar> {
     let file_ext = file.extension();
     let Some(file_ext) = file_ext else {
         bail!("file format cannot be determined");
@@ -76,7 +83,7 @@ fn load_declaration_auto(file: PathBuf, paths: Vec<PathBuf>) -> Result<DeclAvata
     };
 
     let text = read_to_string(file)?;
-    let decl_avatar = load_declaration(&text, format)?;
+    let decl_avatar = load_declaration(&text, format, preprocess)?;
     Ok(decl_avatar)
 }
 
