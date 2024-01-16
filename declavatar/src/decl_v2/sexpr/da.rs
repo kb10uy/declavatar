@@ -8,11 +8,15 @@ pub(super) mod layer_raw;
 pub(super) mod menu;
 pub(super) mod parameter;
 
+use crate::decl_v2::PreprocessData;
+
+use std::rc::Rc;
+
 use ketos::{Module, ModuleBuilder, Scope};
 
 pub const MODULE_NAME_DA: &str = "da";
 
-pub fn define_da_module(scope: Scope) -> Module {
+pub fn define_da_module(scope: Scope, preprocess: Rc<PreprocessData>) -> Module {
     avatar::register_avatar_function(&scope);
     export::register_export_function(&scope);
     parameter::register_parameter_function(&scope);
