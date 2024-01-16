@@ -1,11 +1,15 @@
 use std::rc::Rc;
 
 use crate::decl_v2::{
-    sexpr::{argument::SeparateArguments, error::KetosResult, register_function},
+    sexpr::{
+        argument::SeparateArguments,
+        error::{DeclSexprError, KetosResult},
+        register_function,
+    },
     PreprocessData,
 };
 
-use ketos::{Arity, Name, Scope, Value};
+use ketos::{Arity, Error, Name, Scope, Value};
 
 pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData>) {
     let spp = preprocess.clone();
@@ -64,6 +68,8 @@ pub fn localize(
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     match preprocess.localizations.get(localization_key) {
         Some(v) => Ok(v.as_str().into()),
-        None => Ok(Value::Unit),
+        None => Err(Error::Custom(
+            DeclSexprError::LocalizationNotFound(localization_key.to_string()).into(),
+        )),
     }
 }
