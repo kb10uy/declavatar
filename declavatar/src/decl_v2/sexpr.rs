@@ -95,7 +95,7 @@ impl ModuleLoader for DeclavatarModuleLoader {
         let loader = scope.with_name(name, Self::get_loader);
 
         match loader {
-            Some(l) => Ok(l(scope.clone(), self.0)),
+            Some(l) => Ok(l(scope.clone(), self.0.clone())),
             None => Err(From::from(CompileError::ModuleError(name))),
         }
     }
