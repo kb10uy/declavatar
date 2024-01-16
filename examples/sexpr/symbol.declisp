@@ -1,0 +1,8 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "symbol"
+    (if (da/symbol "out-of-unity") (da/parameters
+        (da/int (da/localize "cargo-pkg-version"))
+    ) ())
+)

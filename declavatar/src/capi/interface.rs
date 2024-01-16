@@ -90,6 +90,37 @@ pub extern "system" fn DeclavatarAddLibraryPath(
 }
 
 #[no_mangle]
+pub extern "system" fn DeclavatarDefineSymbol(
+    da: *mut Declavatar,
+    symbol: *const c_char,
+    symbol_len: u32,
+) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
+    as_ref!(symbol, &str, symbol_len);
+
+    da.define_symbol(symbol);
+
+    StatusCode::Success
+}
+
+#[no_mangle]
+pub extern "system" fn DeclavatarDefineLocalization(
+    da: *mut Declavatar,
+    key: *const c_char,
+    key_len: u32,
+    value: *const c_char,
+    value_len: u32,
+) -> StatusCode {
+    as_ref!(da, &mut Declavatar);
+    as_ref!(key, &str, key_len);
+    as_ref!(value, &str, value_len);
+
+    da.define_localization(key, value);
+
+    StatusCode::Success
+}
+
+#[no_mangle]
 pub extern "system" fn DeclavatarCompile(
     da: *mut Declavatar,
     source: *const c_char,

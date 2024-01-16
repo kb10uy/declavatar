@@ -24,10 +24,27 @@ pub struct FileOption {
     /// Filename.
     pub file: PathBuf,
 
-    /// Shows result struct in indented form.
+    /// Shows the result struct in indented form.
     #[clap(short, long)]
     pub indented: bool,
 
-    #[clap(short = 'l', long = "library")]
+    /// Adds a library directory.
+    #[clap(short = 'L', long = "library")]
     pub library_paths: Vec<PathBuf>,
+
+    /// Defines a symbol.
+    #[clap(short = 's', long = "symbol")]
+    pub symbols: Vec<String>,
+
+    /// Defines a localization pair.
+    #[clap(short = 'l', long = "localize", value_parser = parse_localization_pair)]
+    pub localizations: Vec<(String, String)>,
+}
+
+fn parse_localization_pair(s: &str) -> Result<(String, String), String> {
+    if let Some((key, value)) = s.split_once(':') {
+        Ok((key.to_string(), value.to_string()))
+    } else {
+        Err(format!("invalid localization pair definition: {s}"))
+    }
 }

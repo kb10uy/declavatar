@@ -30,4 +30,7 @@ pub enum DeclSexprError {
 
     #[error("invalid condition expression")]
     InvalidCondition,
+
+    #[error("localization key {0} not found")]
+    LocalizationNotFound(String),
 }
