@@ -4,13 +4,16 @@ mod sexpr;
 
 use crate::decl_v2::{data::avatar::DeclAvatar, error::DeclError, sexpr::load_avatar_sexpr};
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct PreprocessData {
-    pub symbols: Vec<String>,
+    pub symbols: HashSet<String>,
     pub localizations: HashMap<String, String>,
 }
 
