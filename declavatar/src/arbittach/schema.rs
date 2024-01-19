@@ -44,3 +44,24 @@ pub enum ValueType {
     Material,
     AnimationClip,
 }
+
+impl ValueType {
+    pub const fn name(&self) -> &'static str {
+        match self {
+            ValueType::Any => "any",
+            ValueType::OneOf(_) => "one-of",
+            ValueType::List(_) => "list",
+            ValueType::Tuple(_) => "tuple",
+            ValueType::Map(_, _) => "map",
+            ValueType::Null => "null",
+            ValueType::Boolean => "boolean",
+            ValueType::Integer => "integer",
+            ValueType::Float => "float",
+            ValueType::String => "string",
+            ValueType::Vector(_) => "vector",
+            ValueType::GameObject => "game object",
+            ValueType::Material => "material",
+            ValueType::AnimationClip => "animation clip",
+        }
+    }
+}

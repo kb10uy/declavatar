@@ -30,3 +30,21 @@ pub enum Value {
     Material(String),
     AnimationClip(String),
 }
+
+impl Value {
+    pub const fn type_name(&self) -> &'static str {
+        match self {
+            Value::List(_) => "list",
+            Value::Tuple(_) => "tuple",
+            Value::Null => "null",
+            Value::Boolean(_) => "boolean",
+            Value::Integer(_) => "integer",
+            Value::Float(_) => "float",
+            Value::String(_) => "string",
+            Value::Vector(_) => "vector",
+            Value::GameObject(_) => "game object",
+            Value::Material(_) => "material",
+            Value::AnimationClip(_) => "animation clip",
+        }
+    }
+}
