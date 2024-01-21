@@ -124,7 +124,7 @@ impl<'a> SeparateArguments<'a> {
 
                     let real_name = name_store.get(*name);
                     let keyword_accepted = allowed_keywords
-                        .map(|kw| !kw.contains(&real_name))
+                        .map(|kw| kw.contains(&real_name))
                         .unwrap_or(true);
                     if !keyword_accepted {
                         return Err(Error::ExecError(ExecError::UnrecognizedKeyword(*name)));
