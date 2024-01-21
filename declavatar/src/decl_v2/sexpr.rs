@@ -1,5 +1,6 @@
 mod argument;
 mod da;
+mod da3;
 mod dain;
 mod error;
 
@@ -84,6 +85,7 @@ impl DeclavatarModuleLoader {
         match name {
             da::MODULE_NAME_DA => Some(da::define_da_module),
             dain::MODULE_NAME_DAIN => Some(dain::define_dain_module),
+            da3::MODULE_NAME_DA3 => Some(da3::define_dain_module),
             _ => None,
         }
     }
