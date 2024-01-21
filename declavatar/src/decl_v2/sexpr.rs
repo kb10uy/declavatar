@@ -110,7 +110,7 @@ fn register_function<
     name: &'static str,
     f: F,
     args_arity: Arity,
-    allowed_keywords: &'static [&'static str],
+    allowed_keywords: Option<&'static [&'static str]>,
 ) {
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
@@ -129,7 +129,7 @@ fn register_function_with_context<
     name: &'static str,
     f: F,
     args_arity: Arity,
-    allowed_keywords: &'static [&'static str],
+    allowed_keywords: Option<&'static [&'static str]>,
 ) {
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
