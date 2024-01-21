@@ -1,0 +1,14 @@
+; vim: set ft=commonlisp
+(use da :self)
+(use da3 :self)
+
+(da/avatar "arbitrary-attachment"
+    (da/attachments
+        (da3/for "NewObject"
+            (da3/attach "GameObject"
+                (da3/property "Transform" (da3/vector3 0.0 0.0 0.0))
+                (da3/property "Parent" (da3/game-object "Armature/Hips/Upper_Leg.L"))
+            )
+        )
+    )
+)
