@@ -3,7 +3,7 @@
 (use da3 :self)
 
 (da/avatar "arbitrary-attachment"
-    (da/attachments
+    (da3/attachments
         (da3/for "NewObject"
             (da3/attach "GameObject"
                 (da3/property "Transform" (da3/vector3 0.0 0.0 0.0))

@@ -4,28 +4,35 @@ use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachments {
-    pub targets: DeclAttachmentTarget,
+    pub targets: Vec<DeclAttachmentTarget>,
 }
 static_type_name_impl!(DeclAttachments);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachmentTarget {
     pub name: String,
-    // pub attachments: DeclAttachment,
+    pub attachments: Vec<DeclAttachment>,
 }
 static_type_name_impl!(DeclAttachmentTarget);
 
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclAttachment {
+    pub name: String,
+    pub properties: Vec<DeclAttachmentProperty>,
+}
+static_type_name_impl!(DeclAttachment);
+
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachmentProperty {
     pub name: String,
     pub parameters: Vec<DeclAttachmentValue>,
 }
+static_type_name_impl!(DeclAttachmentProperty);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclAttachmentValue {
     Null,
-    List(Vec<DeclAttachmentValue>),
-    Tuple(Vec<DeclAttachmentValue>),
-    // Map(HashMap<Value, Value>),
+    UntypedList(Vec<DeclAttachmentValue>),
     Boolean(bool),
     Integer(i64),
     Float(f64),
