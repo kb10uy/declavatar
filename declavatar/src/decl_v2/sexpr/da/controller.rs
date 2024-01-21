@@ -11,7 +11,7 @@ pub fn register_controller_function(scope: &Scope) {
         "fx-controller",
         declare_fx_controller,
         Arity::Min(0),
-        &[],
+        Some(&[]),
     );
 }
 

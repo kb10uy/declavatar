@@ -11,36 +11,42 @@ pub fn register_value_function(scope: &Scope) {
         "vector2",
         |n, f, a| value_vector(n, f, a, 2),
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "vector3",
         |n, f, a| value_vector(n, f, a, 3),
         Arity::Exact(3),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "vector4",
         |n, f, a| value_vector(n, f, a, 4),
         Arity::Exact(4),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "game-object",
         value_game_object,
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
-    register_function(scope, "material", value_material, Arity::Exact(1), &[]);
+    register_function(
+        scope,
+        "material",
+        value_material,
+        Arity::Exact(1),
+        Some(&[]),
+    );
     register_function(
         scope,
         "animation-clip",
         value_animation_clip,
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 }
 

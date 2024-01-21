@@ -14,37 +14,43 @@ pub fn register_driver_function(scope: &Scope) {
         "drive-group",
         declare_drive_group,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "drive-switch",
         declare_drive_switch,
         Arity::Range(1, 2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "drive-puppet",
         declare_drive_puppet,
         Arity::Range(1, 2),
-        &[],
+        Some(&[]),
     );
 
-    register_function(scope, "drive-int", declare_drive_int, Arity::Exact(2), &[]);
+    register_function(
+        scope,
+        "drive-int",
+        declare_drive_int,
+        Arity::Exact(2),
+        Some(&[]),
+    );
     register_function(
         scope,
         "drive-bool",
         declare_drive_bool,
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "drive-float",
         declare_drive_float,
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 
     register_function(
@@ -52,28 +58,28 @@ pub fn register_driver_function(scope: &Scope) {
         "set-parameter",
         declare_set_parameter,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "add-parameter",
         declare_add_parameter,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "random-parameter",
         declare_random_parameter,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "copy-parameter",
         declare_copy_parameter,
         Arity::Range(2, 4),
-        &[],
+        Some(&[]),
     );
 
     register_function(
@@ -81,7 +87,7 @@ pub fn register_driver_function(scope: &Scope) {
         "set-tracking",
         declare_set_tracking,
         Arity::Min(1),
-        &[],
+        Some(&[]),
     );
 }
 

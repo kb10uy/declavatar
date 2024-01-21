@@ -24,21 +24,21 @@ pub fn register_layer_basic_function(scope: &Scope) {
         "group-layer",
         declare_group_layer,
         Arity::Min(1),
-        &["driven-by", "default-mesh", "copy"],
+        Some(&["driven-by", "default-mesh", "copy"]),
     );
     register_function(
         scope,
         "switch-layer",
         declare_switch_layer,
         Arity::Min(1),
-        &["driven-by", "with-gate", "default-mesh"],
+        Some(&["driven-by", "with-gate", "default-mesh"]),
     );
     register_function(
         scope,
         "puppet-layer",
         declare_puppet_layer,
         Arity::Min(1),
-        &["driven-by", "default-mesh", "animation"],
+        Some(&["driven-by", "default-mesh", "animation"]),
     );
 
     // option functions
@@ -47,7 +47,7 @@ pub fn register_layer_basic_function(scope: &Scope) {
         "option",
         declare_option,
         Arity::Min(1),
-        &["value", "animation"],
+        Some(&["value", "animation"]),
     );
 
     // set-x functions
@@ -56,21 +56,21 @@ pub fn register_layer_basic_function(scope: &Scope) {
         "set-shape",
         declare_set_shape,
         Arity::Exact(1),
-        &["value", "mesh"],
+        Some(&["value", "mesh"]),
     );
     register_function(
         scope,
         "set-object",
         declare_set_object,
         Arity::Exact(1),
-        &["value"],
+        Some(&["value"]),
     );
     register_function(
         scope,
         "set-material",
         declare_set_material,
         Arity::Exact(2),
-        &["mesh"],
+        Some(&["mesh"]),
     );
 }
 

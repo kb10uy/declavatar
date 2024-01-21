@@ -6,9 +6,21 @@ use crate::decl_v2::{
 use ketos::{Arity, Name, NameStore, Scope, Value};
 
 pub fn register_asset_function(scope: &Scope) {
-    register_function(scope, "assets", declare_assets, Arity::Min(0), &[]);
-    register_function(scope, "material", declare_material, Arity::Exact(1), &[]);
-    register_function(scope, "animation", declare_animation, Arity::Exact(1), &[]);
+    register_function(scope, "assets", declare_assets, Arity::Min(0), Some(&[]));
+    register_function(
+        scope,
+        "material",
+        declare_material,
+        Arity::Exact(1),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "animation",
+        declare_animation,
+        Arity::Exact(1),
+        Some(&[]),
+    );
 }
 
 fn declare_assets(

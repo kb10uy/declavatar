@@ -11,27 +11,33 @@ use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_parameter_function(scope: &Scope) {
     const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope", "unique"];
-    register_function(scope, "parameters", declare_parameters, Arity::Min(0), &[]);
+    register_function(
+        scope,
+        "parameters",
+        declare_parameters,
+        Arity::Min(0),
+        Some(&[]),
+    );
     register_function(
         scope,
         "bool",
         declare_bool,
         Arity::Exact(1),
-        PARAMETER_KEYWORDS,
+        Some(PARAMETER_KEYWORDS),
     );
     register_function(
         scope,
         "int",
         declare_int,
         Arity::Exact(1),
-        PARAMETER_KEYWORDS,
+        Some(PARAMETER_KEYWORDS),
     );
     register_function(
         scope,
         "float",
         declare_float,
         Arity::Exact(1),
-        PARAMETER_KEYWORDS,
+        Some(PARAMETER_KEYWORDS),
     );
 }
 

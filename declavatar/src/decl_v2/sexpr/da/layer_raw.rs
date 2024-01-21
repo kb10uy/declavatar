@@ -25,52 +25,88 @@ pub fn register_layer_raw_function(scope: &Scope) {
         "raw-layer",
         declare_raw_layer,
         Arity::Min(1),
-        &["default"],
+        Some(&["default"]),
     );
-    register_function(scope, "state", declare_state, Arity::Min(2), &[]);
+    register_function(scope, "state", declare_state, Arity::Min(2), Some(&[]));
 
     register_function(
         scope,
         "clip",
         declare_clip,
         Arity::Min(1),
-        &["speed", "speed-by", "time-by"],
+        Some(&["speed", "speed-by", "time-by"]),
     );
     register_function(
         scope,
         "inline-animation",
         declare_inline_animation,
         Arity::Min(0),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "blendtree",
         declare_blendtree,
         Arity::Min(0),
-        &["type", "x", "y"],
+        Some(&["type", "x", "y"]),
     );
     register_function(
         scope,
         "blendtree-field",
         declare_blendtree_field,
         Arity::Range(2, 3),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "transition-to",
         declare_transition_to,
         Arity::Min(1),
-        &["duration"],
+        Some(&["duration"]),
     );
 
-    register_function(scope, "cond-eq", declare_cond_eq, Arity::Exact(2), &[]);
-    register_function(scope, "cond-ne", declare_cond_ne, Arity::Exact(2), &[]);
-    register_function(scope, "cond-gt", declare_cond_gt, Arity::Exact(2), &[]);
-    register_function(scope, "cond-lt", declare_cond_lt, Arity::Exact(2), &[]);
-    register_function(scope, "cond-ze", declare_cond_ze, Arity::Exact(1), &[]);
-    register_function(scope, "cond-nz", declare_cond_nz, Arity::Exact(1), &[]);
+    register_function(
+        scope,
+        "cond-eq",
+        declare_cond_eq,
+        Arity::Exact(2),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "cond-ne",
+        declare_cond_ne,
+        Arity::Exact(2),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "cond-gt",
+        declare_cond_gt,
+        Arity::Exact(2),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "cond-lt",
+        declare_cond_lt,
+        Arity::Exact(2),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "cond-ze",
+        declare_cond_ze,
+        Arity::Exact(1),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "cond-nz",
+        declare_cond_nz,
+        Arity::Exact(1),
+        Some(&[]),
+    );
 }
 
 fn declare_raw_layer(

@@ -18,21 +18,21 @@ pub fn register_option_function(scope: &Scope) {
         "option-prepend-targets",
         option_prepend_targets,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function(
         scope,
         "option-extend-targets",
         option_extend_targets,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     );
     register_function_with_context(
         scope,
         "option-replace-targets",
         option_replace_targets,
         Arity::Exact(2),
-        &[],
+        Some(&[]),
     )
 }
 

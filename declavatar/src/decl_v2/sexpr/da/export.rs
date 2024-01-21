@@ -6,9 +6,9 @@ use crate::decl_v2::{
 use ketos::{Arity, Name, NameStore, Scope, Value};
 
 pub fn register_export_function(scope: &Scope) {
-    register_function(scope, "exports", declare_exports, Arity::Min(0), &[]);
-    register_function(scope, "gate", declare_gate, Arity::Exact(1), &[]);
-    register_function(scope, "guard", declare_guard, Arity::Exact(2), &[]);
+    register_function(scope, "exports", declare_exports, Arity::Min(0), Some(&[]));
+    register_function(scope, "gate", declare_gate, Arity::Exact(1), Some(&[]));
+    register_function(scope, "guard", declare_guard, Arity::Exact(2), Some(&[]));
 }
 
 fn declare_exports(

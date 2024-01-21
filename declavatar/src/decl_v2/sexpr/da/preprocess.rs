@@ -18,7 +18,7 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
         "symbol",
         move |_, f, a| symbol(f, a, &spp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 
     let hlpp = preprocess.clone();
@@ -27,7 +27,7 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
         "can-localize",
         move |_, f, a| can_localize(f, a, &hlpp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 
     let hspp = preprocess.clone();
@@ -36,7 +36,7 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
         "localize",
         move |_, f, a| localize(f, a, &hspp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 }
 

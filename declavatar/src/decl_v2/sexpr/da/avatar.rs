@@ -14,7 +14,7 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_avatar_function(scope: &Scope) {
-    register_function(scope, "avatar", declare_avatar, Arity::Min(1), &[]);
+    register_function(scope, "avatar", declare_avatar, Arity::Min(1), Some(&[]));
 }
 
 fn declare_avatar(
