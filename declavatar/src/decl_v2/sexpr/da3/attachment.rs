@@ -21,7 +21,7 @@ pub fn register_attachment_function(scope: &Scope) {
     );
     register_function(scope, "for", define_target, Arity::Min(1), Some(&[]));
     register_function(scope, "attach", define_attachment, Arity::Min(1), Some(&[]));
-    register_function(scope, "property", define_property, Arity::Min(1), Some(&[]));
+    register_function(scope, "property", define_property, Arity::Min(1), None);
 }
 
 fn declare_attachments(
