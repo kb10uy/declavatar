@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::{
         arbittach::{
-            DeclAttachment, DeclAttachmentProperty, DeclAttachmentTarget, DeclAttachmentValue,
+            DeclAttachment, DeclAttachmentProperty, DeclAttachmentGroup, DeclAttachmentValue,
             DeclAttachments,
         },
         StaticTypeName,
@@ -33,7 +33,7 @@ fn declare_attachments(
     for decl_target in args.args_after_recursive(function_name, 0)? {
         targets.push(
             decl_target
-                .downcast_foreign_ref::<&DeclAttachmentTarget>()
+                .downcast_foreign_ref::<&DeclAttachmentGroup>()
                 .cloned()?,
         );
     }
@@ -55,7 +55,7 @@ fn define_target(
                 .clone(),
         );
     }
-    Ok(DeclAttachmentTarget {
+    Ok(DeclAttachmentGroup {
         name: name.to_string(),
         attachments,
     }

@@ -1,8 +1,41 @@
-use crate::arbittach::{data::Value, error::TypeError, schema::ValueType};
-
 use std::iter::zip;
 
-pub fn validate_type(value: &Value, value_type: &ValueType) -> Result<(), TypeError> {
+use crate::{
+    arbittach::schema::ValueType,
+    avatar_v2::{
+        data::attachment::{AttachmentGroup, Value},
+        log::Log,
+        transformer::{failure, success, Compiled},
+    },
+    decl_v2::data::arbittach::{DeclAttachmentGroup, DeclAttachments},
+    log::Logger,
+};
+
+pub fn compile_attachment_blocks(
+    logger: &Logger<Log>,
+    attachment_blocks: Vec<DeclAttachments>,
+) -> Compiled<Vec<AttachmentGroup>> {
+    let mut attachment_groups = vec![];
+    for (index, decl_attachments) in attachment_blocks.into_iter().enumerate() {
+        let logger = logger.with_context(format!("assets block {index}"));
+        for decl_target in decl_attachments.targets {
+            let Some(group) = compile_group(&logger, decl_target) else {
+                continue;
+            };
+            attachment_groups.push(group);
+        }
+    }
+
+    success(attachment_groups)
+}
+
+fn compile_group(
+    logger: &Logger<Log>,
+    decl_group: Vec<DeclAttachmentGroup>,
+) -> Compiled<AttachmentGroup> {
+}
+
+fn validate_type(value: &Value, value_type: &ValueType) -> Result<(), TypeError> {
     match (value_type, value) {
         (ValueType::Any, _) => (),
         (ValueType::OneOf(types), v) => types.iter().try_fold((), |_, t| validate_type(v, t))?,

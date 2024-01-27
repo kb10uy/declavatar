@@ -39,6 +39,7 @@ pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avat
     let exports = compile_exports_blocks(&logger, &first_pass, avatar.exports_blocks)?;
     let fx_controller = compile_fx_controller_blocks(&logger, &first_pass, avatar.fx_controllers)?;
     let menu_items = compile_menu(&logger, &first_pass, avatar.menu_blocks)?;
+    let attachments = compile_attachment
 
     if logger.erroneous() {
         return failure();
