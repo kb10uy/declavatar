@@ -56,7 +56,7 @@ fn define_target(
         );
     }
     Ok(DeclAttachmentGroup {
-        name: name.to_string(),
+        target: name.to_string(),
         attachments,
     }
     .into())

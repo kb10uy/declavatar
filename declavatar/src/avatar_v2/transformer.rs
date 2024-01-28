@@ -8,10 +8,13 @@ pub mod layer;
 pub mod menu;
 pub mod parameter;
 
+use std::collections::HashMap;
+
 use crate::{
     avatar_v2::{
         data::{
             asset::{Asset, AssetType},
+            attachment::schema::Attachment,
             parameter::{Parameter, ParameterScope, ParameterType},
         },
         log::Log,
@@ -56,6 +59,7 @@ pub struct FirstPassData {
     assets: Vec<Asset>,
     exported_gates: Vec<String>,
     layers: Vec<DeclaredLayer>,
+    arbittach_schemas: HashMap<String, Attachment>,
 }
 
 impl FirstPassData {
@@ -64,12 +68,14 @@ impl FirstPassData {
         assets: Vec<Asset>,
         exported_gates: Vec<String>,
         layers: Vec<DeclaredLayer>,
+        arbittach_schemas: HashMap<String, Attachment>,
     ) -> FirstPassData {
         FirstPassData {
             parameters,
             assets,
             exported_gates,
             layers,
+            arbittach_schemas,
         }
     }
 

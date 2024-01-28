@@ -4,6 +4,7 @@ use crate::{
         log::Log,
         transformer::{
             asset::compile_assets_blocks,
+            attachment::compile_attachment_blocks,
             controller::{compile_fx_controller_blocks, first_pass_fx_controller_blocks},
             export::{compile_exports_blocks, first_pass_exports_blocks},
             failure,
@@ -15,6 +16,8 @@ use crate::{
     decl_v2::data::avatar::DeclAvatar,
     log::Logger,
 };
+
+use std::collections::HashMap;
 
 pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avatar> {
     let logger = logger.with_context("avatar");
@@ -33,13 +36,19 @@ pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avat
     let assets = compile_assets_blocks(&logger, avatar.assets_blocks)?;
     let exports_first_pass = first_pass_exports_blocks(&logger, &avatar.exports_blocks)?;
     let fx_first_pass = first_pass_fx_controller_blocks(&logger, &avatar.fx_controllers)?;
-    let first_pass = FirstPassData::new(parameters, assets, exports_first_pass, fx_first_pass);
+    let first_pass = FirstPassData::new(
+        parameters,
+        assets,
+        exports_first_pass,
+        fx_first_pass,
+        HashMap::new(),
+    );
 
     // second pass
     let exports = compile_exports_blocks(&logger, &first_pass, avatar.exports_blocks)?;
     let fx_controller = compile_fx_controller_blocks(&logger, &first_pass, avatar.fx_controllers)?;
     let menu_items = compile_menu(&logger, &first_pass, avatar.menu_blocks)?;
-    let attachments = compile_attachment
+    let attachments = compile_attachment_blocks(&logger, avatar.attachment_blocks)?;
 
     if logger.erroneous() {
         return failure();

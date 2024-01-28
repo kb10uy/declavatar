@@ -10,7 +10,7 @@ static_type_name_impl!(DeclAttachments);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachmentGroup {
-    pub name: String,
+    pub target: String,
     pub attachments: Vec<DeclAttachment>,
 }
 static_type_name_impl!(DeclAttachmentGroup);

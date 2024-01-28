@@ -59,6 +59,12 @@ pub mod schema {
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    pub struct Attachment {
+        pub name: String,
+        pub properties: Vec<Property>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     pub struct Property {
         pub name: String,
         pub required: bool,
