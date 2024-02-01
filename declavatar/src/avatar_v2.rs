@@ -32,7 +32,7 @@ impl Transformer {
 
     pub fn transform_avatar(&self, avatar: DeclAvatar) -> TransformResult {
         let logger = Logger::new();
-        let avatar = compile_avatar(&logger, avatar);
+        let avatar = compile_avatar(&logger, avatar, &self.arbittach_schemas);
         let logs = logger.serialize_logs();
 
         TransformResult { avatar, logs }

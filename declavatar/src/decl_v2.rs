@@ -12,6 +12,23 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct CompilerArguments {
+    pub library_paths: HashSet<PathBuf>,
+    pub symbols: HashSet<String>,
+    pub localizations: HashMap<String, String>,
+}
+
+impl CompilerArguments {
+    pub fn new() -> CompilerArguments {
+        CompilerArguments {
+            library_paths: HashSet::new(),
+            symbols: HashSet::new(),
+            localizations: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct PreprocessData {
     pub symbols: HashSet<String>,
     pub localizations: HashMap<String, String>,

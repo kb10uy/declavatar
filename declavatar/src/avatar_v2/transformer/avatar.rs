@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::avatar::Avatar,
+        data::{attachment::schema::Attachment, avatar::Avatar},
         log::Log,
         transformer::{
             asset::compile_assets_blocks,
@@ -19,7 +19,11 @@ use crate::{
 
 use std::collections::HashMap;
 
-pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avatar> {
+pub fn compile_avatar(
+    logger: &Logger<Log>,
+    avatar: DeclAvatar,
+    attachment_schemas: &HashMap<String, Attachment>,
+) -> Compiled<Avatar> {
     let logger = logger.with_context("avatar");
 
     let name = {

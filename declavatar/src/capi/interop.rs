@@ -1,5 +1,5 @@
 use crate::{
-    avatar_v2::{data::avatar::Avatar, transform_avatar},
+    avatar_v2::{data::avatar::Avatar, Transformer},
     decl_v2::{load_declaration, DeclarationFormat, PreprocessData},
     log::Log,
 };
