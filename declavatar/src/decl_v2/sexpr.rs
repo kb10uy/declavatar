@@ -22,14 +22,14 @@ use ketos::{
 };
 
 pub fn load_avatar_sexpr(text: &str, args: Arguments) -> Result<DeclAvatar, DeclError> {
-    let da_loader = DeclavatarModuleLoader(Rc::new(args));
-    let builtin_loader = BuiltinModuleLoader;
     let file_loader = {
-        let mut l = FileModuleLoader::with_search_paths(args.library_paths.into_iter().collect());
+        let mut l = FileModuleLoader::with_search_paths(args.library_paths().cloned().collect());
         l.set_read_bytecode(false);
         l.set_write_bytecode(false);
         l
     };
+    let builtin_loader = BuiltinModuleLoader;
+    let da_loader = DeclavatarModuleLoader(Rc::new(args));
 
     let loader = Box::new(da_loader.chain(builtin_loader).chain(file_loader));
     let interpreter = Interpreter::with_loader(loader);
