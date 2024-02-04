@@ -40,13 +40,7 @@ pub fn compile_avatar(
     let assets = compile_assets_blocks(&logger, avatar.assets_blocks)?;
     let exports_first_pass = first_pass_exports_blocks(&logger, &avatar.exports_blocks)?;
     let fx_first_pass = first_pass_fx_controller_blocks(&logger, &avatar.fx_controllers)?;
-    let first_pass = FirstPassData::new(
-        parameters,
-        assets,
-        exports_first_pass,
-        fx_first_pass,
-        HashMap::new(),
-    );
+    let first_pass = FirstPassData::new(parameters, assets, exports_first_pass, fx_first_pass);
 
     // second pass
     let exports = compile_exports_blocks(&logger, &first_pass, avatar.exports_blocks)?;
@@ -63,6 +57,7 @@ pub fn compile_avatar(
     success(Avatar {
         name,
         exports,
+        attachments,
         parameters,
         assets,
         fx_controller,
