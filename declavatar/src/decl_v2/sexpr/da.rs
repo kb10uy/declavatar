@@ -1,3 +1,4 @@
+pub(super) mod arguments;
 pub(super) mod asset;
 pub(super) mod avatar;
 pub(super) mod controller;
@@ -7,9 +8,8 @@ pub(super) mod layer_basic;
 pub(super) mod layer_raw;
 pub(super) mod menu;
 pub(super) mod parameter;
-pub(super) mod preprocess;
 
-use crate::decl_v2::PreprocessData;
+use crate::decl_v2::Arguments;
 
 use std::rc::Rc;
 
@@ -17,7 +17,7 @@ use ketos::{Module, ModuleBuilder, Scope};
 
 pub const MODULE_NAME_DA: &str = "da";
 
-pub fn define_da_module(scope: Scope, preprocess: Rc<PreprocessData>) -> Module {
+pub fn define_da_module(scope: Scope, preprocess: Rc<Arguments>) -> Module {
     avatar::register_avatar_function(&scope);
     export::register_export_function(&scope);
     parameter::register_parameter_function(&scope);
@@ -27,7 +27,7 @@ pub fn define_da_module(scope: Scope, preprocess: Rc<PreprocessData>) -> Module 
     layer_basic::register_layer_basic_function(&scope);
     layer_raw::register_layer_raw_function(&scope);
     driver::register_driver_function(&scope);
-    preprocess::register_preprocess_function(&scope, preprocess);
+    arguments::register_arguments_function(&scope, preprocess);
 
     ModuleBuilder::new(MODULE_NAME_DA, scope.clone()).finish()
 }

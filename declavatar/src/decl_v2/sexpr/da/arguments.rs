@@ -6,12 +6,12 @@ use crate::decl_v2::{
         error::{DeclSexprError, KetosResult},
         register_function,
     },
-    PreprocessData,
+    Arguments,
 };
 
 use ketos::{Arity, Error, Name, Scope, Value};
 
-pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData>) {
+pub fn register_arguments_function(scope: &Scope, preprocess: Rc<Arguments>) {
     let spp = preprocess.clone();
     register_function(
         scope,
@@ -43,7 +43,7 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
 pub fn symbol(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let symbol_name: &str = args.exact_arg(function_name, 0)?;
     let has_symbol = preprocess.symbols.contains(symbol_name);
@@ -53,7 +53,7 @@ pub fn symbol(
 pub fn can_localize(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     let has_localization = preprocess.localizations.contains_key(localization_key);
@@ -63,7 +63,7 @@ pub fn can_localize(
 pub fn localize(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     match preprocess.localizations.get(localization_key) {

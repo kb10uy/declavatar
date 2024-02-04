@@ -8,7 +8,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 use declavatar::{
     avatar_v2::transform_avatar,
-    decl_v2::{data::avatar::DeclAvatar, load_declaration, DeclarationFormat, PreprocessData},
+    decl_v2::{data::avatar::DeclAvatar, compile_declaration, DeclarationFormat, PreprocessData},
     i18n::get_log_messages,
 };
 use strfmt::Format;
@@ -83,7 +83,7 @@ fn load_declaration_auto(
     };
 
     let text = read_to_string(file)?;
-    let decl_avatar = load_declaration(&text, format, preprocess)?;
+    let decl_avatar = compile_declaration(&text, format, preprocess)?;
     Ok(decl_avatar)
 }
 

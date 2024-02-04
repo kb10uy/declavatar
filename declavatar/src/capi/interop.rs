@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{data::avatar::Avatar, Transformer},
-    decl_v2::{load_declaration, DeclarationFormat, PreprocessData},
+    decl_v2::{compile_declaration, Arguments, DeclarationFormat},
     log::Log,
 };
 
@@ -20,47 +20,30 @@ pub enum StatusCode {
 #[derive(Debug)]
 pub struct Declavatar {
     in_use: bool,
-    compiled_avatar: Option<Avatar>,
-    compiled_avatar_json: Option<String>,
-    json_errors: Vec<String>,
-    library_paths: Vec<PathBuf>,
-    preprocess: PreprocessData,
+    args: Arguments,
+    avatar_json: Option<String>,
+    logs_jsons: Vec<String>,
 }
 
 impl Declavatar {
     pub fn new() -> Declavatar {
         Declavatar {
             in_use: false,
-            compiled_avatar: None,
-            compiled_avatar_json: None,
-            json_errors: vec![],
-            library_paths: vec![],
-            preprocess: PreprocessData::default(),
+            args: Arguments::default(),
+            avatar_json: None,
+            logs_jsons: vec![],
         }
     }
 
     pub fn reset(&mut self) {
         self.in_use = false;
-        self.compiled_avatar = None;
-        self.compiled_avatar_json = None;
-        self.json_errors.clear();
-        self.library_paths.clear();
-        self.preprocess.symbols.clear();
-        self.preprocess.localizations.clear();
+        self.args.clear();
+        self.avatar_json = None;
+        self.logs_jsons.clear();
     }
 
-    pub fn add_library_path(&mut self, path: impl AsRef<Path>) {
-        self.library_paths.push(path.as_ref().to_owned());
-    }
-
-    pub fn define_symbol(&mut self, symbol: impl Into<String>) {
-        self.preprocess.symbols.insert(symbol.into());
-    }
-
-    pub fn define_localization(&mut self, key: impl Into<String>, value: impl Into<String>) {
-        self.preprocess
-            .localizations
-            .insert(key.into(), value.into());
+    pub fn args_mut(&mut self) -> &mut Arguments {
+        &mut self.args
     }
 
     pub fn compile(&mut self, source: &str, kind: u32) -> Result<(), StatusCode> {
@@ -76,10 +59,10 @@ impl Declavatar {
             _ => return Err(StatusCode::CompileError),
         };
 
-        let decl_avatar = match load_declaration(source, format, self.preprocess.clone()) {
+        let decl_avatar = match compile_declaration(source, format, self.preprocess.clone()) {
             Ok(decl_avatar) => decl_avatar,
             Err(report) => {
-                self.json_errors.push(
+                self.logs_jsons.push(
                     serde_json::to_string(&report.serialize_log([]))
                         .expect("should serialize into JSON"),
                 );
@@ -91,7 +74,7 @@ impl Declavatar {
         let avatar = match transformed.avatar {
             Some(avatar) => avatar,
             None => {
-                self.json_errors.extend(
+                self.logs_jsons.extend(
                     transformed
                         .logs
                         .iter()
@@ -100,16 +83,14 @@ impl Declavatar {
                 return Err(StatusCode::CompileError);
             }
         };
-        let avatar_json = serde_json::to_string(&avatar).map_err(|_| StatusCode::CompileError)?;
 
-        self.compiled_avatar = Some(avatar);
-        self.compiled_avatar_json = Some(avatar_json);
-
+        self.avatar_json =
+            Some(serde_json::to_string(&avatar).map_err(|_| StatusCode::CompileError)?);
         Ok(())
     }
 
     pub fn avatar_json(&self) -> Result<&str, StatusCode> {
-        let Some(json) = self.compiled_avatar_json.as_deref() else {
+        let Some(json) = self.avatar_json.as_deref() else {
             return Err(StatusCode::NotCompiled);
         };
 
@@ -117,6 +98,6 @@ impl Declavatar {
     }
 
     pub fn log_jsons(&self) -> &[String] {
-        &self.json_errors
+        &self.logs_jsons
     }
 }

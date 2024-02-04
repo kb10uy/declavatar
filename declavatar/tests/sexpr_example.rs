@@ -2,7 +2,7 @@ use std::{fs::read_to_string, path::PathBuf};
 
 use declavatar::{
     avatar_v2::transform_avatar,
-    decl_v2::{load_declaration, DeclarationFormat, PreprocessData},
+    decl_v2::{compile_declaration, DeclarationFormat, PreprocessData},
 };
 use once_cell::sync::Lazy;
 use pretty_assertions::assert_eq;
@@ -36,7 +36,7 @@ fn compiles_all_sexpr_examples(#[files("../examples/sexpr/*.declisp")] filename:
     let source = read_to_string(&filename).expect("source file should exist");
 
     println!("compiling {:?}", filename.canonicalize().unwrap());
-    let decl_avatar = load_declaration(&source, SEXPR_FORMAT.clone(), TEST_PREPROCESS_DATA.clone())
+    let decl_avatar = compile_declaration(&source, SEXPR_FORMAT.clone(), TEST_PREPROCESS_DATA.clone())
         .expect("declaration file load failure");
 
     let avatar = transform_avatar(decl_avatar);

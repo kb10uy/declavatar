@@ -11,25 +11,21 @@ use crate::decl_v2::{
         argument::SeparateArguments,
         error::{DeclSexprError, KetosResult},
     },
-    PreprocessData,
+    Arguments,
 };
 
-use std::{any::Any, path::PathBuf, rc::Rc};
+use std::{any::Any, rc::Rc};
 
 use ketos::{
     Arity, BuiltinModuleLoader, CompileError, Context, Error, FileModuleLoader, FromValueRef,
     Interpreter, Module, ModuleLoader, Name, NameStore, Scope, Value,
 };
 
-pub fn load_avatar_sexpr(
-    text: &str,
-    paths: Vec<PathBuf>,
-    preprocess: PreprocessData,
-) -> Result<DeclAvatar, DeclError> {
-    let da_loader = DeclavatarModuleLoader(Rc::new(preprocess));
+pub fn load_avatar_sexpr(text: &str, args: Arguments) -> Result<DeclAvatar, DeclError> {
+    let da_loader = DeclavatarModuleLoader(Rc::new(args));
     let builtin_loader = BuiltinModuleLoader;
     let file_loader = {
-        let mut l = FileModuleLoader::with_search_paths(paths);
+        let mut l = FileModuleLoader::with_search_paths(args.library_paths.into_iter().collect());
         l.set_read_bytecode(false);
         l.set_write_bytecode(false);
         l
@@ -78,10 +74,10 @@ impl KetosValueExt for Value {
 }
 
 #[derive(Debug)]
-pub struct DeclavatarModuleLoader(Rc<PreprocessData>);
+pub struct DeclavatarModuleLoader(Rc<Arguments>);
 
 impl DeclavatarModuleLoader {
-    fn get_loader(name: &str) -> Option<fn(Scope, Rc<PreprocessData>) -> Module> {
+    fn get_loader(name: &str) -> Option<fn(Scope, Rc<Arguments>) -> Module> {
         match name {
             da::MODULE_NAME_DA => Some(da::define_da_module),
             dain::MODULE_NAME_DAIN => Some(dain::define_dain_module),
@@ -146,12 +142,12 @@ mod test {
     use std::rc::Rc;
 
     use super::DeclavatarModuleLoader;
-    use crate::decl_v2::{data::StaticTypeName, PreprocessData};
+    use crate::decl_v2::{data::StaticTypeName, Arguments};
 
     use ketos::{BuiltinModuleLoader, FromValue, Interpreter, ModuleLoader};
 
     pub fn eval_da_value<T: StaticTypeName + FromValue>(source: &str) -> T {
-        let da_loader = DeclavatarModuleLoader(Rc::new(PreprocessData::default()));
+        let da_loader = DeclavatarModuleLoader(Rc::new(Arguments::default()));
         let builtin_loader = BuiltinModuleLoader;
 
         let loader = Box::new(da_loader.chain(builtin_loader));
