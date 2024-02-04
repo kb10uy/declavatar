@@ -53,6 +53,18 @@ impl Arguments {
                 .insert(canonical_key.to_string(), value.to_string())
         }
     }
+
+    pub fn library_paths(&self) -> impl Iterator<Item = &PathBuf> {
+        self.library_paths.iter()
+    }
+
+    pub fn symbols(&self) -> &HashSet<String> {
+        &self.symbols
+    }
+
+    pub fn localizations(&self) -> &HashMap<String, String> {
+        &self.localizations
+    }
 }
 
 #[non_exhaustive]
