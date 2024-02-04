@@ -1,8 +1,9 @@
-use std::iter::zip;
-
 use crate::{
     avatar_v2::{
-        data::attachment::{schema::ValueType, Attachment, AttachmentGroup, Property, Value},
+        data::attachment::{
+            schema::{Attachment as AttachmentSchema, ValueType},
+            Attachment, AttachmentGroup, Property, Value,
+        },
         log::{ArbittachError, Log},
         transformer::{failure, success, Compiled},
     },
@@ -12,15 +13,18 @@ use crate::{
     log::Logger,
 };
 
+use std::{collections::HashMap, iter::zip};
+
 pub fn compile_attachment_blocks(
     logger: &Logger<Log>,
+    schemas: &HashMap<String, AttachmentSchema>,
     attachment_blocks: Vec<DeclAttachments>,
 ) -> Compiled<Vec<AttachmentGroup>> {
     let mut attachment_groups = vec![];
     for (index, decl_attachments) in attachment_blocks.into_iter().enumerate() {
         let logger = logger.with_context(format!("attachments block {index}"));
         for decl_group in decl_attachments.targets {
-            let Some(group) = compile_group(&logger, decl_group) else {
+            let Some(group) = compile_group(&logger, schemas, decl_group) else {
                 continue;
             };
             attachment_groups.push(group);
@@ -32,6 +36,7 @@ pub fn compile_attachment_blocks(
 
 fn compile_group(
     logger: &Logger<Log>,
+    schemas: &HashMap<String, AttachmentSchema>,
     decl_group: DeclAttachmentGroup,
 ) -> Compiled<AttachmentGroup> {
     let target = decl_group.target;
@@ -39,7 +44,7 @@ fn compile_group(
 
     let logger = logger.with_context(format!("target {target}"));
     for decl_attachment in decl_group.attachments {
-        let Some(attachment) = compile_attachment(&logger, decl_attachment) else {
+        let Some(attachment) = compile_attachment(&logger, schemas, decl_attachment) else {
             continue;
         };
         attachments.push(attachment);
@@ -53,6 +58,7 @@ fn compile_group(
 
 fn compile_attachment(
     logger: &Logger<Log>,
+    schemas: &HashMap<String, AttachmentSchema>,
     decl_attachment: DeclAttachment,
 ) -> Compiled<Attachment> {
     let name = decl_attachment.name;
@@ -60,7 +66,7 @@ fn compile_attachment(
 
     let logger = logger.with_context(format!("attachment {name}"));
     for decl_property in decl_attachment.properties {
-        let Some(property) = compile_property(&logger, decl_property) else {
+        let Some(property) = compile_property(&logger, schemas, decl_property) else {
             continue;
         };
         properties.push(property);
@@ -71,6 +77,7 @@ fn compile_attachment(
 
 fn compile_property(
     logger: &Logger<Log>,
+    schemas: &HashMap<String, AttachmentSchema>,
     decl_property: DeclAttachmentProperty,
 ) -> Compiled<Property> {
     todo!()

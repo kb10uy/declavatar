@@ -32,10 +32,16 @@ impl Transformer {
 
     pub fn transform_avatar(&self, avatar: DeclAvatar) -> TransformResult {
         let logger = Logger::new();
-        let avatar = compile_avatar(&logger, avatar, &self.arbittach_schemas);
+        let avatar = compile_avatar(&logger, &self.arbittach_schemas, avatar);
         let logs = logger.serialize_logs();
 
         TransformResult { avatar, logs }
+    }
+}
+
+impl Default for Transformer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

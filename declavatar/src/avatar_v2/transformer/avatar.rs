@@ -21,8 +21,8 @@ use std::collections::HashMap;
 
 pub fn compile_avatar(
     logger: &Logger<Log>,
-    avatar: DeclAvatar,
     attachment_schemas: &HashMap<String, Attachment>,
+    avatar: DeclAvatar,
 ) -> Compiled<Avatar> {
     let logger = logger.with_context("avatar");
 
@@ -52,7 +52,8 @@ pub fn compile_avatar(
     let exports = compile_exports_blocks(&logger, &first_pass, avatar.exports_blocks)?;
     let fx_controller = compile_fx_controller_blocks(&logger, &first_pass, avatar.fx_controllers)?;
     let menu_items = compile_menu(&logger, &first_pass, avatar.menu_blocks)?;
-    let attachments = compile_attachment_blocks(&logger, avatar.attachment_blocks)?;
+    let attachments =
+        compile_attachment_blocks(&logger, attachment_schemas, avatar.attachment_blocks)?;
 
     if logger.erroneous() {
         return failure();
