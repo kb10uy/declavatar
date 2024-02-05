@@ -1,0 +1,16 @@
+[package]
+name = "declavac"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+declavatar = { workspace = true }
+
+[build-dependencies]
+static_vcruntime = { workspace = true }

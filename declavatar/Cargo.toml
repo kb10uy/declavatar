@@ -6,12 +6,6 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
-[features]
-cdylib = []
-
-[lib]
-crate-type = ["rlib", "cdylib"]
-
 [dependencies]
 either = { workspace = true }
 ketos = { workspace = true }

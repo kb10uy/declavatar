@@ -5,10 +5,9 @@ authors = ["kb10uy <kb10uy@kb10uy.org>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/kb10uy/declavatar"
 
-
 [workspace]
 resolver = "2"
-members = ["declavatar", "declavatar-derive", "declavalidate"]
+members = ["declavatar", "declavatar-derive", "declavac", "declavalidate"]
 
 [workspace.dependencies]
 anyhow = "1.0.75"
