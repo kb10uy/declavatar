@@ -1,0 +1,4 @@
+language = "C"
+
+[parse.expand]
+all_features = true
