@@ -1,4 +1,4 @@
 language = "C"
 
-[parse.expand]
-all_features = true
+[enum]
+rename_variants = "QualifiedScreamingSnakeCase"
