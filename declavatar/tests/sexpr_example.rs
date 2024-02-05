@@ -10,7 +10,7 @@ use rstest::*;
 
 static TEST_ARGUMENTS: Lazy<Arguments> = Lazy::new(|| {
     let extension_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../declavatar-extra/sexpr")
+        .join("../extensions/sexpr")
         .canonicalize()
         .expect("should be valid path");
 
