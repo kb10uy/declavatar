@@ -51,6 +51,12 @@ impl DeclavatarState {
     }
 }
 
+impl Default for DeclavatarState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompiledState {
     avatar: Option<Jsoned<Avatar>>,
