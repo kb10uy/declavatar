@@ -2,6 +2,8 @@ mod serialization;
 mod state;
 mod util;
 
+use declavatar::decl_v2::DeclarationFormat;
+
 use crate::state::{CompiledState, DeclavatarState};
 
 use std::ffi::c_char;
@@ -24,6 +26,17 @@ pub enum DeclavatarStatus {
 
     /// Given pointer was invalid.
     InvalidPointer = 128,
+}
+
+/// Declavatar definition file format..
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeclavatarFormat {
+    /// S-expression.
+    Sexpr = 1,
+
+    /// Lua.
+    Lua = 2,
 }
 
 /// Initializes declavatar compiler state.
@@ -90,5 +103,93 @@ pub unsafe extern "C" fn declavatar_define_symbol(
     let args = da.arguments_mut();
     args.define_symbol(symbol);
 
+    DeclavatarStatus::Success
+}
+
+/// Defines a localization for given state.
+///
+/// # Safety
+/// Given pointers must be valid.
+/// `key`, `value` does not have to NUL-terminated.
+#[no_mangle]
+pub unsafe extern "C" fn declavatar_define_localization(
+    da: *mut DeclavatarState,
+    key: *const c_char,
+    key_len: u32,
+    value: *const c_char,
+    value_len: u32,
+) -> DeclavatarStatus {
+    as_ref!(da, &mut DeclavatarState);
+    as_ref!(key, &str, key_len);
+    as_ref!(value, &str, value_len);
+
+    let args = da.arguments_mut();
+    args.define_localization(key, value);
+
+    DeclavatarStatus::Success
+}
+
+/// Registers Arbitrary Attachment (arbittach) definition.
+///
+/// # Safety
+/// Given pointers must be valid.
+/// `definition` does not have to NUL-terminated.
+#[no_mangle]
+pub unsafe extern "C" fn declavatar_register_arbittach(
+    da: *mut DeclavatarState,
+    definition: *const c_char,
+    definition_len: u32,
+) -> DeclavatarStatus {
+    as_ref!(da, &mut DeclavatarState);
+    as_ref!(definition, &str, definition_len);
+
+    DeclavatarStatus::Success
+}
+
+/// Compiles definition with format.
+///
+/// # Safety
+/// Given pointers must be valid.
+/// `source` does not have to NUL-terminated.
+#[no_mangle]
+pub unsafe extern "C" fn declavatar_compile(
+    da: *mut DeclavatarState,
+    compiled_state: *mut *mut CompiledState,
+    source: *const c_char,
+    source_len: u32,
+    format_kind: DeclavatarFormat,
+) -> DeclavatarStatus {
+    as_ref!(da, &mut DeclavatarState);
+    as_ref!(compiled_state, &mut *mut CompiledState);
+    as_ref!(source, &str, source_len);
+
+    #[allow(unreachable_patterns)]
+    let format = match format_kind {
+        DeclavatarFormat::Sexpr => DeclarationFormat::Sexpr,
+        DeclavatarFormat::Lua => DeclarationFormat::Lua,
+        _ => return DeclavatarStatus::InvalidPointer,
+    };
+    match da.compile(source, format) {
+        Ok(compiled) => {
+            *compiled_state = Box::into_raw(Box::new(compiled));
+        }
+        Err(_) => {
+            return DeclavatarStatus::JsonError;
+        }
+    }
+
+    DeclavatarStatus::Success
+}
+
+/// Frees compiled result.
+///
+/// # Safety
+/// Given pointer must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn declavatar_free_compiled(
+    compiled_state: *mut CompiledState,
+) -> DeclavatarStatus {
+    as_ref!(compiled_state, box DeclavatarState);
+    drop(compiled_state);
     DeclavatarStatus::Success
 }
