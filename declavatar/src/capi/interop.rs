@@ -4,7 +4,10 @@ use crate::{
     log::Log,
 };
 
-use std::path::{Path, PathBuf};
+use std::{
+    mem::{replace, swap},
+    path::{Path, PathBuf},
+};
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,10 +45,15 @@ impl Declavatar {
         self.logs_jsons.clear();
     }
 
+    pub fn set_args(&mut self, new_args: Arguments) -> Arguments {
+        replace(&mut self.args, new_args)
+    }
+
     pub fn args_mut(&mut self) -> &mut Arguments {
         &mut self.args
     }
 
+    /*
     pub fn compile(&mut self, source: &str, kind: u32) -> Result<(), StatusCode> {
         if self.in_use {
             return Err(StatusCode::AlreadyInUse);
@@ -88,6 +96,7 @@ impl Declavatar {
             Some(serde_json::to_string(&avatar).map_err(|_| StatusCode::CompileError)?);
         Ok(())
     }
+    */
 
     pub fn avatar_json(&self) -> Result<&str, StatusCode> {
         let Some(json) = self.avatar_json.as_deref() else {
