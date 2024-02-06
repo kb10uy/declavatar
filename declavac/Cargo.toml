@@ -17,4 +17,5 @@ declavatar = { workspace = true }
 
 [build-dependencies]
 cbindgen = { workspace = true }
+csbindgen = { workspace = true }
 static_vcruntime = { workspace = true }
