@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::{
         arbittach::{
-            DeclAttachment, DeclAttachmentProperty, DeclAttachmentGroup, DeclAttachmentValue,
+            DeclAttachment, DeclAttachmentGroup, DeclAttachmentProperty, DeclAttachmentValue,
             DeclAttachments,
         },
         StaticTypeName,
