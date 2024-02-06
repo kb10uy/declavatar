@@ -225,7 +225,7 @@ pub unsafe extern "C" fn declavatar_compile(
 /// Given pointer must be valid.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_free(compiled_state: *mut c_void) -> DeclavatarStatus {
-    as_ref!(compiled_state, box DeclavatarState);
+    as_ref!(compiled_state, box CompiledState);
     drop(compiled_state);
     DeclavatarStatus::Success
 }
