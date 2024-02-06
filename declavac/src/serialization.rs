@@ -1,12 +1,14 @@
 use serde::Serialize;
 use serde_json::Error as SerdeJsonError;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Jsoned<T> {
     data: T,
     serialized: Option<String>,
 }
 
+#[allow(dead_code)]
 impl<T: Serialize> Jsoned<T> {
     pub fn new(data: T) -> Result<Jsoned<T>, SerdeJsonError> {
         let serialized = Some(serde_json::to_string(&data)?);

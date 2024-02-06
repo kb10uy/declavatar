@@ -2,11 +2,11 @@ mod serialization;
 mod state;
 mod util;
 
-use declavatar::decl_v2::DeclarationFormat;
-
 use crate::state::{CompiledState, DeclavatarState};
 
 use std::ffi::c_char;
+
+use declavatar::{decl_v2::DeclarationFormat, i18n::get_log_messages};
 
 /// Declavatar status code.
 #[repr(u32)]
@@ -26,6 +26,9 @@ pub enum DeclavatarStatus {
 
     /// Given pointer was invalid.
     InvalidPointer = 128,
+
+    /// Given value was invalid.
+    InvalidValue = 129,
 }
 
 /// Declavatar definition file format..
@@ -37,6 +40,29 @@ pub enum DeclavatarFormat {
 
     /// Lua.
     Lua = 2,
+}
+
+/// Fetches compile log localization.
+///
+/// # Safety
+/// Given pointers must be valid.
+pub unsafe extern "C" fn declavatar_log_localization(
+    locale: *const c_char,
+    locale_len: u32,
+    json_string: *mut *const c_char,
+    json_string_len: *mut u32,
+) -> DeclavatarStatus {
+    as_ref!(locale, &str, locale_len);
+    as_ref!(json_string, &mut *const c_char);
+    as_ref!(json_string_len, &mut u32);
+
+    let Some(loge_l10n_json) = get_log_messages(locale) else {
+        return DeclavatarStatus::InvalidValue;
+    };
+    *json_string = loge_l10n_json.as_ptr() as *const i8;
+    *json_string_len = loge_l10n_json.len() as u32;
+
+    DeclavatarStatus::Success
 }
 
 /// Initializes declavatar compiler state.
@@ -153,13 +179,13 @@ pub unsafe extern "C" fn declavatar_register_arbittach(
 /// `source` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compile(
-    da: *mut DeclavatarState,
+    da: *const DeclavatarState,
     compiled_state: *mut *mut CompiledState,
     source: *const c_char,
     source_len: u32,
     format_kind: DeclavatarFormat,
 ) -> DeclavatarStatus {
-    as_ref!(da, &mut DeclavatarState);
+    as_ref!(da, &DeclavatarState);
     as_ref!(compiled_state, &mut *mut CompiledState);
     as_ref!(source, &str, source_len);
 
@@ -167,7 +193,7 @@ pub unsafe extern "C" fn declavatar_compile(
     let format = match format_kind {
         DeclavatarFormat::Sexpr => DeclarationFormat::Sexpr,
         DeclavatarFormat::Lua => DeclarationFormat::Lua,
-        _ => return DeclavatarStatus::InvalidPointer,
+        _ => return DeclavatarStatus::InvalidValue,
     };
     match da.compile(source, format) {
         Ok(compiled) => {
@@ -186,10 +212,73 @@ pub unsafe extern "C" fn declavatar_compile(
 /// # Safety
 /// Given pointer must be valid.
 #[no_mangle]
-pub unsafe extern "C" fn declavatar_free_compiled(
+pub unsafe extern "C" fn declavatar_compiled_free(
     compiled_state: *mut CompiledState,
 ) -> DeclavatarStatus {
     as_ref!(compiled_state, box DeclavatarState);
     drop(compiled_state);
+    DeclavatarStatus::Success
+}
+
+/// Retrieves the pointer of compiled JSON string.
+///
+/// # Safety
+/// Given pointer must be valid.
+/// Returned string is not NUL-terminated.
+pub unsafe extern "C" fn declavatar_compiled_avatar_json(
+    compiled_state: *const CompiledState,
+    json_string: *mut *const c_char,
+    json_string_len: *mut u32,
+) -> DeclavatarStatus {
+    as_ref!(compiled_state, &CompiledState);
+    as_ref!(json_string, &mut *const c_char);
+    as_ref!(json_string_len, &mut u32);
+
+    let Some(json_str) = compiled_state.avatar_json() else {
+        return DeclavatarStatus::JsonError;
+    };
+    *json_string = json_str.as_ptr() as *const i8;
+    *json_string_len = json_str.len() as u32;
+
+    DeclavatarStatus::Success
+}
+
+/// Retrieves the count of compile logs.
+///
+/// # Safety
+/// Given pointer must be valid.
+pub unsafe extern "C" fn declavatar_compiled_logs_count(
+    compiled_state: *const CompiledState,
+    logs_count: *mut u32,
+) -> DeclavatarStatus {
+    as_ref!(compiled_state, &CompiledState);
+    as_ref!(logs_count, &mut u32);
+
+    *logs_count = compiled_state.logs_len() as u32;
+
+    DeclavatarStatus::Success
+}
+
+/// Retrieves the pointer of compile log as JSON.
+///
+/// # Safety
+/// Given pointer must be valid.
+/// Returned string is not NUL-terminated.
+pub unsafe extern "C" fn declavatar_compiled_log(
+    compiled_state: *const CompiledState,
+    index: u32,
+    json_string: *mut *const c_char,
+    json_string_len: *mut u32,
+) -> DeclavatarStatus {
+    as_ref!(compiled_state, &CompiledState);
+    as_ref!(json_string, &mut *const c_char);
+    as_ref!(json_string_len, &mut u32);
+
+    let Some(json_str) = compiled_state.log_json(index as usize) else {
+        return DeclavatarStatus::JsonError;
+    };
+    *json_string = json_str.as_ptr() as *const i8;
+    *json_string_len = json_str.len() as u32;
+
     DeclavatarStatus::Success
 }
