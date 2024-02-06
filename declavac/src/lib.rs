@@ -4,7 +4,7 @@ mod util;
 
 use crate::state::{CompiledState, DeclavatarState};
 
-use std::ffi::c_char;
+use std::ffi::{c_char, c_void};
 
 use declavatar::{decl_v2::DeclarationFormat, i18n::get_log_messages};
 
@@ -68,14 +68,14 @@ pub unsafe extern "C" fn declavatar_log_localization(
 
 /// Initializes declavatar compiler state.
 #[no_mangle]
-pub extern "C" fn declavatar_init() -> *mut DeclavatarState {
+pub extern "C" fn declavatar_init() -> *mut c_void {
     let boxed = Box::new(DeclavatarState::new());
-    Box::into_raw(boxed)
+    Box::into_raw(boxed) as *mut c_void
 }
 
 /// Frees declavatar compiler state.
 #[no_mangle]
-pub extern "C" fn declavatar_free(declavatar_state: *mut DeclavatarState) -> DeclavatarStatus {
+pub extern "C" fn declavatar_free(declavatar_state: *mut c_void) -> DeclavatarStatus {
     as_ref!(declavatar_state, box DeclavatarState);
     drop(declavatar_state);
     DeclavatarStatus::Success
@@ -86,9 +86,7 @@ pub extern "C" fn declavatar_free(declavatar_state: *mut DeclavatarState) -> Dec
 /// # Safety
 /// Given pointer `da` must be valid.
 #[no_mangle]
-pub unsafe extern "C" fn declavatar_clear(
-    declavatar_state: *mut DeclavatarState,
-) -> DeclavatarStatus {
+pub unsafe extern "C" fn declavatar_clear(declavatar_state: *mut c_void) -> DeclavatarStatus {
     as_ref!(declavatar_state, &mut DeclavatarState);
 
     declavatar_state.arguments_mut().clear();
@@ -102,7 +100,7 @@ pub unsafe extern "C" fn declavatar_clear(
 /// `path` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_add_library_path(
-    declavatar_state: *mut DeclavatarState,
+    declavatar_state: *mut c_void,
     path: *const c_char,
     path_len: u32,
 ) -> DeclavatarStatus {
@@ -122,7 +120,7 @@ pub unsafe extern "C" fn declavatar_add_library_path(
 /// `symbol` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_define_symbol(
-    declavatar_state: *mut DeclavatarState,
+    declavatar_state: *mut c_void,
     symbol: *const c_char,
     symbol_len: u32,
 ) -> DeclavatarStatus {
@@ -142,7 +140,7 @@ pub unsafe extern "C" fn declavatar_define_symbol(
 /// `key`, `value` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_define_localization(
-    declavatar_state: *mut DeclavatarState,
+    declavatar_state: *mut c_void,
     key: *const c_char,
     key_len: u32,
     value: *const c_char,
@@ -165,7 +163,7 @@ pub unsafe extern "C" fn declavatar_define_localization(
 /// `definition` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_register_arbittach(
-    declavatar_state: *mut DeclavatarState,
+    declavatar_state: *mut c_void,
     definition: *const c_char,
     definition_len: u32,
 ) -> DeclavatarStatus {
@@ -182,8 +180,8 @@ pub unsafe extern "C" fn declavatar_register_arbittach(
 /// `source` does not have to NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compile(
-    declavatar_state: *const DeclavatarState,
-    compiled_state: *mut *mut CompiledState,
+    declavatar_state: *const c_void,
+    compiled_state: *mut *mut c_void,
     source: *const c_char,
     source_len: u32,
     format_kind: DeclavatarFormat,
@@ -215,9 +213,7 @@ pub unsafe extern "C" fn declavatar_compile(
 /// # Safety
 /// Given pointer must be valid.
 #[no_mangle]
-pub unsafe extern "C" fn declavatar_compiled_free(
-    compiled_state: *mut CompiledState,
-) -> DeclavatarStatus {
+pub unsafe extern "C" fn declavatar_compiled_free(compiled_state: *mut c_void) -> DeclavatarStatus {
     as_ref!(compiled_state, box DeclavatarState);
     drop(compiled_state);
     DeclavatarStatus::Success
@@ -230,7 +226,7 @@ pub unsafe extern "C" fn declavatar_compiled_free(
 /// Returned string is not NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_avatar_json(
-    compiled_state: *const CompiledState,
+    compiled_state: *const c_void,
     json_string: *mut *const c_char,
     json_string_len: *mut u32,
 ) -> DeclavatarStatus {
@@ -253,7 +249,7 @@ pub unsafe extern "C" fn declavatar_compiled_avatar_json(
 /// Given pointer must be valid.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_logs_count(
-    compiled_state: *const CompiledState,
+    compiled_state: *const c_void,
     logs_count: *mut u32,
 ) -> DeclavatarStatus {
     as_ref!(compiled_state, &CompiledState);
@@ -271,7 +267,7 @@ pub unsafe extern "C" fn declavatar_compiled_logs_count(
 /// Returned string is not NUL-terminated.
 #[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_log(
-    compiled_state: *const CompiledState,
+    compiled_state: *const c_void,
     index: u32,
     json_string: *mut *const c_char,
     json_string_len: *mut u32,

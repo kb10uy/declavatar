@@ -17,7 +17,7 @@ macro_rules! as_ref {
         let $ptr = if $ptr.is_null() {
             return $crate::DeclavatarStatus::InvalidPointer;
         } else {
-            unsafe { &*$ptr as &$t }
+            unsafe { &*($ptr as *const $t) as &$t }
         };
     };
 
@@ -25,7 +25,7 @@ macro_rules! as_ref {
         let $ptr = if $ptr.is_null() {
             return $crate::DeclavatarStatus::InvalidPointer;
         } else {
-            unsafe { &mut *$ptr as &mut $t }
+            unsafe { &mut *($ptr as *mut $t) as &mut $t }
         };
     };
 
