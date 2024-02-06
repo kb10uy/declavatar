@@ -1,14 +1,15 @@
 use crate::{
     avatar_v2::{
         data::attachment::{
-            schema::{Attachment as AttachmentSchema, ValueType},
+            schema::{Attachment as AttachmentSchema, Property as PropertySchema, ValueType},
             Attachment, AttachmentGroup, Property, Value,
         },
         log::{ArbittachError, Log},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::arbittach::{
-        DeclAttachment, DeclAttachmentGroup, DeclAttachmentProperty, DeclAttachments,
+        DeclAttachment, DeclAttachmentGroup, DeclAttachmentProperty, DeclAttachmentValue,
+        DeclAttachments,
     },
     log::Logger,
 };
@@ -65,8 +66,21 @@ fn compile_attachment(
     let mut properties = vec![];
 
     let logger = logger.with_context(format!("attachment {name}"));
+    let Some(schema) = schemas.get(&name) else {
+        logger.log(Log::ArbittachNotRegistered);
+        return failure();
+    };
+    let schema_properties = &schema.properties;
     for decl_property in decl_attachment.properties {
-        let Some(property) = compile_property(&logger, schemas, decl_property) else {
+        let Some(property_schema) = schema_properties
+            .iter()
+            .find(|ps| ps.name == decl_property.name)
+        else {
+            logger.log(Log::InvalidArbittach(ArbittachError::UnsupportedType));
+            continue;
+        };
+
+        let Some(property) = compile_property(&logger, property_schema, decl_property) else {
             continue;
         };
         properties.push(property);
@@ -77,80 +91,152 @@ fn compile_attachment(
 
 fn compile_property(
     logger: &Logger<Log>,
-    schemas: &HashMap<String, AttachmentSchema>,
+    property_schema: &PropertySchema,
     decl_property: DeclAttachmentProperty,
 ) -> Compiled<Property> {
-    todo!()
+    let mut parameters = vec![];
+    let keywords = HashMap::new();
+
+    let logger = logger.with_context(format!("property {}", decl_property.name));
+    if property_schema.parameters.len() != decl_property.parameters.len() {
+        logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
+            expected: property_schema.parameters.len(),
+            found: decl_property.parameters.len(),
+        }));
+    }
+
+    for (dprop, sprop) in zip(decl_property.parameters, &property_schema.parameters) {
+        let Some(value) = compile_value(&logger, &sprop.value_type, dprop) else {
+            continue;
+        };
+        parameters.push(value);
+    }
+
+    // TODO: parse keywords
+
+    success(Property {
+        name: decl_property.name,
+        parameters,
+        keywords,
+    })
 }
 
-fn validate_type(logger: &Logger<Log>, value: &Value, value_type: &ValueType) -> Compiled<()> {
-    match (value_type, value) {
-        (ValueType::Any, v) => (),
-        (ValueType::OneOf(types), v) => {
-            let accepted = types
-                .iter()
-                .map(|t| validate_type(logger, v, t))
-                .any(|v| v.is_some());
-            if !accepted {
-                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
-                    found: v.type_name().to_string(),
-                    expected: "specific types".to_string(),
-                }));
-                return failure();
-            }
+fn compile_value(
+    logger: &Logger<Log>,
+    expected_type: &ValueType,
+    decl_value: DeclAttachmentValue,
+) -> Compiled<Value> {
+    let value = match decl_value {
+        DeclAttachmentValue::Null if matches!(expected_type, ValueType::Null | ValueType::Any) => {
+            Value::Null
         }
-        (ValueType::List(t), Value::List(values)) => {
-            let accepted = values
-                .iter()
-                .map(|v| validate_type(logger, v, t))
-                .any(|v| v.is_some());
-            if !accepted {
-                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
-                    found: "inacceptable types".to_string(),
-                    expected: t.name().to_string(),
-                }));
-                return failure();
-            }
+        DeclAttachmentValue::Boolean(v)
+            if matches!(expected_type, ValueType::Boolean | ValueType::Any) =>
+        {
+            Value::Boolean(v)
         }
-        (ValueType::Tuple(types), Value::Tuple(values)) => {
-            if types.len() != values.len() {
+        DeclAttachmentValue::Integer(v)
+            if matches!(expected_type, ValueType::Integer | ValueType::Any) =>
+        {
+            Value::Integer(v)
+        }
+        DeclAttachmentValue::Float(v)
+            if matches!(expected_type, ValueType::Float | ValueType::Any) =>
+        {
+            Value::Float(v)
+        }
+        DeclAttachmentValue::String(v)
+            if matches!(expected_type, ValueType::String | ValueType::Any) =>
+        {
+            Value::String(v)
+        }
+        DeclAttachmentValue::GameObject(v)
+            if matches!(expected_type, ValueType::GameObject | ValueType::Any) =>
+        {
+            Value::GameObject(v)
+        }
+        DeclAttachmentValue::Material(v)
+            if matches!(expected_type, ValueType::Material | ValueType::Any) =>
+        {
+            Value::Material(v)
+        }
+        DeclAttachmentValue::AnimationClip(v)
+            if matches!(expected_type, ValueType::AnimationClip | ValueType::Any) =>
+        {
+            Value::AnimationClip(v)
+        }
+
+        DeclAttachmentValue::Vector(values) => match expected_type {
+            ValueType::Vector(length) if *length == values.len() => Value::Vector(values),
+            ValueType::Any => Value::Vector(values),
+            ValueType::Vector(expected_length) => {
                 logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
                     found: values.len(),
-                    expected: types.len(),
+                    expected: *expected_length,
                 }));
                 return failure();
             }
-            zip(types, values).try_fold((), |_, (t, v)| validate_type(logger, v, t))?;
-        }
-        (ValueType::Map(_kt, _vt), _) => {
-            logger.log(Log::InvalidArbittach(ArbittachError::UnsupportedType));
-            return failure();
-        }
-        (ValueType::Null, Value::Null) => (),
-        (ValueType::Boolean, Value::Boolean(_)) => (),
-        (ValueType::Integer, Value::Integer(_)) => (),
-        (ValueType::Float, Value::Float(_)) => (),
-        (ValueType::String, Value::String(_)) => (),
-        (ValueType::Vector(length), Value::Vector(values)) => {
-            if *length == values.len() {
-            } else {
-                logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
-                    found: values.len(),
-                    expected: *length,
+            _ => {
+                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
+                    found: "vector".to_string(),
+                    expected: expected_type.name().to_string(),
                 }));
                 return failure();
             }
-        }
-        (ValueType::GameObject, Value::GameObject(_)) => (),
-        (ValueType::Material, Value::Material(_)) => (),
-        (ValueType::AnimationClip, Value::AnimationClip(_)) => (),
-        (t, v) => {
+        },
+
+        DeclAttachmentValue::UntypedList(untyped_list) => match expected_type {
+            ValueType::Any => {
+                let any_values = untyped_list
+                    .into_iter()
+                    .flat_map(|uv| compile_value(logger, &ValueType::Any, uv))
+                    .collect();
+                Value::List(any_values)
+            }
+            ValueType::List(item_type) => {
+                let Some(typed_values) = untyped_list
+                    .into_iter()
+                    .map(|uv| compile_value(logger, item_type, uv))
+                    .collect::<Option<Vec<_>>>()
+                else {
+                    // type error has been already logged at this point
+                    return failure();
+                };
+                Value::List(typed_values)
+            }
+            ValueType::Tuple(item_types) => {
+                if untyped_list.len() != item_types.len() {
+                    logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
+                        found: untyped_list.len(),
+                        expected: item_types.len(),
+                    }));
+                    return failure();
+                }
+                let Some(typed_values) = zip(untyped_list, item_types)
+                    .map(|(uv, t)| compile_value(logger, t, uv))
+                    .collect::<Option<Vec<_>>>()
+                else {
+                    // type error has been already logged at this point
+                    return failure();
+                };
+                Value::Tuple(typed_values)
+            }
+            _ => {
+                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
+                    found: "list".to_string(),
+                    expected: expected_type.name().to_string(),
+                }));
+                return failure();
+            }
+        },
+
+        _ => {
             logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
-                found: v.type_name().to_string(),
-                expected: t.name().to_string(),
+                found: "unexpected type value".to_string(),
+                expected: expected_type.name().to_string(),
             }));
             return failure();
         }
-    }
-    success(())
+    };
+    success(value)
 }
