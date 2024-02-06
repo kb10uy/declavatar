@@ -6,18 +6,11 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
-[features]
-cdylib = []
-
-[lib]
-crate-type = ["rlib", "cdylib"]
-
 [dependencies]
 either = { workspace = true }
 ketos = { workspace = true }
 rpds = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 declavatar-derive = { workspace = true }

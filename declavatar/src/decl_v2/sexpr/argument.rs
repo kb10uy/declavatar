@@ -16,7 +16,7 @@ impl<'a> SeparateArguments<'a> {
         function_name: Name,
         raw_args: &'a [Value],
         args_arity: Arity,
-        allowed_keywords: &'static [&'static str],
+        allowed_keywords: Option<&'static [&'static str]>,
     ) -> KetosResult<SeparateArguments<'a>> {
         let (args, kwargs) = SeparateArguments::separate_args(
             name_store,
@@ -108,7 +108,7 @@ impl<'a> SeparateArguments<'a> {
         function_name: Name,
         values: &'a [Value],
         args_arity: Arity,
-        allowed_keywords: &'static [&'static str],
+        allowed_keywords: Option<&'static [&'static str]>,
     ) -> KetosResult<(Vec<&'a Value>, HashMap<&'a str, &'a Value>)> {
         let mut args = vec![];
         let mut kwargs = HashMap::new();
@@ -123,7 +123,10 @@ impl<'a> SeparateArguments<'a> {
                         .ok_or(Error::ExecError(ExecError::OddKeywordParams))?;
 
                     let real_name = name_store.get(*name);
-                    if !allowed_keywords.contains(&real_name) {
+                    let keyword_accepted = allowed_keywords
+                        .map(|kw| kw.contains(&real_name))
+                        .unwrap_or(true);
+                    if !keyword_accepted {
                         return Err(Error::ExecError(ExecError::UnrecognizedKeyword(*name)));
                     }
 

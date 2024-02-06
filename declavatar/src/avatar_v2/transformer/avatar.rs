@@ -1,9 +1,10 @@
 use crate::{
     avatar_v2::{
-        data::avatar::Avatar,
+        data::{attachment::schema::Attachment, avatar::Avatar},
         log::Log,
         transformer::{
             asset::compile_assets_blocks,
+            attachment::compile_attachment_blocks,
             controller::{compile_fx_controller_blocks, first_pass_fx_controller_blocks},
             export::{compile_exports_blocks, first_pass_exports_blocks},
             failure,
@@ -16,7 +17,13 @@ use crate::{
     log::Logger,
 };
 
-pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avatar> {
+use std::collections::HashMap;
+
+pub fn compile_avatar(
+    logger: &Logger<Log>,
+    attachment_schemas: &HashMap<String, Attachment>,
+    avatar: DeclAvatar,
+) -> Compiled<Avatar> {
     let logger = logger.with_context("avatar");
 
     let name = {
@@ -39,6 +46,8 @@ pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avat
     let exports = compile_exports_blocks(&logger, &first_pass, avatar.exports_blocks)?;
     let fx_controller = compile_fx_controller_blocks(&logger, &first_pass, avatar.fx_controllers)?;
     let menu_items = compile_menu(&logger, &first_pass, avatar.menu_blocks)?;
+    let attachments =
+        compile_attachment_blocks(&logger, attachment_schemas, avatar.attachment_blocks)?;
 
     if logger.erroneous() {
         return failure();
@@ -48,6 +57,7 @@ pub fn compile_avatar(logger: &Logger<Log>, avatar: DeclAvatar) -> Compiled<Avat
     success(Avatar {
         name,
         exports,
+        attachments,
         parameters,
         assets,
         fx_controller,

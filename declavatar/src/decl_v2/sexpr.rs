@@ -1,5 +1,6 @@
 mod argument;
 mod da;
+mod da3;
 mod dain;
 mod error;
 
@@ -10,29 +11,25 @@ use crate::decl_v2::{
         argument::SeparateArguments,
         error::{DeclSexprError, KetosResult},
     },
-    PreprocessData,
+    Arguments,
 };
 
-use std::{any::Any, path::PathBuf, rc::Rc};
+use std::{any::Any, rc::Rc};
 
 use ketos::{
     Arity, BuiltinModuleLoader, CompileError, Context, Error, FileModuleLoader, FromValueRef,
     Interpreter, Module, ModuleLoader, Name, NameStore, Scope, Value,
 };
 
-pub fn load_avatar_sexpr(
-    text: &str,
-    paths: Vec<PathBuf>,
-    preprocess: PreprocessData,
-) -> Result<DeclAvatar, DeclError> {
-    let da_loader = DeclavatarModuleLoader(Rc::new(preprocess));
-    let builtin_loader = BuiltinModuleLoader;
+pub fn load_avatar_sexpr(text: &str, args: Arguments) -> Result<DeclAvatar, DeclError> {
     let file_loader = {
-        let mut l = FileModuleLoader::with_search_paths(paths);
+        let mut l = FileModuleLoader::with_search_paths(args.library_paths().cloned().collect());
         l.set_read_bytecode(false);
         l.set_write_bytecode(false);
         l
     };
+    let builtin_loader = BuiltinModuleLoader;
+    let da_loader = DeclavatarModuleLoader(Rc::new(args));
 
     let loader = Box::new(da_loader.chain(builtin_loader).chain(file_loader));
     let interpreter = Interpreter::with_loader(loader);
@@ -77,13 +74,14 @@ impl KetosValueExt for Value {
 }
 
 #[derive(Debug)]
-pub struct DeclavatarModuleLoader(Rc<PreprocessData>);
+pub struct DeclavatarModuleLoader(Rc<Arguments>);
 
 impl DeclavatarModuleLoader {
-    fn get_loader(name: &str) -> Option<fn(Scope, Rc<PreprocessData>) -> Module> {
+    fn get_loader(name: &str) -> Option<fn(Scope, Rc<Arguments>) -> Module> {
         match name {
             da::MODULE_NAME_DA => Some(da::define_da_module),
             dain::MODULE_NAME_DAIN => Some(dain::define_dain_module),
+            da3::MODULE_NAME_DA3 => Some(da3::define_dain_module),
             _ => None,
         }
     }
@@ -108,7 +106,7 @@ fn register_function<
     name: &'static str,
     f: F,
     args_arity: Arity,
-    allowed_keywords: &'static [&'static str],
+    allowed_keywords: Option<&'static [&'static str]>,
 ) {
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
@@ -127,7 +125,7 @@ fn register_function_with_context<
     name: &'static str,
     f: F,
     args_arity: Arity,
-    allowed_keywords: &'static [&'static str],
+    allowed_keywords: Option<&'static [&'static str]>,
 ) {
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
@@ -144,12 +142,12 @@ mod test {
     use std::rc::Rc;
 
     use super::DeclavatarModuleLoader;
-    use crate::decl_v2::{data::StaticTypeName, PreprocessData};
+    use crate::decl_v2::{data::StaticTypeName, Arguments};
 
     use ketos::{BuiltinModuleLoader, FromValue, Interpreter, ModuleLoader};
 
     pub fn eval_da_value<T: StaticTypeName + FromValue>(source: &str) -> T {
-        let da_loader = DeclavatarModuleLoader(Rc::new(PreprocessData::default()));
+        let da_loader = DeclavatarModuleLoader(Rc::new(Arguments::default()));
         let builtin_loader = BuiltinModuleLoader;
 
         let loader = Box::new(da_loader.chain(builtin_loader));

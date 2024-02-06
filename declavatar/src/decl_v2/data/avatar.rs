@@ -1,7 +1,7 @@
 use crate::{
     decl_v2::data::{
-        asset::DeclAssets, controller::DeclFxController, export::DeclExports, menu::DeclSubMenu,
-        parameter::DeclParameters,
+        arbittach::DeclAttachments, asset::DeclAssets, controller::DeclFxController,
+        export::DeclExports, menu::DeclSubMenu, parameter::DeclParameters,
     },
     static_type_name_impl,
 };
@@ -16,5 +16,6 @@ pub struct DeclAvatar {
     pub assets_blocks: Vec<DeclAssets>,
     pub fx_controllers: Vec<DeclFxController>,
     pub menu_blocks: Vec<DeclSubMenu>,
+    pub attachment_blocks: Vec<DeclAttachments>,
 }
 static_type_name_impl!(DeclAvatar);

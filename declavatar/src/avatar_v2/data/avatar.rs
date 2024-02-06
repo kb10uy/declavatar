@@ -4,10 +4,13 @@ use crate::avatar_v2::data::{
 
 use serde::Serialize;
 
+use super::attachment::AttachmentGroup;
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Avatar {
     pub name: String,
     pub exports: Vec<ExportItem>,
+    pub attachments: Vec<AttachmentGroup>,
     pub parameters: Vec<Parameter>,
     pub assets: Vec<Asset>,
     pub fx_controller: Vec<Layer>,

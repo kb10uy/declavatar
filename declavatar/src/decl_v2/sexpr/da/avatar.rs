@@ -1,7 +1,8 @@
 use crate::decl_v2::{
     data::{
-        asset::DeclAssets, avatar::DeclAvatar, controller::DeclFxController, export::DeclExports,
-        menu::DeclSubMenu, parameter::DeclParameters, StaticTypeName,
+        arbittach::DeclAttachments, asset::DeclAssets, avatar::DeclAvatar,
+        controller::DeclFxController, export::DeclExports, menu::DeclSubMenu,
+        parameter::DeclParameters, StaticTypeName,
     },
     sexpr::{
         argument::SeparateArguments,
@@ -13,7 +14,7 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_avatar_function(scope: &Scope) {
-    register_function(scope, "avatar", declare_avatar, Arity::Min(1), &[]);
+    register_function(scope, "avatar", declare_avatar, Arity::Min(1), Some(&[]));
 }
 
 fn declare_avatar(
@@ -30,6 +31,7 @@ fn declare_avatar(
         assets_blocks: vec![],
         fx_controllers: vec![],
         menu_blocks: vec![],
+        attachment_blocks: vec![],
     };
     for block in args.args_after_recursive(function_name, 1)? {
         match block.type_name() {
@@ -52,6 +54,10 @@ fn declare_avatar(
             DeclSubMenu::TYPE_NAME => {
                 let value_ref: &DeclSubMenu = block.downcast_foreign_ref()?;
                 avatar.menu_blocks.push(value_ref.clone());
+            }
+            DeclAttachments::TYPE_NAME => {
+                let value_ref: &DeclAttachments = block.downcast_foreign_ref()?;
+                avatar.attachment_blocks.push(value_ref.clone());
             }
             _ => {
                 return Err(Error::Custom(

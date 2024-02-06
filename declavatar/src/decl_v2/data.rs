@@ -1,3 +1,4 @@
+pub mod arbittach;
 pub mod asset;
 pub mod avatar;
 pub mod controller;

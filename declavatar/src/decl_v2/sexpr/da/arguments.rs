@@ -6,19 +6,19 @@ use crate::decl_v2::{
         error::{DeclSexprError, KetosResult},
         register_function,
     },
-    PreprocessData,
+    Arguments,
 };
 
 use ketos::{Arity, Error, Name, Scope, Value};
 
-pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData>) {
+pub fn register_arguments_function(scope: &Scope, preprocess: Rc<Arguments>) {
     let spp = preprocess.clone();
     register_function(
         scope,
         "symbol",
         move |_, f, a| symbol(f, a, &spp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 
     let hlpp = preprocess.clone();
@@ -27,7 +27,7 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
         "can-localize",
         move |_, f, a| can_localize(f, a, &hlpp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 
     let hspp = preprocess.clone();
@@ -36,14 +36,14 @@ pub fn register_preprocess_function(scope: &Scope, preprocess: Rc<PreprocessData
         "localize",
         move |_, f, a| localize(f, a, &hspp),
         Arity::Exact(1),
-        &[],
+        Some(&[]),
     );
 }
 
 pub fn symbol(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let symbol_name: &str = args.exact_arg(function_name, 0)?;
     let has_symbol = preprocess.symbols.contains(symbol_name);
@@ -53,7 +53,7 @@ pub fn symbol(
 pub fn can_localize(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     let has_localization = preprocess.localizations.contains_key(localization_key);
@@ -63,7 +63,7 @@ pub fn can_localize(
 pub fn localize(
     function_name: Name,
     args: SeparateArguments,
-    preprocess: &PreprocessData,
+    preprocess: &Arguments,
 ) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     match preprocess.localizations.get(localization_key) {

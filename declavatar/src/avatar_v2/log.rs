@@ -1,4 +1,5 @@
 use declavatar_derive::EnumLog;
+use thiserror::Error as ThisError;
 
 #[derive(Debug, Clone, EnumLog)]
 pub enum Log {
@@ -66,4 +67,23 @@ pub enum Log {
     LayerIndeterminateShapeChange(String),
     #[log_error("driver.material_indeterminate_change")]
     LayerIndeterminateMaterialChange(usize),
+
+    #[log_error("arbittach.invalid_data")]
+    InvalidArbittach(ArbittachError),
+    #[log_error("arbittach.not_registered")]
+    ArbittachNotRegistered,
+    #[log_error("arbittach.invalid_payload")]
+    ArbittachInvalidPayload,
+}
+
+#[derive(Debug, Clone, ThisError)]
+pub enum ArbittachError {
+    #[error("unsupported type")]
+    UnsupportedType,
+
+    #[error("length mismatch; {expected} expected, {found} found")]
+    LengthMismatch { expected: usize, found: usize },
+
+    #[error("type mismatch; {expected} expected, {found} found")]
+    TypeMismatch { expected: String, found: String },
 }

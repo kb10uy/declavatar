@@ -16,26 +16,26 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_menu_function(scope: &Scope) {
-    register_function(scope, "menu", declare_menu, Arity::Min(0), &[]);
-    register_function(scope, "submenu", declare_submenu, Arity::Min(1), &[]);
-    register_function(scope, "button", declare_button, Arity::Exact(2), &[]);
-    register_function(scope, "toggle", declare_toggle, Arity::Exact(2), &[]);
-    register_function(scope, "radial", declare_radial, Arity::Exact(2), &[]);
+    register_function(scope, "menu", declare_menu, Arity::Min(0), Some(&[]));
+    register_function(scope, "submenu", declare_submenu, Arity::Min(1), Some(&[]));
+    register_function(scope, "button", declare_button, Arity::Exact(2), Some(&[]));
+    register_function(scope, "toggle", declare_toggle, Arity::Exact(2), Some(&[]));
+    register_function(scope, "radial", declare_radial, Arity::Exact(2), Some(&[]));
     register_function(
         scope,
         "two-axis",
         declare_two_axis,
         Arity::Exact(1),
-        &["horizontal", "vertical"],
+        Some(&["horizontal", "vertical"]),
     );
     register_function(
         scope,
         "four-axis",
         declare_four_axis,
         Arity::Exact(1),
-        &["up", "down", "left", "right"],
+        Some(&["up", "down", "left", "right"]),
     );
-    register_function(scope, "axis", declare_axis, Arity::Range(1, 3), &[]);
+    register_function(scope, "axis", declare_axis, Arity::Range(1, 3), Some(&[]));
 }
 
 fn declare_menu(
