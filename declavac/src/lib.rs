@@ -4,7 +4,10 @@ mod util;
 
 use crate::state::{CompiledState, DeclavatarState};
 
-use std::ffi::{c_char, c_void};
+use std::{
+    ffi::{c_char, c_void},
+    ptr::null,
+};
 
 use declavatar::{
     avatar_v2::data::attachment::schema::Attachment, decl_v2::DeclarationFormat,
@@ -242,11 +245,13 @@ pub unsafe extern "C" fn declavatar_compiled_avatar_json(
     as_ref!(json_string, &mut *const c_char);
     as_ref!(json_string_len, &mut u32);
 
-    let Some(json_str) = compiled_state.avatar_json() else {
-        return DeclavatarStatus::JsonError;
-    };
-    *json_string = json_str.as_ptr() as *const i8;
-    *json_string_len = json_str.len() as u32;
+    if let Some(json_str) = compiled_state.avatar_json() {
+        *json_string = json_str.as_ptr() as *const i8;
+        *json_string_len = json_str.len() as u32;
+    } else {
+        *json_string = null();
+        *json_string_len = 0;
+    }
 
     DeclavatarStatus::Success
 }
