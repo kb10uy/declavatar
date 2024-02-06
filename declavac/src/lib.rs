@@ -46,6 +46,7 @@ pub enum DeclavatarFormat {
 ///
 /// # Safety
 /// Given pointers must be valid.
+#[no_mangle]
 pub unsafe extern "C" fn declavatar_log_localization(
     locale: *const c_char,
     locale_len: u32,
@@ -225,6 +226,7 @@ pub unsafe extern "C" fn declavatar_compiled_free(
 /// # Safety
 /// Given pointer must be valid.
 /// Returned string is not NUL-terminated.
+#[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_avatar_json(
     compiled_state: *const CompiledState,
     json_string: *mut *const c_char,
@@ -247,6 +249,7 @@ pub unsafe extern "C" fn declavatar_compiled_avatar_json(
 ///
 /// # Safety
 /// Given pointer must be valid.
+#[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_logs_count(
     compiled_state: *const CompiledState,
     logs_count: *mut u32,
@@ -264,6 +267,7 @@ pub unsafe extern "C" fn declavatar_compiled_logs_count(
 /// # Safety
 /// Given pointer must be valid.
 /// Returned string is not NUL-terminated.
+#[no_mangle]
 pub unsafe extern "C" fn declavatar_compiled_log(
     compiled_state: *const CompiledState,
     index: u32,

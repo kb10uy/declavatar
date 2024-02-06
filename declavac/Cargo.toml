@@ -16,4 +16,5 @@ serde_json = { workspace = true }
 declavatar = { workspace = true }
 
 [build-dependencies]
+cbindgen = { workspace = true }
 static_vcruntime = { workspace = true }
