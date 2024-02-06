@@ -70,6 +70,10 @@ pub enum Log {
 
     #[log_error("arbittach.invalid_data")]
     InvalidArbittach(ArbittachError),
+    #[log_error("arbittach.not_registered")]
+    ArbittachNotRegistered,
+    #[log_error("arbittach.invalid_payload")]
+    ArbittachInvalidPayload,
 }
 
 #[derive(Debug, Clone, ThisError)]
