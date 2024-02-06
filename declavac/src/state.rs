@@ -1,7 +1,10 @@
 use crate::serialization::Jsoned;
 
 use declavatar::{
-    avatar_v2::{data::avatar::Avatar, Transformer},
+    avatar_v2::{
+        data::{attachment::schema::Attachment, avatar::Avatar},
+        Transformer,
+    },
     decl_v2::{compile_declaration, Arguments, DeclarationFormat},
     log::{Log, SerializedLog},
 };
@@ -10,17 +13,23 @@ use serde_json::Error as SerdeJsonError;
 #[derive(Debug, Clone)]
 pub struct DeclavatarState {
     args: Arguments,
+    attachments: Vec<Attachment>,
 }
 
 impl DeclavatarState {
     pub fn new() -> DeclavatarState {
         DeclavatarState {
             args: Arguments::new(),
+            attachments: vec![],
         }
     }
 
     pub fn arguments_mut(&mut self) -> &mut Arguments {
         &mut self.args
+    }
+
+    pub fn add_attachment(&mut self, attachment: Attachment) {
+        self.attachments.push(attachment);
     }
 
     pub fn compile(
@@ -38,7 +47,10 @@ impl DeclavatarState {
             }
         };
 
-        let transformer = Transformer::new();
+        let mut transformer = Transformer::new();
+        for attachment in &self.attachments {
+            transformer.register_arbittach_schema(attachment.clone());
+        }
         let transformed = transformer.transform_avatar(decl_avatar);
         Ok(CompiledState {
             avatar: transformed.avatar.map(Jsoned::new).transpose()?,

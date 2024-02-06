@@ -6,7 +6,10 @@ use crate::state::{CompiledState, DeclavatarState};
 
 use std::ffi::{c_char, c_void};
 
-use declavatar::{decl_v2::DeclarationFormat, i18n::get_log_messages};
+use declavatar::{
+    avatar_v2::data::attachment::schema::Attachment, decl_v2::DeclarationFormat,
+    i18n::get_log_messages,
+};
 
 /// Declavatar status code.
 #[repr(u32)]
@@ -169,6 +172,11 @@ pub unsafe extern "C" fn declavatar_register_arbittach(
 ) -> DeclavatarStatus {
     as_ref!(declavatar_state, &mut DeclavatarState);
     as_ref!(definition, &str, definition_len);
+
+    let Ok(schema) = serde_json::from_str::<Attachment>(definition) else {
+        return DeclavatarStatus::JsonError;
+    };
+    declavatar_state.add_attachment(schema);
 
     DeclavatarStatus::Success
 }
