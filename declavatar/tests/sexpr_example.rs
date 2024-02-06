@@ -1,7 +1,10 @@
 use std::{fs::read_to_string, path::PathBuf};
 
 use declavatar::{
-    avatar_v2::Transformer,
+    avatar_v2::{
+        data::attachment::schema::{Attachment, Parameter, Property, ValueType},
+        Transformer,
+    },
     decl_v2::{compile_declaration, Arguments, DeclarationFormat},
 };
 use once_cell::sync::Lazy;
@@ -24,6 +27,30 @@ static TEST_ARGUMENTS: Lazy<Arguments> = Lazy::new(|| {
     args
 });
 
+static TEST_ARBITTACH: Lazy<Attachment> = Lazy::new(|| Attachment {
+    name: "GameObject".to_string(),
+    properties: vec![
+        Property {
+            name: "Transform".to_string(),
+            required: true,
+            parameters: vec![Parameter {
+                name: "position".to_string(),
+                value_type: ValueType::Vector(3),
+            }],
+            keywords: vec![],
+        },
+        Property {
+            name: "Parent".to_string(),
+            required: true,
+            parameters: vec![Parameter {
+                name: "parent".to_string(),
+                value_type: ValueType::GameObject,
+            }],
+            keywords: vec![],
+        },
+    ],
+});
+
 #[rstest]
 fn compiles_all_sexpr_examples(#[files("../examples/sexpr/*.declisp")] filename: PathBuf) {
     let source = read_to_string(&filename).expect("source file should exist");
@@ -33,7 +60,8 @@ fn compiles_all_sexpr_examples(#[files("../examples/sexpr/*.declisp")] filename:
         compile_declaration(&source, DeclarationFormat::Sexpr, TEST_ARGUMENTS.clone())
             .expect("declaration file load failure");
 
-    let transformer = Transformer::new();
+    let mut transformer = Transformer::new();
+    transformer.register_arbittach_schema(TEST_ARBITTACH.clone());
     let avatar = transformer.transform_avatar(decl_avatar);
 
     assert!(avatar.avatar.is_some());
