@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "declavac"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "cbindgen",
  "csbindgen",
@@ -276,7 +276,7 @@ dependencies = [
 
 [[package]]
 name = "declavalidate"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "anyhow",
  "clap 4.4.17",
@@ -289,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "declavatar"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "declavatar-derive",
  "either",
@@ -306,7 +306,7 @@ dependencies = [
 
 [[package]]
 name = "declavatar-derive"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "proc-macro2",
  "quote",
