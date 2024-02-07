@@ -21,12 +21,12 @@ fn main() -> Result<()> {
     let args = Arguments::parse();
 
     match args.subcommand {
-        Subcommand::Load(fo) => {
-            let decl_args = construct_decl_arguments(&fo);
-            let decl_avatar = load_declaration_auto(fo.file, decl_args);
+        Subcommand::Load(file_option) => {
+            let decl_args = construct_decl_arguments(&file_option);
+            let decl_avatar = load_declaration_auto(file_option.file, decl_args);
             match decl_avatar {
                 Ok(a) => {
-                    if fo.indented {
+                    if file_option.indented {
                         println!("{a:#?}");
                     } else {
                         println!("{a:?}");
@@ -37,14 +37,23 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Subcommand::Compile(fo) => {
-            let decl_args = construct_decl_arguments(&fo);
-            let decl_avatar = load_declaration_auto(fo.file, decl_args)?;
+        Subcommand::Compile {
+            file_option,
+            arbittach_schema_files,
+        } => {
+            let mut transformer = Transformer::new();
+            for schema_path in arbittach_schema_files {
+                let schema_json = read_to_string(schema_path)?;
+                let schema = serde_json::from_str(&schema_json)?;
+                transformer.register_arbittach_schema(schema);
+            }
 
-            let transformer = Transformer::new();
+            let decl_args = construct_decl_arguments(&file_option);
+            let decl_avatar = load_declaration_auto(file_option.file, decl_args)?;
+
             let avatar_result = transformer.transform_avatar(decl_avatar);
             if let Some(avatar) = avatar_result.avatar {
-                let json = if fo.indented {
+                let json = if file_option.indented {
                     serde_json::to_string_pretty(&avatar)
                 } else {
                     serde_json::to_string(&avatar)

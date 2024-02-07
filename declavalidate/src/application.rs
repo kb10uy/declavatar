@@ -16,7 +16,14 @@ pub enum Subcommand {
     Load(FileOption),
 
     /// Loads declaration file and compiles with validation.
-    Compile(FileOption),
+    Compile {
+        #[clap(flatten)]
+        file_option: FileOption,
+
+        /// Registers an Arbitrary Attachment schema.
+        #[clap(short = 'A', long = "attachment-schema")]
+        arbittach_schema_files: Vec<PathBuf>,
+    },
 }
 
 #[derive(Debug, Clone, Parser)]
