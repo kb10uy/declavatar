@@ -1,10 +1,7 @@
 use std::{fs::read_to_string, path::PathBuf};
 
 use declavatar::{
-    avatar_v2::{
-        data::attachment::schema::{Attachment, Parameter, Property, ValueType},
-        Transformer,
-    },
+    avatar_v2::{data::attachment::schema::Attachment, Transformer},
     decl_v2::{compile_declaration, Arguments, DeclarationFormat},
 };
 use once_cell::sync::Lazy;
@@ -27,28 +24,9 @@ static TEST_ARGUMENTS: Lazy<Arguments> = Lazy::new(|| {
     args
 });
 
-static TEST_ARBITTACH: Lazy<Attachment> = Lazy::new(|| Attachment {
-    name: "GameObject".to_string(),
-    properties: vec![
-        Property {
-            name: "Transform".to_string(),
-            required: true,
-            parameters: vec![Parameter {
-                name: "position".to_string(),
-                value_type: ValueType::Vector(3),
-            }],
-            keywords: vec![],
-        },
-        Property {
-            name: "Parent".to_string(),
-            required: true,
-            parameters: vec![Parameter {
-                name: "parent".to_string(),
-                value_type: ValueType::GameObject,
-            }],
-            keywords: vec![],
-        },
-    ],
+static TEST_ARBITTACH: Lazy<Attachment> = Lazy::new(|| {
+    serde_json::from_str(include_str!("../../examples/arbittach/game-object.json"))
+        .expect("failed to deserialize")
 });
 
 #[rstest]

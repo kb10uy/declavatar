@@ -299,6 +299,7 @@ dependencies = [
  "rpds",
  "rstest",
  "serde",
+ "serde_json",
  "static_vcruntime",
  "thiserror",
 ]

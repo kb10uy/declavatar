@@ -1,0 +1,27 @@
+{
+    "name": "GameObject",
+    "properties": [
+        {
+            "name": "Transform",
+            "required": true,
+            "parameters": [
+                {
+                    "name": "position",
+                    "value_type": { "type": "Vector", "content": 3 }
+                }
+            ],
+            "keywords": []
+        },
+        {
+            "name": "Parent",
+            "required": true,
+            "parameters": [
+                {
+                    "name": "parent",
+                    "value_type": { "type": "GameObject", "content": null }
+                }
+            ],
+            "keywords": []
+        }
+    ]
+}

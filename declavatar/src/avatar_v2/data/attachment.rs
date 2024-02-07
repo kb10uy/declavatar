@@ -22,6 +22,7 @@ pub struct Property {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "type", content = "content")]
 pub enum Value {
     Null,
     List(Vec<Value>),
@@ -86,6 +87,7 @@ pub mod schema {
     }
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(tag = "type", content = "content")]
     pub enum ValueType {
         Any,
         OneOf(Vec<ValueType>),

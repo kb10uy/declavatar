@@ -19,6 +19,7 @@ declavatar-derive = { workspace = true }
 once_cell = { workspace = true }
 pretty_assertions = { workspace = true }
 rstest = { workspace = true }
+serde_json = { workspace = true }
 
 [build-dependencies]
 static_vcruntime = { workspace = true }
