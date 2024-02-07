@@ -67,16 +67,20 @@ fn compile_attachment(
 
     let logger = logger.with_context(format!("attachment {name}"));
     let Some(schema) = schemas.get(&name) else {
-        logger.log(Log::ArbittachNotRegistered);
+        logger.log(Log::Arbittach(ArbittachError::UnknownAttachment));
         return failure();
     };
-    let schema_properties = &schema.properties;
+    let mut unset_properties: HashMap<&str, &PropertySchema> = schema
+        .properties
+        .iter()
+        .map(|p| (p.name.as_str(), p))
+        .collect();
     for decl_property in decl_attachment.properties {
-        let Some(property_schema) = schema_properties
-            .iter()
-            .find(|ps| ps.name == decl_property.name)
+        let Some((_, property_schema)) = unset_properties.remove_entry(decl_property.name.as_str())
         else {
-            logger.log(Log::InvalidArbittach(ArbittachError::UnsupportedType));
+            logger.log(Log::Arbittach(ArbittachError::UnknownProperty(
+                decl_property.name.to_string(),
+            )));
             continue;
         };
 
@@ -84,6 +88,19 @@ fn compile_attachment(
             continue;
         };
         properties.push(property);
+    }
+
+    if unset_properties.values().any(|p| p.required) {
+        let unmet_properties = unset_properties
+            .values()
+            .filter(|&p| p.required)
+            .map(|p| &p.name)
+            .cloned()
+            .collect();
+        logger.log(Log::Arbittach(ArbittachError::Insufficient {
+            unmet_properties,
+        }));
+        return failure();
     }
 
     success(Attachment { name, properties })
@@ -99,7 +116,7 @@ fn compile_property(
 
     let logger = logger.with_context(format!("property {}", decl_property.name));
     if property_schema.parameters.len() != decl_property.parameters.len() {
-        logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
+        logger.log(Log::Arbittach(ArbittachError::LengthMismatch {
             expected: property_schema.parameters.len(),
             found: decl_property.parameters.len(),
         }));
@@ -170,14 +187,14 @@ fn compile_value(
             ValueType::Vector(length) if *length == values.len() => Value::Vector(values),
             ValueType::Any => Value::Vector(values),
             ValueType::Vector(expected_length) => {
-                logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
+                logger.log(Log::Arbittach(ArbittachError::LengthMismatch {
                     found: values.len(),
                     expected: *expected_length,
                 }));
                 return failure();
             }
             _ => {
-                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
+                logger.log(Log::Arbittach(ArbittachError::TypeMismatch {
                     found: "vector".to_string(),
                     expected: expected_type.name().to_string(),
                 }));
@@ -206,7 +223,7 @@ fn compile_value(
             }
             ValueType::Tuple(item_types) => {
                 if untyped_list.len() != item_types.len() {
-                    logger.log(Log::InvalidArbittach(ArbittachError::LengthMismatch {
+                    logger.log(Log::Arbittach(ArbittachError::LengthMismatch {
                         found: untyped_list.len(),
                         expected: item_types.len(),
                     }));
@@ -222,7 +239,7 @@ fn compile_value(
                 Value::Tuple(typed_values)
             }
             _ => {
-                logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
+                logger.log(Log::Arbittach(ArbittachError::TypeMismatch {
                     found: "list".to_string(),
                     expected: expected_type.name().to_string(),
                 }));
@@ -231,7 +248,7 @@ fn compile_value(
         },
 
         _ => {
-            logger.log(Log::InvalidArbittach(ArbittachError::TypeMismatch {
+            logger.log(Log::Arbittach(ArbittachError::TypeMismatch {
                 found: "unexpected type value".to_string(),
                 expected: expected_type.name().to_string(),
             }));

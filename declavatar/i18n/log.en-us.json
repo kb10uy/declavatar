@@ -40,7 +40,6 @@
     "driver.material_indeterminate_change": "Driver Error",
 
     "arbittach.invalid_data": "Arbitrary Attachment Error",
-    "arbittach.not_registered": "Arbitrary Attachment Error",
 
     "decl.unsupported:description": "specified format is currently unsupported",
     "decl.internal:description": "internal error on declaration parsing: {0}",
@@ -82,6 +81,5 @@
     "driver.shape_indeterminate_change:description": "shape '{0}' must have determinate target mesh",
     "driver.material_indeterminate_change:description": "material slot {0} must have determinate target mesh",
 
-    "arbittach.invalid_data:description": "invalid definition: {0}",
-    "arbittach.not_registered:description": "not registered"
+    "arbittach.invalid_data:description": "invalid attachment: {0}"
 }

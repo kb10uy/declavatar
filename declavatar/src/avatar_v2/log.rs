@@ -69,21 +69,23 @@ pub enum Log {
     LayerIndeterminateMaterialChange(usize),
 
     #[log_error("arbittach.invalid_data")]
-    InvalidArbittach(ArbittachError),
-    #[log_error("arbittach.not_registered")]
-    ArbittachNotRegistered,
-    #[log_error("arbittach.invalid_payload")]
-    ArbittachInvalidPayload,
+    Arbittach(ArbittachError),
 }
 
 #[derive(Debug, Clone, ThisError)]
 pub enum ArbittachError {
-    #[error("unsupported type")]
-    UnsupportedType,
+    #[error("unknown attachment")]
+    UnknownAttachment,
+
+    #[error("unknown property: {0}")]
+    UnknownProperty(String),
 
     #[error("length mismatch; {expected} expected, {found} found")]
     LengthMismatch { expected: usize, found: usize },
 
     #[error("type mismatch; {expected} expected, {found} found")]
     TypeMismatch { expected: String, found: String },
+
+    #[error("insufficient properties: {unmet_properties:?}")]
+    Insufficient { unmet_properties: Vec<String> },
 }

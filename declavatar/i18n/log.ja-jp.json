@@ -40,7 +40,6 @@
     "driver.material_indeterminate_change": "アニメーション操作エラー",
 
     "arbittach.invalid_data": "Arbitrary Attachment エラー",
-    "arbittach.not_registered": "Arbitrary Attachment エラー",
 
     "decl.unsupported:description": "指定された定義ファイル形式は現在対応していません",
     "decl.internal:description": "定義ファイルの解析エラー: {0}",
@@ -82,6 +81,5 @@
     "driver.shape_indeterminate_change:description": "シェイプキー '{0}' の操作対象メッシュが不明です",
     "driver.material_indeterminate_change:description": "マテリアルスロット {0} の操作対象メッシュが不明です",
 
-    "arbittach.invalid_data:description": "不正な定義内容です: {0}",
-    "arbittach.not_registered:description": "この Arbitrary Attachment は登録されていません"
+    "arbittach.invalid_data:description": "不正な内容です: {0}"
 }
