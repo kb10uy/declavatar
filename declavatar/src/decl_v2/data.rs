@@ -1,4 +1,4 @@
-pub mod arbittach;
+pub mod attachment;
 pub mod asset;
 pub mod avatar;
 pub mod controller;

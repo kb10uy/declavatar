@@ -7,7 +7,7 @@ use crate::{
         log::{ArbittachError, Log},
         transformer::{failure, success, Compiled},
     },
-    decl_v2::data::arbittach::{
+    decl_v2::data::attachment::{
         DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments,
     },
     log::Logger,

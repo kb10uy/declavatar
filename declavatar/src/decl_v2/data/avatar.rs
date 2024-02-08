@@ -1,6 +1,6 @@
 use crate::{
     decl_v2::data::{
-        arbittach::DeclAttachments, asset::DeclAssets, controller::DeclFxController,
+        attachment::DeclAttachments, asset::DeclAssets, controller::DeclFxController,
         export::DeclExports, menu::DeclSubMenu, parameter::DeclParameters,
     },
     static_type_name_impl,

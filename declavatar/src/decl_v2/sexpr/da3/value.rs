@@ -1,5 +1,5 @@
 use crate::decl_v2::{
-    data::arbittach::DeclAttachmentValue,
+    data::attachment::DeclAttachmentValue,
     sexpr::{argument::SeparateArguments, error::KetosResult, register_function},
 };
 
