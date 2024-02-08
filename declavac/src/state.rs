@@ -1,4 +1,4 @@
-use crate::serialization::Jsoned;
+use crate::{serialization::Jsoned, DeclavatarStatus};
 
 use declavatar::{
     avatar_v2::{
@@ -8,12 +8,12 @@ use declavatar::{
     decl_v2::{compile_declaration, Arguments, DeclarationFormat},
     log::{Log, SerializedLog},
 };
-use serde_json::Error as SerdeJsonError;
 
 #[derive(Debug, Clone)]
 pub struct DeclavatarState {
     args: Arguments,
     attachments: Vec<Attachment>,
+    last_error: Option<String>,
 }
 
 impl DeclavatarState {
@@ -21,29 +21,73 @@ impl DeclavatarState {
         DeclavatarState {
             args: Arguments::new(),
             attachments: vec![],
+            last_error: None,
         }
     }
 
-    pub fn arguments_mut(&mut self) -> &mut Arguments {
-        &mut self.args
+    pub fn last_error(&self) -> (Option<&str>, DeclavatarStatus) {
+        (self.last_error.as_deref(), DeclavatarStatus::Success)
     }
 
-    pub fn add_attachment(&mut self, attachment: Attachment) {
-        self.attachments.push(attachment);
+    pub fn clear(&mut self) -> DeclavatarStatus {
+        self.args.clear();
+        self.attachments.clear();
+
+        self.last_error = None;
+        DeclavatarStatus::Success
+    }
+
+    pub fn add_library_path(&mut self, path: &str) -> DeclavatarStatus {
+        self.args.add_library_path(path);
+
+        self.last_error = None;
+        DeclavatarStatus::Success
+    }
+
+    pub fn define_symbol(&mut self, symbol: &str) -> DeclavatarStatus {
+        self.args.define_symbol(symbol);
+
+        self.last_error = None;
+        DeclavatarStatus::Success
+    }
+
+    pub fn define_localization(&mut self, key: &str, value: &str) -> DeclavatarStatus {
+        self.args.define_localization(key, value);
+
+        self.last_error = None;
+        DeclavatarStatus::Success
+    }
+
+    pub fn add_attachment(&mut self, schema_json: &str) -> DeclavatarStatus {
+        let schema = match serde_json::from_str::<Attachment>(schema_json) {
+            Ok(schema) => schema,
+            Err(err) => {
+                self.last_error = Some(err.to_string());
+                return DeclavatarStatus::JsonError;
+            }
+        };
+        self.attachments.push(schema);
+
+        self.last_error = None;
+        DeclavatarStatus::Success
     }
 
     pub fn compile(
         &self,
         source: &str,
         format: DeclarationFormat,
-    ) -> Result<CompiledState, SerdeJsonError> {
+    ) -> (CompiledState, DeclavatarStatus) {
         let decl_avatar = match compile_declaration(source, format, self.args.clone()) {
             Ok(avatar) => avatar,
             Err(err) => {
-                return Ok(CompiledState {
-                    avatar: None,
-                    logs: vec![Jsoned::new(err.serialize_log([]))?],
-                });
+                let log = Jsoned::new(err.serialize_log([])).expect("should be serialized");
+                return (
+                    CompiledState {
+                        avatar: None,
+                        logs: vec![log],
+                    },
+                    DeclavatarStatus::CompileError,
+                );
             }
         };
 
@@ -52,14 +96,18 @@ impl DeclavatarState {
             transformer.register_arbittach_schema(attachment.clone());
         }
         let transformed = transformer.transform_avatar(decl_avatar);
-        Ok(CompiledState {
-            avatar: transformed.avatar.map(Jsoned::new).transpose()?,
-            logs: transformed
-                .logs
-                .into_iter()
-                .map(Jsoned::new)
-                .collect::<Result<Vec<_>, _>>()?,
-        })
+        let avatar = transformed
+            .avatar
+            .map(Jsoned::new)
+            .transpose()
+            .expect("should be serialized");
+        let logs = transformed
+            .logs
+            .into_iter()
+            .map(Jsoned::new)
+            .collect::<Result<Vec<_>, _>>()
+            .expect("should be serialized");
+        (CompiledState { avatar, logs }, DeclavatarStatus::Success)
     }
 }
 

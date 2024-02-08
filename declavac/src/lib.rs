@@ -9,10 +9,7 @@ use std::{
     ptr::null,
 };
 
-use declavatar::{
-    avatar_v2::data::attachment::schema::Attachment, decl_v2::DeclarationFormat,
-    i18n::get_log_messages,
-};
+use declavatar::{decl_v2::DeclarationFormat, i18n::get_log_messages};
 
 /// Declavatar status code.
 #[repr(u32)]
@@ -87,6 +84,29 @@ pub extern "C" fn declavatar_free(declavatar_state: *mut c_void) -> DeclavatarSt
     DeclavatarStatus::Success
 }
 
+/// Fetches last error message.
+///
+/// # Safety
+/// Given pointer `da` must be valid.
+#[no_mangle]
+pub unsafe extern "C" fn declavatar_last_error(
+    declavatar_state: *mut c_void,
+    message: *mut *const c_char,
+    message_len: *mut u32,
+) -> DeclavatarStatus {
+    as_ref!(declavatar_state, &mut DeclavatarState);
+
+    let (message_str, status) = declavatar_state.last_error();
+    if let Some(message_str) = message_str {
+        *message = message_str.as_ptr() as *const i8;
+        *message_len = message_str.len() as u32;
+    } else {
+        *message = null();
+        *message_len = 0;
+    }
+    status
+}
+
 /// Clears defined symbols/localizations/arbittach definitions.
 ///
 /// # Safety
@@ -95,8 +115,7 @@ pub extern "C" fn declavatar_free(declavatar_state: *mut c_void) -> DeclavatarSt
 pub unsafe extern "C" fn declavatar_clear(declavatar_state: *mut c_void) -> DeclavatarStatus {
     as_ref!(declavatar_state, &mut DeclavatarState);
 
-    declavatar_state.arguments_mut().clear();
-    DeclavatarStatus::Success
+    declavatar_state.clear()
 }
 
 /// Clears defined symbols/localizations/arbittach definitions.
@@ -113,10 +132,7 @@ pub unsafe extern "C" fn declavatar_add_library_path(
     as_ref!(declavatar_state, &mut DeclavatarState);
     as_ref!(path, &str, path_len);
 
-    let args = declavatar_state.arguments_mut();
-    args.add_library_path(path);
-
-    DeclavatarStatus::Success
+    declavatar_state.add_library_path(path)
 }
 
 /// Defines a symbol for given state.
@@ -133,10 +149,7 @@ pub unsafe extern "C" fn declavatar_define_symbol(
     as_ref!(declavatar_state, &mut DeclavatarState);
     as_ref!(symbol, &str, symbol_len);
 
-    let args = declavatar_state.arguments_mut();
-    args.define_symbol(symbol);
-
-    DeclavatarStatus::Success
+    declavatar_state.define_symbol(symbol)
 }
 
 /// Defines a localization for given state.
@@ -156,10 +169,7 @@ pub unsafe extern "C" fn declavatar_define_localization(
     as_ref!(key, &str, key_len);
     as_ref!(value, &str, value_len);
 
-    let args = declavatar_state.arguments_mut();
-    args.define_localization(key, value);
-
-    DeclavatarStatus::Success
+    declavatar_state.define_localization(key, value)
 }
 
 /// Registers Arbitrary Attachment (arbittach) definition.
@@ -176,12 +186,7 @@ pub unsafe extern "C" fn declavatar_register_arbittach(
     as_ref!(declavatar_state, &mut DeclavatarState);
     as_ref!(definition, &str, definition_len);
 
-    let Ok(schema) = serde_json::from_str::<Attachment>(definition) else {
-        return DeclavatarStatus::JsonError;
-    };
-    declavatar_state.add_attachment(schema);
-
-    DeclavatarStatus::Success
+    declavatar_state.add_attachment(definition)
 }
 
 /// Compiles definition with format.
@@ -207,16 +212,10 @@ pub unsafe extern "C" fn declavatar_compile(
         DeclavatarFormat::Lua => DeclarationFormat::Lua,
         _ => return DeclavatarStatus::InvalidValue,
     };
-    match declavatar_state.compile(source, format) {
-        Ok(compiled) => {
-            *compiled_state = Box::into_raw(Box::new(compiled));
-        }
-        Err(_) => {
-            return DeclavatarStatus::JsonError;
-        }
-    }
 
-    DeclavatarStatus::Success
+    let (compiled, status) = declavatar_state.compile(source, format);
+    *compiled_state = Box::into_raw(Box::new(compiled));
+    status
 }
 
 /// Frees compiled result.
