@@ -1,9 +1,6 @@
 use crate::decl_v2::{
     data::{
-        arbittach::{
-            DeclAttachment, DeclAttachmentGroup, DeclAttachmentProperty, DeclAttachmentValue,
-            DeclAttachments,
-        },
+        arbittach::{DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments},
         StaticTypeName,
     },
     sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
@@ -19,8 +16,13 @@ pub fn register_attachment_function(scope: &Scope) {
         Arity::Min(0),
         Some(&[]),
     );
-    register_function(scope, "for", define_target, Arity::Min(1), Some(&[]));
-    register_function(scope, "attach", define_attachment, Arity::Min(1), Some(&[]));
+    register_function(
+        scope,
+        "attachment",
+        define_attachment,
+        Arity::Min(1),
+        Some(&[]),
+    );
     register_function(scope, "property", define_property, Arity::Min(1), None);
 }
 
@@ -29,37 +31,15 @@ fn declare_attachments(
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
-    let mut targets = vec![];
-    for decl_target in args.args_after_recursive(function_name, 0)? {
-        targets.push(
-            decl_target
-                .downcast_foreign_ref::<&DeclAttachmentGroup>()
+    let mut attachments = vec![];
+    for decl_attachment in args.args_after_recursive(function_name, 0)? {
+        attachments.push(
+            decl_attachment
+                .downcast_foreign_ref::<&DeclAttachment>()
                 .cloned()?,
         );
     }
-    Ok(DeclAttachments { targets }.into())
-}
-
-fn define_target(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let name: &str = args.exact_arg(function_name, 0)?;
-
-    let mut attachments = vec![];
-    for decl_attachment in args.args_after_recursive(function_name, 1)? {
-        attachments.push(
-            decl_attachment
-                .downcast_foreign_ref::<&DeclAttachment>()?
-                .clone(),
-        );
-    }
-    Ok(DeclAttachmentGroup {
-        target: name.to_string(),
-        attachments,
-    }
-    .into())
+    Ok(DeclAttachments { attachments }.into())
 }
 
 fn define_attachment(

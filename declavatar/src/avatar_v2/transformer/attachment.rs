@@ -2,14 +2,13 @@ use crate::{
     avatar_v2::{
         data::attachment::{
             schema::{Attachment as AttachmentSchema, Property as PropertySchema, ValueType},
-            Attachment, AttachmentGroup, Property, Value,
+            Attachment, Property, Value,
         },
         log::{ArbittachError, Log},
         transformer::{failure, success, Compiled},
     },
     decl_v2::data::arbittach::{
-        DeclAttachment, DeclAttachmentGroup, DeclAttachmentProperty, DeclAttachmentValue,
-        DeclAttachments,
+        DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments,
     },
     log::Logger,
 };
@@ -20,12 +19,12 @@ pub fn compile_attachment_blocks(
     logger: &Logger<Log>,
     schemas: &HashMap<String, AttachmentSchema>,
     attachment_blocks: Vec<DeclAttachments>,
-) -> Compiled<Vec<AttachmentGroup>> {
+) -> Compiled<Vec<Attachment>> {
     let mut attachment_groups = vec![];
     for (index, decl_attachments) in attachment_blocks.into_iter().enumerate() {
         let logger = logger.with_context(format!("attachments block {index}"));
-        for decl_group in decl_attachments.targets {
-            let Some(group) = compile_group(&logger, schemas, decl_group) else {
+        for decl_attachment in decl_attachments.attachments {
+            let Some(group) = compile_attachment(&logger, schemas, decl_attachment) else {
                 continue;
             };
             attachment_groups.push(group);
@@ -33,28 +32,6 @@ pub fn compile_attachment_blocks(
     }
 
     success(attachment_groups)
-}
-
-fn compile_group(
-    logger: &Logger<Log>,
-    schemas: &HashMap<String, AttachmentSchema>,
-    decl_group: DeclAttachmentGroup,
-) -> Compiled<AttachmentGroup> {
-    let target = decl_group.target;
-    let mut attachments = vec![];
-
-    let logger = logger.with_context(format!("target {target}"));
-    for decl_attachment in decl_group.attachments {
-        let Some(attachment) = compile_attachment(&logger, schemas, decl_attachment) else {
-            continue;
-        };
-        attachments.push(attachment);
-    }
-
-    success(AttachmentGroup {
-        target,
-        attachments,
-    })
 }
 
 fn compile_attachment(

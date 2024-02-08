@@ -3,12 +3,6 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct AttachmentGroup {
-    pub target: String,
-    pub attachments: Vec<Attachment>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Attachment {
     pub name: String,
     pub properties: Vec<Property>,
