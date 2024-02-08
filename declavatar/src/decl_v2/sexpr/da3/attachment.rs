@@ -1,6 +1,8 @@
 use crate::decl_v2::{
     data::{
-        attachment::{DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments},
+        attachment::{
+            DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments,
+        },
         StaticTypeName,
     },
     sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
