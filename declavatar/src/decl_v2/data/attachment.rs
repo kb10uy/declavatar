@@ -4,16 +4,9 @@ use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachments {
-    pub targets: Vec<DeclAttachmentGroup>,
-}
-static_type_name_impl!(DeclAttachments);
-
-#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
-pub struct DeclAttachmentGroup {
-    pub target: String,
     pub attachments: Vec<DeclAttachment>,
 }
-static_type_name_impl!(DeclAttachmentGroup);
+static_type_name_impl!(DeclAttachments);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclAttachment {
