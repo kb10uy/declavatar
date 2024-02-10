@@ -74,7 +74,8 @@ fn define_property(
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut parameters = vec![];
-    for decl_paramerter in args.args_after_recursive(function_name, 1)? {
+    // List and Tuple value will be received as list, so shouldn't flatten
+    for decl_paramerter in args.args_after(function_name, 1)? {
         parameters.push(parse_attachment_value(decl_paramerter)?);
     }
     Ok(DeclAttachmentProperty {
