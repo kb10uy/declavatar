@@ -6,6 +6,7 @@ pub struct Parameter {
     pub value_type: ParameterType,
     pub scope: ParameterScope,
     pub unique: bool,
+    pub explicit_default: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
