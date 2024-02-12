@@ -34,10 +34,10 @@ fn compile_parameter(
     declared: &[Parameter],
 ) -> Compiled<Parameter> {
     let name = decl_parameter.name.clone();
-    let value_type = match decl_parameter.ty {
-        DeclParameterType::Int(dv) => ParameterType::Int(dv.unwrap_or(0)),
-        DeclParameterType::Float(dv) => ParameterType::Float(dv.unwrap_or(0.0)),
-        DeclParameterType::Bool(dv) => ParameterType::Bool(dv.unwrap_or(false)),
+    let (value_type, explicit_default) = match decl_parameter.ty {
+        DeclParameterType::Int(dv) => (ParameterType::Int(dv.unwrap_or(0)), dv.is_some()),
+        DeclParameterType::Float(dv) => (ParameterType::Float(dv.unwrap_or(0.0)), dv.is_some()),
+        DeclParameterType::Bool(dv) => (ParameterType::Bool(dv.unwrap_or(false)), dv.is_some()),
     };
     let scope = match (decl_parameter.scope, decl_parameter.save) {
         (Some(DeclParameterScope::Internal), None | Some(false)) => ParameterScope::Internal,
@@ -64,5 +64,6 @@ fn compile_parameter(
         value_type,
         scope,
         unique: decl_parameter.unique.unwrap_or(false),
+        explicit_default,
     })
 }
