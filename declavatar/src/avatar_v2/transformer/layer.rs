@@ -535,6 +535,19 @@ fn compile_target(
                 asset: material_target.value,
             }))
         }
+        DeclGroupOptionTarget::MaterialProperty(material_prop_target) => {
+            let Some(mesh) = material_prop_target.mesh.as_deref().or(default_mesh) else {
+                logger.log(Log::LayerIndeterminateShapeChange(
+                    material_prop_target.property,
+                ));
+                return failure();
+            };
+            Left(once(Target::MaterialProperty {
+                mesh: mesh.to_string(),
+                property: material_prop_target.property,
+                value: material_prop_target.value.into(),
+            }))
+        }
         DeclGroupOptionTarget::ParameterDrive(parameter_drive) => {
             Left(once(Target::ParameterDrive(compile_parameter_drive(
                 logger,

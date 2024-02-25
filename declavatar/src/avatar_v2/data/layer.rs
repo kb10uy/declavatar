@@ -1,4 +1,7 @@
-use crate::avatar_v2::data::driver::{ParameterDrive, TrackingControl};
+use crate::{
+    avatar_v2::data::driver::{ParameterDrive, TrackingControl},
+    decl_v2::data::layer::DeclMaterialValue,
+};
 
 use serde::Serialize;
 
@@ -67,8 +70,21 @@ pub enum Target {
         index: usize,
         asset: String,
     },
+    MaterialProperty {
+        mesh: String,
+        property: String,
+        value: MaterialValue,
+    },
     ParameterDrive(ParameterDrive),
     TrackingControl(TrackingControl),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "content")]
+pub enum MaterialValue {
+    Float(f64),
+    VectorRgba([f64; 4]),
+    VectorXyzw([f64; 4]),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -157,8 +173,22 @@ impl Target {
             Target::Shape { mesh, shape, .. } => format!("shape://{mesh}/{shape}"),
             Target::Object { object, .. } => format!("object://{object}"),
             Target::Material { mesh, index, .. } => format!("material://{mesh}/{index}"),
+            Target::MaterialProperty { mesh, property, .. } => {
+                format!("material+prop://{mesh}/{property}")
+            }
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
             Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
+        }
+    }
+}
+
+impl From<DeclMaterialValue> for MaterialValue {
+    fn from(value: DeclMaterialValue) -> Self {
+        match value {
+            DeclMaterialValue::Float(v) => MaterialValue::Float(v),
+            DeclMaterialValue::Color(v) => MaterialValue::VectorRgba(v),
+            DeclMaterialValue::ColorHdr(v) => MaterialValue::VectorXyzw(v),
+            DeclMaterialValue::Vector(v) => MaterialValue::VectorXyzw(v),
         }
     }
 }

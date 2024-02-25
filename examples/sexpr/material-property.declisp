@@ -1,0 +1,36 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "material-property"
+    (da/parameters
+        (da/bool "Bright")
+        (da/float "Color")
+    )
+
+    (da/fx-controller
+        (da/switch-layer "Bright"
+            :driven-by "Bright"
+            :default-mesh "Body"
+            (da/option 'disabled
+                (da/set-material-property "_Color" (da/color 1.0 1.0 1.0 1.0))
+                (da/set-material-property "_ColorHDR" (da/color-hdr 1.0 1.0 1.0 1.0))
+            )
+            (da/option 'enabled
+                (da/set-material-property "_Color" (da/color 1.0 0.0 0.0 1.0))
+                (da/set-material-property "_ColorHDR" (da/color-hdr 1.0 0.0 0.0 1.0))
+            )
+        )
+        (da/puppet-layer "Color"
+            :driven-by "Color"
+            :default-mesh "Body"
+            (da/option 0.0
+                (da/set-material-property "_Float" 0.0)
+                (da/set-material-property "_Vector" (da/vector 0.0 0.0 0.0 1.0))
+            )
+            (da/option 1.0
+                (da/set-material-property "_Float" 1.0)
+                (da/set-material-property "_Vector" (da/vector 0.0 1.0 1.0 1.0))
+            )
+        )
+    )
+)
