@@ -83,8 +83,9 @@ pub enum Target {
 #[serde(tag = "type", content = "content")]
 pub enum MaterialValue {
     Float(f64),
-    VectorRgba([f64; 4]),
-    VectorXyzw([f64; 4]),
+    Color([f64; 4]),
+    ColorHdr([f64; 4]),
+    Vector([f64; 4]),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -186,9 +187,9 @@ impl From<DeclMaterialValue> for MaterialValue {
     fn from(value: DeclMaterialValue) -> Self {
         match value {
             DeclMaterialValue::Float(v) => MaterialValue::Float(v),
-            DeclMaterialValue::Color(v) => MaterialValue::VectorRgba(v),
-            DeclMaterialValue::ColorHdr(v) => MaterialValue::VectorXyzw(v),
-            DeclMaterialValue::Vector(v) => MaterialValue::VectorXyzw(v),
+            DeclMaterialValue::Color(v) => MaterialValue::Color(v),
+            DeclMaterialValue::ColorHdr(v) => MaterialValue::ColorHdr(v),
+            DeclMaterialValue::Vector(v) => MaterialValue::Vector(v),
         }
     }
 }
