@@ -67,8 +67,21 @@ pub enum Target {
         index: usize,
         asset: String,
     },
+    MaterialProperty {
+        mesh: String,
+        property: usize,
+        value: MaterialValue,
+    },
     ParameterDrive(ParameterDrive),
     TrackingControl(TrackingControl),
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "content")]
+pub enum MaterialValue {
+    Float(f64),
+    VectorRgba([f64; 4]),
+    VectorXyzw([f64; 4]),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -157,6 +170,9 @@ impl Target {
             Target::Shape { mesh, shape, .. } => format!("shape://{mesh}/{shape}"),
             Target::Object { object, .. } => format!("object://{object}"),
             Target::Material { mesh, index, .. } => format!("material://{mesh}/{index}"),
+            Target::MaterialProperty { mesh, property, .. } => {
+                format!("material+prop://{mesh}/{property}")
+            }
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
             Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
         }
