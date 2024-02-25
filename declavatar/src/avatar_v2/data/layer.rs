@@ -1,4 +1,7 @@
-use crate::avatar_v2::data::driver::{ParameterDrive, TrackingControl};
+use crate::{
+    avatar_v2::data::driver::{ParameterDrive, TrackingControl},
+    decl_v2::data::layer::DeclMaterialValue,
+};
 
 use serde::Serialize;
 
@@ -69,7 +72,7 @@ pub enum Target {
     },
     MaterialProperty {
         mesh: String,
-        property: usize,
+        property: String,
         value: MaterialValue,
     },
     ParameterDrive(ParameterDrive),
@@ -175,6 +178,17 @@ impl Target {
             }
             Target::ParameterDrive(pd) => format!("parameter://{}", pd.target_parameter()),
             Target::TrackingControl(tc) => format!("tracking://{:?}", tc.target),
+        }
+    }
+}
+
+impl From<DeclMaterialValue> for MaterialValue {
+    fn from(value: DeclMaterialValue) -> Self {
+        match value {
+            DeclMaterialValue::Float(v) => MaterialValue::Float(v),
+            DeclMaterialValue::Color(v) => MaterialValue::VectorRgba(v),
+            DeclMaterialValue::ColorHdr(v) => MaterialValue::VectorXyzw(v),
+            DeclMaterialValue::Vector(v) => MaterialValue::VectorXyzw(v),
         }
     }
 }
