@@ -52,6 +52,7 @@ pub enum DeclGroupOptionTarget {
     Shape(DeclGroupShapeTarget),
     Object(DeclGroupObjectTarget),
     Material(DeclGroupMaterialTarget),
+    MaterialProperty(DeclGroupMaterialPropertyTarget),
     ParameterDrive(DeclParameterDrive),
     TrackingControl(DeclTrackingControl),
 }
@@ -79,6 +80,23 @@ pub struct DeclGroupMaterialTarget {
     pub mesh: Option<String>,
 }
 static_type_name_impl!(DeclGroupMaterialTarget);
+
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub struct DeclGroupMaterialPropertyTarget {
+    pub property: String,
+    pub value: DeclMaterialValue,
+    pub mesh: Option<String>,
+}
+static_type_name_impl!(DeclGroupMaterialPropertyTarget);
+
+#[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub enum DeclMaterialValue {
+    Float(f64),
+    Color([f64; 4]),
+    ColorHdr([f64; 4]),
+    Vector([f64; 4]),
+}
+static_type_name_impl!(DeclMaterialValue);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclSwitchLayer {

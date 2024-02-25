@@ -2,9 +2,10 @@ use crate::decl_v2::{
     data::{
         driver::{DeclParameterDrive, DeclTrackingControl},
         layer::{
-            DeclControllerLayer, DeclGroupCopyMode, DeclGroupLayer, DeclGroupMaterialTarget,
-            DeclGroupObjectTarget, DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget,
-            DeclGroupShapeTarget, DeclPuppetLayer, DeclSwitchLayer,
+            DeclControllerLayer, DeclGroupCopyMode, DeclGroupLayer,
+            DeclGroupMaterialPropertyTarget, DeclGroupMaterialTarget, DeclGroupObjectTarget,
+            DeclGroupOption, DeclGroupOptionKind, DeclGroupOptionTarget, DeclGroupShapeTarget,
+            DeclMaterialValue, DeclPuppetLayer, DeclSwitchLayer,
         },
         StaticTypeName,
     },
@@ -72,6 +73,24 @@ pub fn register_layer_basic_function(scope: &Scope) {
         Arity::Exact(2),
         Some(&["mesh"]),
     );
+    register_function(
+        scope,
+        "set-material-property",
+        declare_set_material_property,
+        Arity::Exact(2),
+        Some(&["mesh"]),
+    );
+
+    // material value functions
+    register_function(scope, "color", declare_color, Arity::Exact(4), Some(&[]));
+    register_function(
+        scope,
+        "color-hdr",
+        declare_color_hdr,
+        Arity::Exact(4),
+        Some(&[]),
+    );
+    register_function(scope, "vector", declare_vector, Arity::Exact(4), Some(&[]));
 }
 
 fn declare_group_layer(
@@ -355,4 +374,80 @@ fn declare_set_material(
         mesh: mesh.map(|m| m.to_string()),
     }
     .into())
+}
+
+fn declare_set_material_property(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let property: &str = args.exact_arg(function_name, 0)?;
+    let value: &Value = args.exact_arg(function_name, 1)?;
+    let mesh: Option<&str> = args.exact_kwarg("mesh")?;
+
+    Ok(DeclGroupMaterialPropertyTarget {
+        property: property.to_string(),
+        value: take_material_value(value)?,
+        mesh: mesh.map(|m| m.to_string()),
+    }
+    .into())
+}
+
+fn take_material_value(value: &Value) -> KetosResult<DeclMaterialValue> {
+    let target = match value {
+        Value::Float(v) => DeclMaterialValue::Float(*v),
+        _ if value.type_name() == DeclMaterialValue::TYPE_NAME => {
+            value.downcast_foreign_ref::<&DeclMaterialValue>()?.clone()
+        }
+        _ => {
+            return Err(Error::Custom(
+                DeclSexprError::UnexpectedTypeValue(
+                    value.type_name().to_string(),
+                    "material value type".to_string(),
+                )
+                .into(),
+            ))
+        }
+    };
+
+    Ok(target)
+}
+
+fn declare_color(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let x: f64 = args.exact_arg(function_name, 0)?;
+    let y: f64 = args.exact_arg(function_name, 1)?;
+    let z: f64 = args.exact_arg(function_name, 2)?;
+    let w: f64 = args.exact_arg(function_name, 3)?;
+
+    Ok(DeclMaterialValue::Color([x, y, z, w]).into())
+}
+
+fn declare_color_hdr(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let x: f64 = args.exact_arg(function_name, 0)?;
+    let y: f64 = args.exact_arg(function_name, 1)?;
+    let z: f64 = args.exact_arg(function_name, 2)?;
+    let w: f64 = args.exact_arg(function_name, 3)?;
+
+    Ok(DeclMaterialValue::ColorHdr([x, y, z, w]).into())
+}
+
+fn declare_vector(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let x: f64 = args.exact_arg(function_name, 0)?;
+    let y: f64 = args.exact_arg(function_name, 1)?;
+    let z: f64 = args.exact_arg(function_name, 2)?;
+    let w: f64 = args.exact_arg(function_name, 3)?;
+
+    Ok(DeclMaterialValue::Vector([x, y, z, w]).into())
 }
