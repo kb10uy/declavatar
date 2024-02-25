@@ -303,6 +303,11 @@ pub fn take_option_target(target_value: &Value) -> KetosResult<DeclGroupOptionTa
                 .downcast_foreign_ref::<&DeclGroupMaterialTarget>()?
                 .clone(),
         ),
+        DeclGroupMaterialPropertyTarget::TYPE_NAME => DeclGroupOptionTarget::MaterialProperty(
+            target_value
+                .downcast_foreign_ref::<&DeclGroupMaterialPropertyTarget>()?
+                .clone(),
+        ),
         DeclParameterDrive::TYPE_NAME => DeclGroupOptionTarget::ParameterDrive(
             target_value
                 .downcast_foreign_ref::<&DeclParameterDrive>()?
