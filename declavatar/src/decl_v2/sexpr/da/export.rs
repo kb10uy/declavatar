@@ -21,7 +21,7 @@ fn declare_exports(
         exports.push(
             export_value
                 .downcast_foreign_ref::<&DeclExport>()
-                .map(|a| a.clone())?,
+                .cloned()?,
         );
     }
     Ok(DeclExports { exports }.into())

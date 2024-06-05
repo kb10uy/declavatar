@@ -148,7 +148,7 @@ impl FirstPassData {
             return failure();
         };
         self.find_parameter(logger, parameter, ParameterType::INT_TYPE, scope)?;
-        success((&parameter, &options))
+        success((parameter, options))
     }
 
     pub fn find_switch(
