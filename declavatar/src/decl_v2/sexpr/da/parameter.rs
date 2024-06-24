@@ -1,5 +1,8 @@
 use crate::decl_v2::{
-    data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
+    data::parameter::{
+        DeclParameter, DeclParameters, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
+        DeclPrimitiveParameterType,
+    },
     sexpr::{
         argument::SeparateArguments,
         error::{DeclSexprError, KetosResult},
@@ -68,13 +71,13 @@ fn declare_bool(
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
     let unique: Option<bool> = args.exact_kwarg("unique")?;
 
-    Ok(DeclParameter {
-        ty: DeclParameterType::Bool(default),
+    Ok(DeclParameter::Primitive(DeclPrimitiveParameter {
+        ty: DeclPrimitiveParameterType::Bool(default),
         name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
         unique,
-    }
+    })
     .into())
 }
 
@@ -89,13 +92,13 @@ fn declare_int(
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
     let unique: Option<bool> = args.exact_kwarg("unique")?;
 
-    Ok(DeclParameter {
-        ty: DeclParameterType::Int(default),
+    Ok(DeclParameter::Primitive(DeclPrimitiveParameter {
+        ty: DeclPrimitiveParameterType::Int(default),
         name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
         unique,
-    }
+    })
     .into())
 }
 
@@ -110,25 +113,25 @@ fn declare_float(
     let scope: Option<&Value> = args.exact_kwarg("scope")?;
     let unique: Option<bool> = args.exact_kwarg("unique")?;
 
-    Ok(DeclParameter {
-        ty: DeclParameterType::Float(default),
+    Ok(DeclParameter::Primitive(DeclPrimitiveParameter {
+        ty: DeclPrimitiveParameterType::Float(default),
         name: name.to_string(),
         scope: scope.map(|s| expect_scope(name_store, s)).transpose()?,
         save,
         unique,
-    }
+    })
     .into())
 }
 
-fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclParameterScope> {
+fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclPrimitiveParameterScope> {
     let Value::Name(name) = value else {
         return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
     };
 
     match name_store.get(*name) {
-        "synced" => Ok(DeclParameterScope::Synced),
-        "local" => Ok(DeclParameterScope::Local),
-        "internal" => Ok(DeclParameterScope::Internal),
+        "synced" => Ok(DeclPrimitiveParameterScope::Synced),
+        "local" => Ok(DeclPrimitiveParameterScope::Local),
+        "internal" => Ok(DeclPrimitiveParameterScope::Internal),
         n => Err(Error::Custom(
             DeclSexprError::InvalidScope(n.to_string()).into(),
         )),
@@ -138,7 +141,10 @@ fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclParame
 #[cfg(test)]
 mod test {
     use crate::decl_v2::{
-        data::parameter::{DeclParameter, DeclParameterScope, DeclParameterType, DeclParameters},
+        data::parameter::{
+            DeclParameters, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
+            DeclPrimitiveParameterType,
+        },
         sexpr::test::eval_da_value,
     };
 
@@ -171,61 +177,61 @@ mod test {
     #[test]
     fn reads_int() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge")"#),
-            expected_type(DeclParameterType::Int(None))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge")"#),
+            expected_type(DeclPrimitiveParameterType::Int(None))
         );
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :default 1)"#),
-            expected_type(DeclParameterType::Int(Some(1)))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :default 1)"#),
+            expected_type(DeclPrimitiveParameterType::Int(Some(1)))
         );
     }
 
     #[test]
     fn reads_bool() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/bool "hoge")"#),
-            expected_type(DeclParameterType::Bool(None))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/bool "hoge")"#),
+            expected_type(DeclPrimitiveParameterType::Bool(None))
         );
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/bool "hoge" :default false)"#),
-            expected_type(DeclParameterType::Bool(Some(false)))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/bool "hoge" :default false)"#),
+            expected_type(DeclPrimitiveParameterType::Bool(Some(false)))
         );
     }
 
     #[test]
     fn reads_float() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/float "hoge")"#),
-            expected_type(DeclParameterType::Float(None))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/float "hoge")"#),
+            expected_type(DeclPrimitiveParameterType::Float(None))
         );
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/float "hoge" :default 1.5)"#),
-            expected_type(DeclParameterType::Float(Some(1.5)))
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/float "hoge" :default 1.5)"#),
+            expected_type(DeclPrimitiveParameterType::Float(Some(1.5)))
         );
     }
 
     #[test]
     fn parses_scope() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'internal)"#),
-            expected_scope(DeclParameterScope::Internal)
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'internal)"#),
+            expected_scope(DeclPrimitiveParameterScope::Internal)
         );
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'local)"#),
-            expected_scope(DeclParameterScope::Local)
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'local)"#),
+            expected_scope(DeclPrimitiveParameterScope::Local)
         );
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'synced)"#),
-            expected_scope(DeclParameterScope::Synced)
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'synced)"#),
+            expected_scope(DeclPrimitiveParameterScope::Synced)
         );
     }
 
     #[test]
     fn parses_save() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :save true)"#),
-            DeclParameter {
-                ty: DeclParameterType::Int(None),
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :save true)"#),
+            DeclPrimitiveParameter {
+                ty: DeclPrimitiveParameterType::Int(None),
                 name: "hoge".to_string(),
                 scope: None,
                 save: Some(true),
@@ -237,9 +243,9 @@ mod test {
     #[test]
     fn parses_unique() {
         assert_eq!(
-            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :unique true)"#),
-            DeclParameter {
-                ty: DeclParameterType::Int(None),
+            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :unique true)"#),
+            DeclPrimitiveParameter {
+                ty: DeclPrimitiveParameterType::Int(None),
                 name: "hoge".to_string(),
                 scope: None,
                 save: None,
@@ -248,8 +254,8 @@ mod test {
         );
     }
 
-    fn expected_type(ty: DeclParameterType) -> DeclParameter {
-        DeclParameter {
+    fn expected_type(ty: DeclPrimitiveParameterType) -> DeclPrimitiveParameter {
+        DeclPrimitiveParameter {
             ty,
             name: "hoge".to_string(),
             scope: None,
@@ -258,9 +264,9 @@ mod test {
         }
     }
 
-    fn expected_scope(s: DeclParameterScope) -> DeclParameter {
-        DeclParameter {
-            ty: DeclParameterType::Int(None),
+    fn expected_scope(s: DeclPrimitiveParameterScope) -> DeclPrimitiveParameter {
+        DeclPrimitiveParameter {
+            ty: DeclPrimitiveParameterType::Int(None),
             name: "hoge".to_string(),
             scope: Some(s),
             save: None,
