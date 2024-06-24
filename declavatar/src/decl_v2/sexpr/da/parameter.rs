@@ -1,7 +1,7 @@
 use crate::decl_v2::{
     data::parameter::{
-        DeclParameter, DeclParameters, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
-        DeclPrimitiveParameterType,
+        DeclParameter, DeclParameters, DeclPhysBoneParameter, DeclPrimitiveParameter,
+        DeclPrimitiveParameterScope, DeclPrimitiveParameterType, DeclProvidedParameterKind,
     },
     sexpr::{
         argument::SeparateArguments,
@@ -41,6 +41,20 @@ pub fn register_parameter_function(scope: &Scope) {
         declare_float,
         Arity::Exact(1),
         Some(PARAMETER_KEYWORDS),
+    );
+    register_function(
+        scope,
+        "vrc-paramset",
+        declare_vrc_paramset,
+        Arity::Min(0),
+        Some(&[]),
+    );
+    register_function(
+        scope,
+        "pb-paramset",
+        declare_pb_paramset,
+        Arity::Exact(1),
+        Some(&[]),
     );
 }
 
@@ -138,11 +152,53 @@ fn expect_scope(name_store: &NameStore, value: &Value) -> KetosResult<DeclPrimit
     }
 }
 
+fn declare_vrc_paramset(
+    name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let mut kinds = vec![];
+    for decl_kind in args.args_after_recursive(function_name, 0)? {
+        let kind = expect_provided_kind(name_store, decl_kind)?;
+        kinds.push(kind);
+    }
+
+    Ok(DeclParameter::Provided(kinds).into())
+}
+
+fn expect_provided_kind(
+    name_store: &NameStore,
+    value: &Value,
+) -> KetosResult<DeclProvidedParameterKind> {
+    let Value::Name(name) = value else {
+        return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
+    };
+
+    match name_store.get(*name).parse() {
+        Ok(kind) => Ok(kind),
+        Err(n) => Err(Error::Custom(
+            DeclSexprError::InvalidVrchatParameter(n).into(),
+        )),
+    }
+}
+
+fn declare_pb_paramset(
+    _name_store: &NameStore,
+    function_name: Name,
+    args: SeparateArguments,
+) -> KetosResult<Value> {
+    let prefix: &str = args.exact_arg(function_name, 0)?;
+    Ok(DeclParameter::PhysBone(DeclPhysBoneParameter {
+        prefix: prefix.to_string(),
+    })
+    .into())
+}
+
 #[cfg(test)]
 mod test {
     use crate::decl_v2::{
         data::parameter::{
-            DeclParameters, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
+            DeclParameter, DeclParameters, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
             DeclPrimitiveParameterType,
         },
         sexpr::test::eval_da_value,
@@ -177,11 +233,11 @@ mod test {
     #[test]
     fn reads_int() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge")"#),
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge")"#),
             expected_type(DeclPrimitiveParameterType::Int(None))
         );
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :default 1)"#),
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :default 1)"#),
             expected_type(DeclPrimitiveParameterType::Int(Some(1)))
         );
     }
@@ -189,11 +245,11 @@ mod test {
     #[test]
     fn reads_bool() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/bool "hoge")"#),
+            eval_da_value::<DeclParameter>(r#"(da/bool "hoge")"#),
             expected_type(DeclPrimitiveParameterType::Bool(None))
         );
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/bool "hoge" :default false)"#),
+            eval_da_value::<DeclParameter>(r#"(da/bool "hoge" :default false)"#),
             expected_type(DeclPrimitiveParameterType::Bool(Some(false)))
         );
     }
@@ -201,11 +257,11 @@ mod test {
     #[test]
     fn reads_float() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/float "hoge")"#),
+            eval_da_value::<DeclParameter>(r#"(da/float "hoge")"#),
             expected_type(DeclPrimitiveParameterType::Float(None))
         );
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/float "hoge" :default 1.5)"#),
+            eval_da_value::<DeclParameter>(r#"(da/float "hoge" :default 1.5)"#),
             expected_type(DeclPrimitiveParameterType::Float(Some(1.5)))
         );
     }
@@ -213,15 +269,15 @@ mod test {
     #[test]
     fn parses_scope() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'internal)"#),
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'internal)"#),
             expected_scope(DeclPrimitiveParameterScope::Internal)
         );
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'local)"#),
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'local)"#),
             expected_scope(DeclPrimitiveParameterScope::Local)
         );
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :scope 'synced)"#),
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :scope 'synced)"#),
             expected_scope(DeclPrimitiveParameterScope::Synced)
         );
     }
@@ -229,48 +285,48 @@ mod test {
     #[test]
     fn parses_save() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :save true)"#),
-            DeclPrimitiveParameter {
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :save true)"#),
+            DeclParameter::Primitive(DeclPrimitiveParameter {
                 ty: DeclPrimitiveParameterType::Int(None),
                 name: "hoge".to_string(),
                 scope: None,
                 save: Some(true),
                 unique: None,
-            }
+            })
         );
     }
 
     #[test]
     fn parses_unique() {
         assert_eq!(
-            eval_da_value::<DeclPrimitiveParameter>(r#"(da/int "hoge" :unique true)"#),
-            DeclPrimitiveParameter {
+            eval_da_value::<DeclParameter>(r#"(da/int "hoge" :unique true)"#),
+            DeclParameter::Primitive(DeclPrimitiveParameter {
                 ty: DeclPrimitiveParameterType::Int(None),
                 name: "hoge".to_string(),
                 scope: None,
                 save: None,
                 unique: Some(true),
-            }
+            })
         );
     }
 
-    fn expected_type(ty: DeclPrimitiveParameterType) -> DeclPrimitiveParameter {
-        DeclPrimitiveParameter {
+    fn expected_type(ty: DeclPrimitiveParameterType) -> DeclParameter {
+        DeclParameter::Primitive(DeclPrimitiveParameter {
             ty,
             name: "hoge".to_string(),
             scope: None,
             save: None,
             unique: None,
-        }
+        })
     }
 
-    fn expected_scope(s: DeclPrimitiveParameterScope) -> DeclPrimitiveParameter {
-        DeclPrimitiveParameter {
+    fn expected_scope(s: DeclPrimitiveParameterScope) -> DeclParameter {
+        DeclParameter::Primitive(DeclPrimitiveParameter {
             ty: DeclPrimitiveParameterType::Int(None),
             name: "hoge".to_string(),
             scope: Some(s),
             save: None,
             unique: None,
-        }
+        })
     }
 }

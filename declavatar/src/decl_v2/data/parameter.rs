@@ -1,5 +1,7 @@
 use crate::static_type_name_impl;
 
+use std::str::FromStr;
+
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
@@ -12,7 +14,7 @@ static_type_name_impl!(DeclParameters);
 pub enum DeclParameter {
     Primitive(DeclPrimitiveParameter),
     PhysBone(DeclPhysBoneParameter),
-    Provided(DeclProvidedParameterKind),
+    Provided(Vec<DeclProvidedParameterKind>),
 }
 static_type_name_impl!(DeclParameter);
 
@@ -61,6 +63,7 @@ pub enum DeclProvidedParameterKind {
     VelocityZ,
     VelocityMagnitude,
     Upright,
+    Grounded,
     Seated,
     Afk,
     TrackingType,
@@ -75,4 +78,43 @@ pub enum DeclProvidedParameterKind {
     ScaleFactorInverse,
     EyeHeightAsMeters,
     EyeHeightAsPercent,
+}
+
+impl FromStr for DeclProvidedParameterKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let kind = match s {
+            "is-local" => DeclProvidedParameterKind::IsLocal,
+            "viseme" => DeclProvidedParameterKind::Viseme,
+            "voice" => DeclProvidedParameterKind::Voice,
+            "gesture-left" => DeclProvidedParameterKind::GestureLeft,
+            "gesture-right" => DeclProvidedParameterKind::GestureRight,
+            "gesture-left-weight" => DeclProvidedParameterKind::GestureLeftWeight,
+            "gesture-right-weight" => DeclProvidedParameterKind::GestureRightWeight,
+            "angular-y" => DeclProvidedParameterKind::AngularY,
+            "velocity-x" => DeclProvidedParameterKind::VelocityX,
+            "velocity-y" => DeclProvidedParameterKind::VelocityY,
+            "velocity-z" => DeclProvidedParameterKind::VelocityZ,
+            "velocity-magnitude" => DeclProvidedParameterKind::VelocityMagnitude,
+            "upright" => DeclProvidedParameterKind::Upright,
+            "grounded" => DeclProvidedParameterKind::Grounded,
+            "seated" => DeclProvidedParameterKind::Seated,
+            "afk" => DeclProvidedParameterKind::Afk,
+            "tracking-type" => DeclProvidedParameterKind::TrackingType,
+            "vr-mode" => DeclProvidedParameterKind::VrMode,
+            "mute-self" => DeclProvidedParameterKind::MuteSelf,
+            "in-station" => DeclProvidedParameterKind::InStation,
+            "earmuffs" => DeclProvidedParameterKind::Earmuffs,
+            "is-on-friends-list" => DeclProvidedParameterKind::IsOnFriendsList,
+            "avatar-version" => DeclProvidedParameterKind::AvatarVersion,
+            "scale-modified" => DeclProvidedParameterKind::ScaleModified,
+            "scale-factor" => DeclProvidedParameterKind::ScaleFactor,
+            "scale-factor-inverse" => DeclProvidedParameterKind::ScaleFactorInverse,
+            "eye-height-as-meters" => DeclProvidedParameterKind::EyeHeightAsMeters,
+            "eye-height-as-percent" => DeclProvidedParameterKind::EyeHeightAsPercent,
+            _ => return Err(s.to_string()),
+        };
+        Ok(kind)
+    }
 }

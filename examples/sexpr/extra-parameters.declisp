@@ -8,7 +8,7 @@
         (da/float "OrdinaryFloat")
 
         (da/vrc-paramset
-            'left-gesture-weight
+            'gesture-left-weight
         )
         (da/pb-paramset "PBPrefix")
     )
