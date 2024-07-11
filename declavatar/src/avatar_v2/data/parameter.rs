@@ -4,9 +4,18 @@ use serde::Serialize;
 pub struct Parameter {
     pub name: String,
     pub value_type: ParameterType,
-    pub scope: ParameterScope,
-    pub unique: bool,
-    pub explicit_default: bool,
+    pub description: ParameterDescription,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "kind", content = "content")]
+pub enum ParameterDescription {
+    Provided,
+    Declared {
+        scope: ParameterScope,
+        unique: bool,
+        explicit_default: bool,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]

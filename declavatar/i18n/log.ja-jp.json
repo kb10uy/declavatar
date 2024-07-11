@@ -10,6 +10,7 @@
     "parameter.not_found": "パラメーター定義エラー",
     "parameter.type_requirement": "パラメーター定義エラー",
     "parameter.scope_requirement": "パラメーター定義エラー",
+    "parameter.not_writable": "パラメーター定義エラー",
 
     "asset.incompatible_declaration": "アセット定義エラー",
     "asset.not_found": "アセット定義エラー",
@@ -52,6 +53,7 @@
     "parameter.not_found:description": "パラメーター '{0}' が存在しません",
     "parameter.type_requirement:description": "パラメーター '{0}' の型は {1} でなければなりません",
     "parameter.scope_requirement:description": "パラメーター '{0}' のスコープは {1} でなければなりません",
+    "parameter.not_writable:description": "パラメーター '{0}' がには書き込めません",
 
     "asset.incompatible_declaration:description": "アセット '{0}' の互換性がない定義が複数存在します",
     "asset.not_found:description": "アセット '{0}' が存在しません",

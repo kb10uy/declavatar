@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::parameter::{Parameter, ParameterScope, ParameterType},
+        data::parameter::{Parameter, ParameterDescription, ParameterScope, ParameterType},
         log::Log,
         transformer::{failure, success, Compiled},
     },
@@ -68,8 +68,14 @@ fn compile_primitive_parameter(
         }
     };
 
+    let description = ParameterDescription::Declared {
+        scope,
+        unique: decl_parameter.unique.unwrap_or(false),
+        explicit_default,
+    };
+
     if let Some(defined) = declared.iter().find(|p| p.name == decl_parameter.name) {
-        if defined.value_type != value_type || defined.scope != scope {
+        if defined.value_type != value_type || defined.description != description {
             logger.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
         }
         return failure();
@@ -78,8 +84,6 @@ fn compile_primitive_parameter(
     success(Parameter {
         name,
         value_type,
-        scope,
-        unique: decl_parameter.unique.unwrap_or(false),
-        explicit_default,
+        description,
     })
 }

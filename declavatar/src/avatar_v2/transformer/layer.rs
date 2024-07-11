@@ -7,7 +7,7 @@ use crate::{
                 LayerRawAnimationKind, LayerRawBlendTreeType, LayerRawCondition, LayerRawField,
                 LayerRawState, LayerRawTransition, Target,
             },
-            parameter::{ParameterScope, ParameterType},
+            parameter::ParameterType,
         },
         log::Log,
         transformer::{
@@ -101,11 +101,10 @@ pub fn compile_group_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("group layer '{}'", decl_group_layer.name));
 
-    let bound_parameter = first_pass.find_parameter(
+    first_pass.find_read_parameter(
         &logger,
         &decl_group_layer.driven_by,
         ParameterType::INT_TYPE,
-        ParameterScope::MAYBE_INTERNAL,
     )?;
     let default_mesh = decl_group_layer.default_mesh.as_deref();
 
@@ -201,7 +200,7 @@ pub fn compile_group_layer(
     success(Layer {
         name: decl_group_layer.name,
         content: LayerContent::Group {
-            parameter: bound_parameter.name.to_string(),
+            parameter: decl_group_layer.driven_by,
             default,
             options,
         },
@@ -239,16 +238,11 @@ pub fn compile_switch_layer(
 
     match (decl_switch_layer.driven_by, decl_switch_layer.with_gate) {
         (Some(db), None) => {
-            let bound_parameter = first_pass.find_parameter(
-                &logger,
-                &db,
-                ParameterType::BOOL_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            )?;
+            first_pass.find_read_parameter(&logger, &db, ParameterType::BOOL_TYPE)?;
             success(Layer {
                 name: decl_switch_layer.name,
                 content: LayerContent::Switch {
-                    parameter: bound_parameter.name.to_string(),
+                    parameter: db,
                     disabled,
                     enabled,
                 },
@@ -279,11 +273,10 @@ pub fn compile_puppet_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("puppet layer '{}'", decl_puppet_layer.name));
 
-    let bound_parameter = first_pass.find_parameter(
+    first_pass.find_read_parameter(
         &logger,
         &decl_puppet_layer.driven_by,
         ParameterType::FLOAT_TYPE,
-        ParameterScope::MAYBE_INTERNAL,
     )?;
     let default_mesh = decl_puppet_layer.default_mesh.as_deref();
 
@@ -321,7 +314,7 @@ pub fn compile_puppet_layer(
     success(Layer {
         name: decl_puppet_layer.name,
         content: LayerContent::Puppet {
-            parameter: bound_parameter.name.to_string(),
+            parameter: decl_puppet_layer.driven_by,
             animation,
         },
     })
@@ -689,12 +682,7 @@ fn compile_raw_condition(
 ) -> Compiled<LayerRawCondition> {
     let condition = match decl_condition {
         DeclRawLayerTransitionCondition::Bool(name, value) => {
-            first_pass.find_parameter(
-                logger,
-                &name,
-                ParameterType::BOOL_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            )?;
+            first_pass.find_read_parameter(logger, &name, ParameterType::BOOL_TYPE)?;
             if value {
                 LayerRawCondition::Be(name)
             } else {
@@ -702,12 +690,7 @@ fn compile_raw_condition(
             }
         }
         DeclRawLayerTransitionCondition::Int(name, order, value) => {
-            first_pass.find_parameter(
-                logger,
-                &name,
-                ParameterType::INT_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            )?;
+            first_pass.find_read_parameter(logger, &name, ParameterType::INT_TYPE)?;
             match order {
                 DeclRawLayerTransitionOrdering::Equal => LayerRawCondition::EqInt(name, value),
                 DeclRawLayerTransitionOrdering::NotEqual => LayerRawCondition::NeqInt(name, value),
@@ -716,12 +699,7 @@ fn compile_raw_condition(
             }
         }
         DeclRawLayerTransitionCondition::Float(name, order, value) => {
-            first_pass.find_parameter(
-                logger,
-                &name,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            )?;
+            first_pass.find_read_parameter(logger, &name, ParameterType::FLOAT_TYPE)?;
             match order {
                 DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtFloat(name, value),
                 DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeFloat(name, value),
@@ -732,9 +710,8 @@ fn compile_raw_condition(
             }
         }
         DeclRawLayerTransitionCondition::Zero(name, not_zero) => {
-            let parameter =
-                first_pass.find_parameter_untyped(logger, &name, ParameterScope::MAYBE_INTERNAL)?;
-            match parameter.value_type {
+            let (value_type, _) = first_pass.find_untyped_parameter(logger, &name)?;
+            match value_type {
                 ParameterType::Int(_) => {
                     if not_zero {
                         LayerRawCondition::NeqInt(name, 0)

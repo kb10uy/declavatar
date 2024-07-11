@@ -5,7 +5,7 @@ use crate::{
                 BiAxis, MenuBoolean, MenuFourAxis, MenuGroup, MenuItem, MenuRadial, MenuTwoAxis,
                 UniAxis,
             },
-            parameter::{ParameterScope, ParameterType},
+            parameter::ParameterType,
         },
         log::Log,
         transformer::{failure, success, Compiled, FirstPassData},
@@ -77,61 +77,40 @@ fn compile_boolean(
     });
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
-            let (parameter, options) =
-                first_pass.find_group(&logger, &dg.group, ParameterScope::MUST_EXPOSE)?;
+            let (parameter, options) = first_pass.find_group(&logger, &dg.group)?;
+            first_pass.find_writable_parameter(&logger, parameter, ParameterType::INT_TYPE)?;
             let Some((_, value)) = options.iter().find(|(name, _)| name == &dg.option) else {
                 logger.log(Log::LayerOptionNotFound(dg.option));
                 return failure();
             };
-
             (parameter.to_string(), ParameterType::Int(*value as u8))
         }
         DeclParameterDrive::Switch(ds) => {
-            let parameter =
-                first_pass.find_switch(&logger, &ds.switch, ParameterScope::MUST_EXPOSE)?;
-
+            let parameter = first_pass.find_switch(&logger, &ds.switch)?;
+            first_pass.find_writable_parameter(&logger, parameter, ParameterType::INT_TYPE)?;
             (
                 parameter.to_string(),
                 ParameterType::Bool(ds.value.unwrap_or(true)),
             )
         }
         DeclParameterDrive::Puppet(dp) => {
-            let parameter =
-                first_pass.find_puppet(&logger, &dp.puppet, ParameterScope::MUST_EXPOSE)?;
-
+            let parameter = first_pass.find_puppet(&logger, &dp.puppet)?;
+            first_pass.find_writable_parameter(&logger, parameter, ParameterType::INT_TYPE)?;
             (
                 parameter.to_string(),
                 ParameterType::Float(dp.value.unwrap_or(1.0)),
             )
         }
         DeclParameterDrive::SetInt { parameter, value } => {
-            first_pass.find_parameter(
-                &logger,
-                &parameter,
-                ParameterType::INT_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
-
+            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::INT_TYPE)?;
             (parameter, ParameterType::Int(value as u8))
         }
         DeclParameterDrive::SetBool { parameter, value } => {
-            first_pass.find_parameter(
-                &logger,
-                &parameter,
-                ParameterType::BOOL_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
-
+            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::BOOL_TYPE)?;
             (parameter, ParameterType::Bool(value.unwrap_or(true)))
         }
         DeclParameterDrive::SetFloat { parameter, value } => {
-            first_pass.find_parameter(
-                &logger,
-                &parameter,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
-
+            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::FLOAT_TYPE)?;
             (parameter, ParameterType::Float(value.unwrap_or(1.0)))
         }
         _ => {
@@ -216,17 +195,12 @@ fn take_puppet_parameter(
 ) -> Compiled<String> {
     let parameter = match dpt {
         DeclPuppetTarget::Puppet(dp) => {
-            let parameter =
-                first_pass.find_puppet(logger, &dp.puppet, ParameterScope::MUST_EXPOSE)?;
+            let parameter = first_pass.find_puppet(logger, &dp.puppet)?;
+            first_pass.find_writable_parameter(logger, parameter, ParameterType::FLOAT_TYPE)?;
             parameter.to_string()
         }
         DeclPuppetTarget::Parameter(parameter) => {
-            first_pass.find_parameter(
-                logger,
-                &parameter,
-                ParameterType::FLOAT_TYPE,
-                ParameterScope::MUST_EXPOSE,
-            )?;
+            first_pass.find_writable_parameter(logger, &parameter, ParameterType::FLOAT_TYPE)?;
             parameter
         }
     };
