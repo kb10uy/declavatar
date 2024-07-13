@@ -72,11 +72,7 @@ impl DeclavatarState {
         DeclavatarStatus::Success
     }
 
-    pub fn compile(
-        &self,
-        source: &str,
-        format: DeclarationFormat,
-    ) -> (CompiledState, DeclavatarStatus) {
+    pub fn compile(&self, source: &str, format: DeclarationFormat) -> (CompiledState, DeclavatarStatus) {
         let decl_avatar = match compile_declaration(source, format, self.args.clone()) {
             Ok(avatar) => avatar,
             Err(err) => {
@@ -125,9 +121,7 @@ pub struct CompiledState {
 
 impl CompiledState {
     pub fn avatar_json(&self) -> Option<&str> {
-        self.avatar
-            .as_ref()
-            .map(|a| a.json().expect("should be serialized"))
+        self.avatar.as_ref().map(|a| a.json().expect("should be serialized"))
     }
 
     pub fn logs_len(&self) -> usize {
@@ -135,8 +129,6 @@ impl CompiledState {
     }
 
     pub fn log_json(&self, index: usize) -> Option<&str> {
-        self.logs
-            .get(index)
-            .map(|a| a.json().expect("should be serialized"))
+        self.logs.get(index).map(|a| a.json().expect("should be serialized"))
     }
 }

@@ -11,36 +11,20 @@ pub fn register_export_function(scope: &Scope) {
     register_function(scope, "guard", declare_guard, Arity::Exact(2), Some(&[]));
 }
 
-fn declare_exports(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_exports(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let mut exports = vec![];
     for export_value in args.args_after_recursive(function_name, 0)? {
-        exports.push(
-            export_value
-                .downcast_foreign_ref::<&DeclExport>()
-                .cloned()?,
-        );
+        exports.push(export_value.downcast_foreign_ref::<&DeclExport>().cloned()?);
     }
     Ok(DeclExports { exports }.into())
 }
 
-fn declare_gate(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_gate(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclExport::Gate(name.to_string()).into())
 }
 
-fn declare_guard(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_guard(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let gate_name: &str = args.exact_arg(function_name, 0)?;
     let parameter: &str = args.exact_arg(function_name, 1)?;
     Ok(DeclExport::Guard(gate_name.to_string(), parameter.to_string()).into())
@@ -68,9 +52,7 @@ mod test {
             }
         );
         assert_eq!(
-            eval_da_value::<DeclExports>(
-                r#"(da/exports (list (da/gate "hoge") (da/guard "fuga" "piyo")))"#
-            ),
+            eval_da_value::<DeclExports>(r#"(da/exports (list (da/gate "hoge") (da/guard "fuga" "piyo")))"#),
             DeclExports {
                 exports: vec![
                     DeclExport::Gate("hoge".to_string()),

@@ -25,8 +25,7 @@ static TEST_ARGUMENTS: Lazy<Arguments> = Lazy::new(|| {
 });
 
 static TEST_ARBITTACH: Lazy<Attachment> = Lazy::new(|| {
-    serde_json::from_str(include_str!("../../examples/arbittach/game-object.json"))
-        .expect("failed to deserialize")
+    serde_json::from_str(include_str!("../../examples/arbittach/game-object.json")).expect("failed to deserialize")
 });
 
 #[rstest]
@@ -34,9 +33,8 @@ fn compiles_all_sexpr_examples(#[files("../examples/sexpr/*.declisp")] filename:
     let source = read_to_string(&filename).expect("source file should exist");
 
     println!("compiling {:?}", filename.canonicalize().unwrap());
-    let decl_avatar =
-        compile_declaration(&source, DeclarationFormat::Sexpr, TEST_ARGUMENTS.clone())
-            .expect("declaration file load failure");
+    let decl_avatar = compile_declaration(&source, DeclarationFormat::Sexpr, TEST_ARGUMENTS.clone())
+        .expect("declaration file load failure");
 
     let mut transformer = Transformer::new();
     transformer.register_arbittach_schema(TEST_ARBITTACH.clone());

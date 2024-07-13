@@ -1,7 +1,6 @@
 use crate::decl_v2::{
     data::driver::{
-        DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive, DeclTrackingControl,
-        DeclTrackingTarget,
+        DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive, DeclTrackingControl, DeclTrackingTarget,
     },
     sexpr::{argument::SeparateArguments, error::KetosResult, register_function},
 };
@@ -9,13 +8,7 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
 
 pub fn register_driver_function(scope: &Scope) {
-    register_function(
-        scope,
-        "drive-group",
-        declare_drive_group,
-        Arity::Exact(2),
-        Some(&[]),
-    );
+    register_function(scope, "drive-group", declare_drive_group, Arity::Exact(2), Some(&[]));
     register_function(
         scope,
         "drive-switch",
@@ -31,27 +24,9 @@ pub fn register_driver_function(scope: &Scope) {
         Some(&[]),
     );
 
-    register_function(
-        scope,
-        "drive-int",
-        declare_drive_int,
-        Arity::Exact(2),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "drive-bool",
-        declare_drive_bool,
-        Arity::Exact(1),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "drive-float",
-        declare_drive_float,
-        Arity::Exact(1),
-        Some(&[]),
-    );
+    register_function(scope, "drive-int", declare_drive_int, Arity::Exact(2), Some(&[]));
+    register_function(scope, "drive-bool", declare_drive_bool, Arity::Exact(1), Some(&[]));
+    register_function(scope, "drive-float", declare_drive_float, Arity::Exact(1), Some(&[]));
 
     register_function(
         scope,
@@ -82,20 +57,10 @@ pub fn register_driver_function(scope: &Scope) {
         Some(&[]),
     );
 
-    register_function(
-        scope,
-        "set-tracking",
-        declare_set_tracking,
-        Arity::Min(1),
-        Some(&[]),
-    );
+    register_function(scope, "set-tracking", declare_set_tracking, Arity::Min(1), Some(&[]));
 }
 
-fn declare_drive_group(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_group(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let group: &str = args.exact_arg(function_name, 0)?;
     let option: &str = args.exact_arg(function_name, 1)?;
 
@@ -106,11 +71,7 @@ fn declare_drive_group(
     .into())
 }
 
-fn declare_drive_switch(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_switch(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let switch: &str = args.exact_arg(function_name, 0)?;
     let value: Option<bool> = args.try_exact_arg(1)?;
 
@@ -121,11 +82,7 @@ fn declare_drive_switch(
     .into())
 }
 
-fn declare_drive_puppet(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_puppet(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let puppet: &str = args.exact_arg(function_name, 0)?;
     let value: Option<f64> = args.try_exact_arg(1)?;
 
@@ -136,11 +93,7 @@ fn declare_drive_puppet(
     .into())
 }
 
-fn declare_drive_int(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_int(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
     let value: i64 = args.exact_arg(function_name, 1)?;
 
@@ -151,11 +104,7 @@ fn declare_drive_int(
     .into())
 }
 
-fn declare_drive_bool(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_bool(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
 
     Ok(DeclParameterDrive::SetBool {
@@ -165,11 +114,7 @@ fn declare_drive_bool(
     .into())
 }
 
-fn declare_drive_float(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_drive_float(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
 
     Ok(DeclParameterDrive::SetFloat {
@@ -179,11 +124,7 @@ fn declare_drive_float(
     .into())
 }
 
-fn declare_set_parameter(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_set_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
@@ -213,11 +154,7 @@ fn declare_set_parameter(
     Ok(drive.into())
 }
 
-fn declare_add_parameter(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_add_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let parameter: &str = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
@@ -227,10 +164,7 @@ fn declare_add_parameter(
             parameter,
             value: v.to_i64().expect("failed to convert"),
         },
-        Value::Float(v) => DeclParameterDrive::AddFloat {
-            parameter,
-            value: *v,
-        },
+        Value::Float(v) => DeclParameterDrive::AddFloat { parameter, value: *v },
         v => {
             return Err(Error::ExecError(ExecError::TypeError {
                 expected: "int or float",
@@ -272,10 +206,7 @@ fn declare_random_parameter(
                 }));
             }
         }
-        Value::Float(v) => DeclParameterDrive::RandomBool {
-            parameter,
-            value: *v,
-        },
+        Value::Float(v) => DeclParameterDrive::RandomBool { parameter, value: *v },
         v => {
             return Err(Error::ExecError(ExecError::TypeError {
                 expected: "float or int/float pair",
@@ -288,11 +219,7 @@ fn declare_random_parameter(
     Ok(drive.into())
 }
 
-fn declare_copy_parameter(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_copy_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let from: &str = args.exact_arg(function_name, 0)?;
     let to: &str = args.exact_arg(function_name, 1)?;
     let from_range: Option<(f64, f64)> = args.try_exact_arg(2)?;
@@ -311,11 +238,7 @@ fn declare_copy_parameter(
     .into())
 }
 
-fn declare_set_tracking(
-    name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_set_tracking(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let animation_desired = match args.exact_arg::<&Value>(function_name, 0)? {
         Value::Name(n) => match name_store.get(*n) {
             "animation" => true,

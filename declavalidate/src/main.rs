@@ -8,10 +8,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 use declavatar::{
     avatar_v2::Transformer,
-    decl_v2::{
-        compile_declaration, data::avatar::DeclAvatar, Arguments as DeclArguments,
-        DeclarationFormat,
-    },
+    decl_v2::{compile_declaration, data::avatar::DeclAvatar, Arguments as DeclArguments, DeclarationFormat},
     i18n::get_log_messages,
 };
 use strfmt::Format;
@@ -122,16 +119,13 @@ impl I18nLog {
     }
 
     fn localize(&self, kind: String, args: Vec<String>) -> String {
-        let Some(base) = self.localization.get(&kind) else {
+        let title = self.localization.get(&kind).unwrap_or(&kind);
+        let Some(description) = self.localization.get(&format!("{kind}:description")) else {
             return kind;
         };
-        base.format(
-            &args
-                .into_iter()
-                .enumerate()
-                .map(|(i, a)| (i.to_string(), a))
-                .collect(),
-        )
-        .expect("failed to localize")
+        let formatted = description
+            .format(&args.into_iter().enumerate().map(|(i, a)| (i.to_string(), a)).collect())
+            .expect("failed to localize");
+        format!("{title}: {formatted}")
     }
 }

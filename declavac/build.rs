@@ -3,8 +3,7 @@ use csbindgen::Builder as CsBindgenBuilder;
 
 fn main() {
     let crate_dir = env!("CARGO_MANIFEST_DIR");
-    let cbindgen_config =
-        CBindgenConfig::from_file("../cbindgen.toml").expect("failed to read cbindgen.toml");
+    let cbindgen_config = CBindgenConfig::from_file("../cbindgen.toml").expect("failed to read cbindgen.toml");
 
     static_vcruntime::metabuild();
 

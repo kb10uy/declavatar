@@ -87,14 +87,10 @@ pub fn compile_tracking_control(
     _first_pass: &FirstPassData,
     decl_tracking_control: DeclTrackingControl,
 ) -> Compiled<impl Iterator<Item = TrackingControl>> {
-    let tracking_controls =
-        decl_tracking_control
-            .targets
-            .into_iter()
-            .map(move |t| TrackingControl {
-                animation_desired: decl_tracking_control.animation_desired,
-                target: t.into(),
-            });
+    let tracking_controls = decl_tracking_control.targets.into_iter().map(move |t| TrackingControl {
+        animation_desired: decl_tracking_control.animation_desired,
+        target: t.into(),
+    });
 
     success(tracking_controls)
 }

@@ -1,6 +1,5 @@
 use crate::avatar_v2::data::{
-    asset::Asset, attachment::Attachment, export::ExportItem, layer::Layer, menu::MenuItem,
-    parameter::Parameter,
+    asset::Asset, attachment::Attachment, export::ExportItem, layer::Layer, menu::MenuItem, parameter::Parameter,
 };
 
 use serde::Serialize;

@@ -3,24 +3,21 @@ use crate::{
         data::{
             asset::AssetType,
             layer::{
-                Layer, LayerAnimation, LayerContent, LayerGroupOption, LayerPuppetKeyframe,
-                LayerRawAnimationKind, LayerRawBlendTreeType, LayerRawCondition, LayerRawField,
-                LayerRawState, LayerRawTransition, Target,
+                Layer, LayerAnimation, LayerContent, LayerGroupOption, LayerPuppetKeyframe, LayerRawAnimationKind,
+                LayerRawBlendTreeType, LayerRawCondition, LayerRawField, LayerRawState, LayerRawTransition, Target,
             },
             parameter::ParameterType,
         },
         log::Log,
         transformer::{
             driver::{compile_parameter_drive, compile_tracking_control},
-            failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData,
-            UnsetValue,
+            failure, success, Compiled, DeclaredLayer, DeclaredLayerType, FirstPassData, UnsetValue,
         },
     },
     decl_v2::data::layer::{
-        DeclGroupCopyMode, DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer,
-        DeclRawLayer, DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeType,
-        DeclRawLayerTransition, DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering,
-        DeclSwitchLayer,
+        DeclGroupCopyMode, DeclGroupLayer, DeclGroupOption, DeclGroupOptionTarget, DeclPuppetLayer, DeclRawLayer,
+        DeclRawLayerAnimation, DeclRawLayerAnimationKind, DeclRawLayerBlendTreeType, DeclRawLayerTransition,
+        DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering, DeclSwitchLayer,
     },
     log::Logger,
 };
@@ -33,10 +30,7 @@ use std::{
 
 use either::{Either, Left, Right};
 
-pub fn first_pass_group_layer(
-    _logger: &Logger<Log>,
-    decl_group_layer: &DeclGroupLayer,
-) -> Compiled<DeclaredLayer> {
+pub fn first_pass_group_layer(_logger: &Logger<Log>, decl_group_layer: &DeclGroupLayer) -> Compiled<DeclaredLayer> {
     // if it compiles, order will be preserved
     let option_names = decl_group_layer
         .options
@@ -50,10 +44,7 @@ pub fn first_pass_group_layer(
     })
 }
 
-pub fn first_pass_switch_layer(
-    _logger: &Logger<Log>,
-    decl_switch_layer: &DeclSwitchLayer,
-) -> Compiled<DeclaredLayer> {
+pub fn first_pass_switch_layer(_logger: &Logger<Log>, decl_switch_layer: &DeclSwitchLayer) -> Compiled<DeclaredLayer> {
     match (&decl_switch_layer.driven_by, &decl_switch_layer.with_gate) {
         (Some(db), None) => success(DeclaredLayer {
             name: decl_switch_layer.name.clone(),
@@ -67,26 +58,16 @@ pub fn first_pass_switch_layer(
     }
 }
 
-pub fn first_pass_puppet_layer(
-    _logger: &Logger<Log>,
-    decl_puppet_layer: &DeclPuppetLayer,
-) -> Compiled<DeclaredLayer> {
+pub fn first_pass_puppet_layer(_logger: &Logger<Log>, decl_puppet_layer: &DeclPuppetLayer) -> Compiled<DeclaredLayer> {
     success(DeclaredLayer {
         name: decl_puppet_layer.name.clone(),
         layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone()),
     })
 }
 
-pub fn first_pass_raw_layer(
-    _logger: &Logger<Log>,
-    decl_raw_layer: &DeclRawLayer,
-) -> Compiled<DeclaredLayer> {
+pub fn first_pass_raw_layer(_logger: &Logger<Log>, decl_raw_layer: &DeclRawLayer) -> Compiled<DeclaredLayer> {
     // if it compiles, order will be preserved
-    let state_names = decl_raw_layer
-        .states
-        .iter()
-        .map(|s| s.name.clone())
-        .collect();
+    let state_names = decl_raw_layer.states.iter().map(|s| s.name.clone()).collect();
 
     success(DeclaredLayer {
         name: decl_raw_layer.name.clone(),
@@ -101,11 +82,7 @@ pub fn compile_group_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("group layer '{}'", decl_group_layer.name));
 
-    first_pass.find_read_parameter(
-        &logger,
-        &decl_group_layer.driven_by,
-        ParameterType::INT_TYPE,
-    )?;
+    first_pass.find_read_parameter(&logger, &decl_group_layer.driven_by, ParameterType::INT_TYPE)?;
     let default_mesh = decl_group_layer.default_mesh.as_deref();
 
     let mut default = match decl_group_layer
@@ -126,13 +103,9 @@ pub fn compile_group_layer(
 
     let mut options = vec![];
     for (index, decl_option) in decl_group_layer.options.into_iter().enumerate() {
-        let Some((Some(name), explicit_index, animation)) = compile_group_option(
-            &logger,
-            first_pass,
-            decl_option,
-            default_mesh,
-            UnsetValue::Active,
-        ) else {
+        let Some((Some(name), explicit_index, animation)) =
+            compile_group_option(&logger, first_pass, decl_option, default_mesh, UnsetValue::Active)
+        else {
             continue;
         };
         options.push(LayerGroupOption {
@@ -162,10 +135,8 @@ pub fn compile_group_layer(
                 );
             }
 
-            zeroed_option_targets
-                .extend(default_targets.into_iter().map(|dt| (dt.driving_key(), dt)));
-            default.animation =
-                LayerAnimation::Inline(zeroed_option_targets.into_values().collect());
+            zeroed_option_targets.extend(default_targets.into_iter().map(|dt| (dt.driving_key(), dt)));
+            default.animation = LayerAnimation::Inline(zeroed_option_targets.into_values().collect());
         }
         Some(DeclGroupCopyMode::ToOption) => {
             let LayerAnimation::Inline(default_targets) = &default.animation else {
@@ -273,11 +244,7 @@ pub fn compile_puppet_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("puppet layer '{}'", decl_puppet_layer.name));
 
-    first_pass.find_read_parameter(
-        &logger,
-        &decl_puppet_layer.driven_by,
-        ParameterType::FLOAT_TYPE,
-    )?;
+    first_pass.find_read_parameter(&logger, &decl_puppet_layer.driven_by, ParameterType::FLOAT_TYPE)?;
     let default_mesh = decl_puppet_layer.default_mesh.as_deref();
 
     let animation = if let Some(animation_asset) = decl_puppet_layer.animation_asset {
@@ -290,13 +257,9 @@ pub fn compile_puppet_layer(
     } else {
         let mut keyframes = vec![];
         for decl_option in decl_puppet_layer.keyframes {
-            let Some((value, targets)) = compile_puppet_option(
-                &logger,
-                first_pass,
-                decl_option,
-                default_mesh,
-                UnsetValue::Active,
-            ) else {
+            let Some((value, targets)) =
+                compile_puppet_option(&logger, first_pass, decl_option, default_mesh, UnsetValue::Active)
+            else {
                 continue;
             };
             if !(0.0..=1.0).contains(&value) {
@@ -332,8 +295,7 @@ pub fn compile_raw_layer(
     let mut transitions = vec![];
     for (index, decl_state) in decl_raw_layer.states.into_iter().enumerate() {
         // if it compiles, order will be preserved
-        let Some(animation) = compile_raw_animation_kind(&logger, first_pass, decl_state.kind)
-        else {
+        let Some(animation) = compile_raw_animation_kind(&logger, first_pass, decl_state.kind) else {
             continue;
         };
         let state = LayerRawState {
@@ -343,8 +305,7 @@ pub fn compile_raw_layer(
         states.push(state);
 
         for decl_transition in decl_state.transitions {
-            let Some(transition) =
-                compile_raw_transition(&logger, first_pass, decl_transition, index, layer_names)
+            let Some(transition) = compile_raw_transition(&logger, first_pass, decl_transition, index, layer_names)
             else {
                 continue;
             };
@@ -399,9 +360,7 @@ fn compile_group_option(
     } else {
         let mut compiled_targets = BTreeMap::new();
         for decl_target in decl_group_option.targets {
-            let Some(targets) =
-                compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
-            else {
+            let Some(targets) = compile_target(&logger, first_pass, default_mesh, unset_value, decl_target) else {
                 continue;
             };
             for target in targets.into_iter() {
@@ -425,11 +384,7 @@ fn compile_switch_option(
         .kind
         .as_boolean()
         .expect("group option kind must be boolean");
-    let logger = logger.with_context(if value {
-        "enabled option"
-    } else {
-        "disabled option"
-    });
+    let logger = logger.with_context(if value { "enabled option" } else { "disabled option" });
 
     let animation = if let Some(animation_asset) = decl_group_option.animation_asset {
         if !decl_group_option.targets.is_empty() {
@@ -441,9 +396,7 @@ fn compile_switch_option(
     } else {
         let mut compiled_targets = BTreeMap::new();
         for decl_target in decl_group_option.targets {
-            let Some(targets) =
-                compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
-            else {
+            let Some(targets) = compile_target(&logger, first_pass, default_mesh, unset_value, decl_target) else {
                 continue;
             };
             for target in targets.into_iter() {
@@ -476,9 +429,7 @@ fn compile_puppet_option(
 
     let mut compiled_targets = BTreeMap::new();
     for decl_target in decl_group_option.targets {
-        let Some(targets) =
-            compile_target(&logger, first_pass, default_mesh, unset_value, decl_target)
-        else {
+        let Some(targets) = compile_target(&logger, first_pass, default_mesh, unset_value, decl_target) else {
             continue;
         };
         for target in targets.into_iter() {
@@ -530,9 +481,7 @@ fn compile_target(
         }
         DeclGroupOptionTarget::MaterialProperty(material_prop_target) => {
             let Some(mesh) = material_prop_target.mesh.as_deref().or(default_mesh) else {
-                logger.log(Log::LayerIndeterminateShapeChange(
-                    material_prop_target.property,
-                ));
+                logger.log(Log::LayerIndeterminateShapeChange(material_prop_target.property));
                 return failure();
             };
             Left(once(Target::MaterialProperty {
@@ -541,19 +490,13 @@ fn compile_target(
                 value: material_prop_target.value.into(),
             }))
         }
-        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => {
-            Left(once(Target::ParameterDrive(compile_parameter_drive(
-                logger,
-                first_pass,
-                unset_value,
-                parameter_drive,
-            )?)))
-        }
+        DeclGroupOptionTarget::ParameterDrive(parameter_drive) => Left(once(Target::ParameterDrive(
+            compile_parameter_drive(logger, first_pass, unset_value, parameter_drive)?,
+        ))),
         DeclGroupOptionTarget::TrackingControl(tracking_control) => {
-            let tracking_controls: Vec<_> =
-                compile_tracking_control(logger, first_pass, tracking_control)?
-                    .map(Target::TrackingControl)
-                    .collect();
+            let tracking_controls: Vec<_> = compile_tracking_control(logger, first_pass, tracking_control)?
+                .map(Target::TrackingControl)
+                .collect();
             Right(tracking_controls.into_iter())
         }
     };
@@ -566,11 +509,7 @@ fn compile_raw_animation_kind(
     decl_animation_kind: DeclRawLayerAnimationKind,
 ) -> Compiled<LayerRawAnimationKind> {
     let animation = match decl_animation_kind {
-        DeclRawLayerAnimationKind::Clip {
-            animation,
-            speed,
-            time,
-        } => {
+        DeclRawLayerAnimationKind::Clip { animation, speed, time } => {
             let animation = compile_raw_animation(logger, first_pass, animation)?;
             LayerRawAnimationKind::Clip {
                 animation,
@@ -585,15 +524,9 @@ fn compile_raw_animation_kind(
         } => {
             let (blend_type, params) = match tree_type {
                 DeclRawLayerBlendTreeType::Linear(p) => (LayerRawBlendTreeType::Linear, vec![p]),
-                DeclRawLayerBlendTreeType::Simple2D(px, py) => {
-                    (LayerRawBlendTreeType::Simple2D, vec![px, py])
-                }
-                DeclRawLayerBlendTreeType::Freeform2D(px, py) => {
-                    (LayerRawBlendTreeType::Freeform2D, vec![px, py])
-                }
-                DeclRawLayerBlendTreeType::Cartesian2D(px, py) => {
-                    (LayerRawBlendTreeType::Cartesian2D, vec![px, py])
-                }
+                DeclRawLayerBlendTreeType::Simple2D(px, py) => (LayerRawBlendTreeType::Simple2D, vec![px, py]),
+                DeclRawLayerBlendTreeType::Freeform2D(px, py) => (LayerRawBlendTreeType::Freeform2D, vec![px, py]),
+                DeclRawLayerBlendTreeType::Cartesian2D(px, py) => (LayerRawBlendTreeType::Cartesian2D, vec![px, py]),
             };
 
             let mut fields = vec![];
@@ -624,9 +557,7 @@ fn compile_raw_animation(
         DeclRawLayerAnimation::Inline(targets) => {
             let mut compiled_targets = BTreeMap::new();
             for decl_target in targets.targets {
-                let Some(targets) =
-                    compile_target(logger, first_pass, None, UnsetValue::Active, decl_target)
-                else {
+                let Some(targets) = compile_target(logger, first_pass, None, UnsetValue::Active, decl_target) else {
                     continue;
                 };
                 for target in targets.into_iter() {
@@ -655,9 +586,7 @@ fn compile_raw_transition(
     from_index: usize,
     layer_names: &[String],
 ) -> Compiled<LayerRawTransition> {
-    let target_index = layer_names
-        .iter()
-        .position(|s| s == &decl_transition.target)?;
+    let target_index = layer_names.iter().position(|s| s == &decl_transition.target)?;
 
     let mut conditions = vec![];
     for decl_condition in decl_transition.conditions {

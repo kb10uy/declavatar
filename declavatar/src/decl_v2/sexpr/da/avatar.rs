@@ -1,8 +1,7 @@
 use crate::decl_v2::{
     data::{
-        asset::DeclAssets, attachment::DeclAttachments, avatar::DeclAvatar,
-        controller::DeclFxController, export::DeclExports, menu::DeclSubMenu,
-        parameter::DeclParameters, StaticTypeName,
+        asset::DeclAssets, attachment::DeclAttachments, avatar::DeclAvatar, controller::DeclFxController,
+        export::DeclExports, menu::DeclSubMenu, parameter::DeclParameters, StaticTypeName,
     },
     sexpr::{
         argument::SeparateArguments,
@@ -17,11 +16,7 @@ pub fn register_avatar_function(scope: &Scope) {
     register_function(scope, "avatar", declare_avatar, Arity::Min(1), Some(&[]));
 }
 
-fn declare_avatar(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_avatar(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut avatar = DeclAvatar {
@@ -61,11 +56,8 @@ fn declare_avatar(
             }
             _ => {
                 return Err(Error::Custom(
-                    DeclSexprError::UnexpectedTypeValue(
-                        block.type_name().to_string(),
-                        "avatar element".to_string(),
-                    )
-                    .into(),
+                    DeclSexprError::UnexpectedTypeValue(block.type_name().to_string(), "avatar element".to_string())
+                        .into(),
                 ))
             }
         }

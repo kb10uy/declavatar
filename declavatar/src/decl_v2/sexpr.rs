@@ -17,8 +17,8 @@ use crate::decl_v2::{
 use std::{any::Any, rc::Rc};
 
 use ketos::{
-    Arity, BuiltinModuleLoader, CompileError, Context, Error, FileModuleLoader, FromValueRef,
-    Interpreter, Module, ModuleLoader, Name, NameStore, Scope, Value,
+    Arity, BuiltinModuleLoader, CompileError, Context, Error, FileModuleLoader, FromValueRef, Interpreter, Module,
+    ModuleLoader, Name, NameStore, Scope, Value,
 };
 
 pub fn load_avatar_sexpr(text: &str, args: Arguments) -> Result<DeclAvatar, DeclError> {
@@ -60,11 +60,7 @@ impl KetosValueExt for Value {
         let found_type_name = self.type_name();
         if found_type_name != expected_type_name {
             return Err(Error::Custom(
-                DeclSexprError::UnexpectedTypeValue(
-                    found_type_name.to_string(),
-                    expected_type_name.to_string(),
-                )
-                .into(),
+                DeclSexprError::UnexpectedTypeValue(found_type_name.to_string(), expected_type_name.to_string()).into(),
             ));
         }
 
@@ -99,9 +95,7 @@ impl ModuleLoader for DeclavatarModuleLoader {
     }
 }
 
-fn register_function<
-    F: Any + for<'a> Fn(&'a NameStore, Name, SeparateArguments<'a>) -> KetosResult<Value>,
->(
+fn register_function<F: Any + for<'a> Fn(&'a NameStore, Name, SeparateArguments<'a>) -> KetosResult<Value>>(
     scope: &Scope,
     name: &'static str,
     f: F,
@@ -111,8 +105,7 @@ fn register_function<
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
             let name_store = ctx.scope().borrow_names();
-            let args =
-                SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
+            let args = SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
             f(&name_store, name, args)
         })
     });
@@ -130,8 +123,7 @@ fn register_function_with_context<
     scope.add_value_with_name(name, |name| {
         Value::new_foreign_fn(name, move |ctx, args| {
             let name_store = ctx.scope().borrow_names();
-            let args =
-                SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
+            let args = SeparateArguments::new(&name_store, name, args, args_arity, allowed_keywords)?;
             f(ctx, &name_store, name, args)
         })
     });
@@ -156,9 +148,7 @@ mod test {
             .run_code("(use da :self)", None)
             .expect("failed to setup interpreter");
 
-        let value = interpreter
-            .run_code(source, None)
-            .expect("given source should compile");
+        let value = interpreter.run_code(source, None).expect("given source should compile");
         T::from_value(value).expect("wrong type returned")
     }
 }

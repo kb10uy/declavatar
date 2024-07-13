@@ -137,20 +137,13 @@ impl FirstPassData {
             }
         };
         if asset.asset_type != ty {
-            logger.log(Log::AssetTypeRequirement(
-                name.to_string(),
-                ty.type_name().to_string(),
-            ));
+            logger.log(Log::AssetTypeRequirement(name.to_string(), ty.type_name().to_string()));
             return failure();
         }
         success(asset)
     }
 
-    pub fn find_group(
-        &self,
-        logger: &Logger<Log>,
-        name: &str,
-    ) -> Compiled<(&str, &[(String, usize)])> {
+    pub fn find_group(&self, logger: &Logger<Log>, name: &str) -> Compiled<(&str, &[(String, usize)])> {
         let layer = self.find_layer(logger, name)?;
         let DeclaredLayerType::Group(parameter, options) = layer else {
             logger.log(Log::LayerMustBeGroup(name.to_string()));

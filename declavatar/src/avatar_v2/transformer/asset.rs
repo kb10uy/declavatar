@@ -8,10 +8,7 @@ use crate::{
     log::Logger,
 };
 
-pub fn compile_assets_blocks(
-    logger: &Logger<Log>,
-    assets_blocks: Vec<DeclAssets>,
-) -> Compiled<Vec<Asset>> {
+pub fn compile_assets_blocks(logger: &Logger<Log>, assets_blocks: Vec<DeclAssets>) -> Compiled<Vec<Asset>> {
     let mut assets = vec![];
     for (index, decl_assets) in assets_blocks.into_iter().enumerate() {
         let logger = logger.with_context(format!("assets block {index}"));
@@ -26,11 +23,7 @@ pub fn compile_assets_blocks(
     success(assets)
 }
 
-fn compile_asset(
-    logger: &Logger<Log>,
-    decl_asset: DeclAsset,
-    declared: &[Asset],
-) -> Compiled<Asset> {
+fn compile_asset(logger: &Logger<Log>, decl_asset: DeclAsset, declared: &[Asset]) -> Compiled<Asset> {
     let key = match &decl_asset {
         DeclAsset::Material(key) => key,
         DeclAsset::Animation(key) => key,

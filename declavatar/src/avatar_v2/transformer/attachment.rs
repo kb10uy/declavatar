@@ -7,9 +7,7 @@ use crate::{
         log::{ArbittachError, Log},
         transformer::{failure, success, Compiled},
     },
-    decl_v2::data::attachment::{
-        DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments,
-    },
+    decl_v2::data::attachment::{DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments},
     log::Logger,
 };
 
@@ -47,14 +45,10 @@ fn compile_attachment(
         logger.log(Log::Arbittach(ArbittachError::UnknownAttachment));
         return failure();
     };
-    let mut unset_properties: HashMap<&str, &PropertySchema> = schema
-        .properties
-        .iter()
-        .map(|p| (p.name.as_str(), p))
-        .collect();
+    let mut unset_properties: HashMap<&str, &PropertySchema> =
+        schema.properties.iter().map(|p| (p.name.as_str(), p)).collect();
     for decl_property in decl_attachment.properties {
-        let Some((_, property_schema)) = unset_properties.remove_entry(decl_property.name.as_str())
-        else {
+        let Some((_, property_schema)) = unset_properties.remove_entry(decl_property.name.as_str()) else {
             logger.log(Log::Arbittach(ArbittachError::UnknownProperty(
                 decl_property.name.to_string(),
             )));
@@ -74,9 +68,7 @@ fn compile_attachment(
             .map(|p| &p.name)
             .cloned()
             .collect();
-        logger.log(Log::Arbittach(ArbittachError::Insufficient {
-            unmet_properties,
-        }));
+        logger.log(Log::Arbittach(ArbittachError::Insufficient { unmet_properties }));
         return failure();
     }
 
@@ -115,48 +107,26 @@ fn compile_property(
     })
 }
 
-fn compile_value(
-    logger: &Logger<Log>,
-    expected_type: &ValueType,
-    decl_value: DeclAttachmentValue,
-) -> Compiled<Value> {
+fn compile_value(logger: &Logger<Log>, expected_type: &ValueType, decl_value: DeclAttachmentValue) -> Compiled<Value> {
     let value = match decl_value {
-        DeclAttachmentValue::Null if matches!(expected_type, ValueType::Null | ValueType::Any) => {
-            Value::Null
-        }
-        DeclAttachmentValue::Boolean(v)
-            if matches!(expected_type, ValueType::Boolean | ValueType::Any) =>
-        {
+        DeclAttachmentValue::Null if matches!(expected_type, ValueType::Null | ValueType::Any) => Value::Null,
+        DeclAttachmentValue::Boolean(v) if matches!(expected_type, ValueType::Boolean | ValueType::Any) => {
             Value::Boolean(v)
         }
-        DeclAttachmentValue::Integer(v)
-            if matches!(expected_type, ValueType::Integer | ValueType::Any) =>
-        {
+        DeclAttachmentValue::Integer(v) if matches!(expected_type, ValueType::Integer | ValueType::Any) => {
             Value::Integer(v)
         }
-        DeclAttachmentValue::Float(v)
-            if matches!(expected_type, ValueType::Float | ValueType::Any) =>
-        {
-            Value::Float(v)
-        }
-        DeclAttachmentValue::String(v)
-            if matches!(expected_type, ValueType::String | ValueType::Any) =>
-        {
+        DeclAttachmentValue::Float(v) if matches!(expected_type, ValueType::Float | ValueType::Any) => Value::Float(v),
+        DeclAttachmentValue::String(v) if matches!(expected_type, ValueType::String | ValueType::Any) => {
             Value::String(v)
         }
-        DeclAttachmentValue::GameObject(v)
-            if matches!(expected_type, ValueType::GameObject | ValueType::Any) =>
-        {
+        DeclAttachmentValue::GameObject(v) if matches!(expected_type, ValueType::GameObject | ValueType::Any) => {
             Value::GameObject(v)
         }
-        DeclAttachmentValue::Material(v)
-            if matches!(expected_type, ValueType::Material | ValueType::Any) =>
-        {
+        DeclAttachmentValue::Material(v) if matches!(expected_type, ValueType::Material | ValueType::Any) => {
             Value::Material(v)
         }
-        DeclAttachmentValue::AnimationClip(v)
-            if matches!(expected_type, ValueType::AnimationClip | ValueType::Any) =>
-        {
+        DeclAttachmentValue::AnimationClip(v) if matches!(expected_type, ValueType::AnimationClip | ValueType::Any) => {
             Value::AnimationClip(v)
         }
 
