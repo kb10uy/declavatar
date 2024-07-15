@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::parameter::{Parameter, ParameterDescription, ParameterScope, ParameterType},
+        data::parameter::{DeclaredParameter, Parameter, ParameterScope, ParameterType, ProvidedParameter},
         log::Log,
         transformer::{failure, success, Compiled},
     },
@@ -19,17 +19,26 @@ pub fn compile_parameters_blocks(
     for (index, decl_parameters) in parameters_blocks.into_iter().enumerate() {
         let logger = logger.with_context(format!("parameters block {index}"));
         for parameter in decl_parameters.parameters {
-            let compiled_parameter = match parameter {
-                DeclParameter::Primitive(primitive_parameter) => {
-                    compile_primitive_parameter(&logger, primitive_parameter, &parameters)
+            match parameter {
+                DeclParameter::Primitive(decl_primitive) => {
+                    let Some(parameter) = compile_primitive_parameter(&logger, decl_primitive, &parameters) else {
+                        continue;
+                    };
+                    parameters.push(parameter);
                 }
-                DeclParameter::PhysBone(pb_desc) => compile_physbone_parameters(pb_desc.prefix),
-                DeclParameter::Provided(vrc_desc) => compile_vrc_parameters(vrc_desc),
-            };
-            let Some(compiled_parameter) = compiled_parameter else {
-                continue;
-            };
-            parameters.extend(compiled_parameter);
+                DeclParameter::Provided(vrc_kinds) => {
+                    let Some(vrc_parameters) = compile_vrc_parameters(vrc_kinds) else {
+                        unreachable!("VRChat parameters must compile");
+                    };
+                    parameters.extend(vrc_parameters);
+                }
+                DeclParameter::PhysBone(pb_prefix) => {
+                    let Some(pb_parameter) = compile_physbone_parameters(pb_prefix.prefix) else {
+                        unreachable!("PhysBone parameter must compile");
+                    };
+                    parameters.push(pb_parameter);
+                }
+            }
         }
     }
 
@@ -40,7 +49,7 @@ fn compile_primitive_parameter(
     logger: &Logger<Log>,
     decl_parameter: DeclPrimitiveParameter,
     declared: &[Parameter],
-) -> Compiled<Vec<Parameter>> {
+) -> Compiled<Parameter> {
     let name = decl_parameter.name.clone();
     let (value_type, explicit_default) = match decl_parameter.ty {
         DeclPrimitiveParameterType::Int(dv) => (ParameterType::Int(dv.unwrap_or(0)), dv.is_some()),
@@ -60,102 +69,28 @@ fn compile_primitive_parameter(
         }
     };
 
-    let description = ParameterDescription::Declared {
-        scope,
-        unique: decl_parameter.unique.unwrap_or(false),
-        explicit_default,
-    };
-
-    if let Some(defined) = declared.iter().find(|p| p.name == decl_parameter.name) {
-        if defined.value_type != value_type || defined.description != description {
-            logger.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
-        }
+    if declared.iter().any(|p| name == p.basename()) {
+        logger.log(Log::IncompatibleParameterDeclaration(decl_parameter.name));
         return failure();
     }
 
-    success(vec![Parameter {
+    success(Parameter::Declared(DeclaredParameter {
         name,
         value_type,
-        description,
-    }])
+        scope,
+        unique: decl_parameter.unique.unwrap_or(false),
+        explicit_default,
+    }))
 }
 
 fn compile_vrc_parameters(kinds: Vec<DeclProvidedParameterKind>) -> Compiled<Vec<Parameter>> {
     let parameters = kinds
         .into_iter()
-        .map(|k| {
-            let name = "".into();
-            let value_type = ParameterType::INT_TYPE;
-            Parameter {
-                name,
-                value_type,
-                description: ParameterDescription::Provided,
-            }
-        })
+        .map(|k| Parameter::Provided(ProvidedParameter::Vrchat(k.into())))
         .collect();
     success(parameters)
 }
 
-fn compile_physbone_parameters(prefix: String) -> Compiled<Vec<Parameter>> {
-    success(vec![
-        Parameter {
-            name: format!("{prefix}_IsGrabbed"),
-            value_type: ParameterType::BOOL_TYPE,
-            description: ParameterDescription::Provided,
-        },
-        Parameter {
-            name: format!("{prefix}_IsPosed"),
-            value_type: ParameterType::BOOL_TYPE,
-            description: ParameterDescription::Provided,
-        },
-        Parameter {
-            name: format!("{prefix}_Angle"),
-            value_type: ParameterType::FLOAT_TYPE,
-            description: ParameterDescription::Provided,
-        },
-        Parameter {
-            name: format!("{prefix}_Stretch"),
-            value_type: ParameterType::FLOAT_TYPE,
-            description: ParameterDescription::Provided,
-        },
-        Parameter {
-            name: format!("{prefix}_Squish"),
-            value_type: ParameterType::FLOAT_TYPE,
-            description: ParameterDescription::Provided,
-        },
-    ])
-}
-
-fn to_declared_parameter(kind: DeclProvidedParameterKind) -> (&'static str, ParameterType) {
-    // TODO: maybe inoptimal way
-    match kind {
-        DeclProvidedParameterKind::IsLocal => ("IsLocal", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::Viseme => ("Viseme", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::Voice => ("Voice", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::GestureLeft => ("GestureLeft", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::GestureRight => ("GestureRight", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::GestureLeftWeight => ("GestureLeftWeight", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::GestureRightWeight => ("GestureRightWeight", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::AngularY => ("AngularY", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::VelocityX => ("VelocityX", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::VelocityY => ("VelocityY", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::VelocityZ => ("VelocityZ", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::VelocityMagnitude => ("VelocityMagnitude", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::Upright => ("Upright", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::Grounded => ("Grounded", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::Seated => ("Seated", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::Afk => ("AFK", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::TrackingType => ("TrackingType", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::VrMode => ("VRMode", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::MuteSelf => ("MuteSelf", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::InStation => ("InStation", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::Earmuffs => ("Earmuffs", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::IsOnFriendsList => ("IsOnFriendsList", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::AvatarVersion => ("AvatarVersion", ParameterType::INT_TYPE),
-        DeclProvidedParameterKind::ScaleModified => ("ScaleModified", ParameterType::BOOL_TYPE),
-        DeclProvidedParameterKind::ScaleFactor => ("ScaleFactor", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::ScaleFactorInverse => ("ScaleFactorInverse", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::EyeHeightAsMeters => ("EyeHeightAsMeters", ParameterType::FLOAT_TYPE),
-        DeclProvidedParameterKind::EyeHeightAsPercent => ("EyeHeightAsPercent", ParameterType::FLOAT_TYPE),
-    }
+fn compile_physbone_parameters(prefix: String) -> Compiled<Parameter> {
+    success(Parameter::Provided(ProvidedParameter::PhysBone(prefix)))
 }

@@ -1,9 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::{
-            export::ExportItem,
-            parameter::{ParameterDescription, ParameterType},
-        },
+        data::{export::ExportItem, parameter::ParameterType},
         log::Log,
         transformer::{failure, success, Compiled, FirstPassData},
     },
@@ -47,14 +44,15 @@ fn compile_export(logger: &Logger<Log>, first_pass: &FirstPassData, decl_export:
     match decl_export {
         DeclExport::Gate(name) => success(ExportItem::Gate { name }),
         DeclExport::Guard(gate, parameter) => {
-            let description = first_pass.find_read_parameter(logger, &parameter, ParameterType::BOOL_TYPE)?;
-            match description {
-                ParameterDescription::Declared { unique, .. } if *unique => {
-                    logger.log(Log::GateInvalidParameter(parameter.clone()));
-                    failure()
-                }
-                _ => success(ExportItem::Guard { gate, parameter }),
+            let qualified = first_pass.find_read_parameter(logger, &parameter.into(), ParameterType::BOOL_TYPE)?;
+            if qualified.unique {
+                logger.log(Log::GateInvalidParameter(qualified.name));
+                return failure();
             }
+            success(ExportItem::Guard {
+                gate,
+                parameter: qualified.name,
+            })
         }
     }
 }

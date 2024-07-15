@@ -1,7 +1,10 @@
 use crate::decl_v2::{
-    data::parameter::{
-        DeclParameter, DeclParameters, DeclPhysBoneParameter, DeclPrimitiveParameter, DeclPrimitiveParameterScope,
-        DeclPrimitiveParameterType, DeclProvidedParameterKind,
+    data::{
+        parameter::{
+            DeclParameter, DeclParameterReference, DeclParameters, DeclPhysBoneParameter, DeclPhysBoneParameterKind,
+            DeclPrimitiveParameter, DeclPrimitiveParameterScope, DeclPrimitiveParameterType, DeclProvidedParameterKind,
+        },
+        StaticTypeName,
     },
     sexpr::{
         argument::SeparateArguments,
@@ -12,6 +15,30 @@ use crate::decl_v2::{
 
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
+pub fn expect_parameter_reference(name_store: &NameStore, value: &Value) -> KetosResult<DeclParameterReference> {
+    let param_ref = match value {
+        Value::String(name) => DeclParameterReference::Primitive(name.to_string()),
+        Value::Name(name) => {
+            let name_str = name_store.get(*name);
+            let kind = name_str
+                .parse()
+                .map_err(|s| Error::Custom(DeclSexprError::InvalidVrchatParameter(s).into()))?;
+            DeclParameterReference::Provided(kind)
+        }
+        Value::Foreign(_) if value.type_name() == DeclParameterReference::TYPE_NAME => {
+            value.downcast_foreign_ref::<&DeclParameterReference>()?.clone()
+        }
+        v => {
+            return Err(Error::ExecError(ketos::ExecError::TypeError {
+                expected: "string, provided parameter name, or specific PB value",
+                found: "incompatible type",
+                value: Some(v.clone()),
+            }))
+        }
+    };
+    Ok(param_ref)
+}
+
 pub fn register_parameter_function(scope: &Scope) {
     const PARAMETER_KEYWORDS: &[&str] = &["save", "default", "scope", "unique"];
     register_function(scope, "parameters", declare_parameters, Arity::Min(0), Some(&[]));
@@ -20,6 +47,7 @@ pub fn register_parameter_function(scope: &Scope) {
     register_function(scope, "float", declare_float, Arity::Exact(1), Some(PARAMETER_KEYWORDS));
     register_function(scope, "vrc-paramset", declare_vrc_paramset, Arity::Min(0), Some(&[]));
     register_function(scope, "pb-paramset", declare_pb_paramset, Arity::Exact(1), Some(&[]));
+    register_function(scope, "pb-param", declare_pb_param, Arity::Exact(2), Some(&[]));
 }
 
 fn declare_parameters(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
@@ -121,6 +149,23 @@ fn declare_pb_paramset(_name_store: &NameStore, function_name: Name, args: Separ
         prefix: prefix.to_string(),
     })
     .into())
+}
+
+fn declare_pb_param(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let prefix: &str = args.exact_arg(function_name, 0)?;
+    let kind_value: &Value = args.exact_arg(function_name, 1)?;
+    Ok(DeclParameterReference::PhysBone(prefix.to_string(), expect_pb_kind(name_store, kind_value)?).into())
+}
+
+fn expect_pb_kind(name_store: &NameStore, value: &Value) -> KetosResult<DeclPhysBoneParameterKind> {
+    let Value::Name(name) = value else {
+        return Err(Error::Custom(DeclSexprError::MustBeScope.into()));
+    };
+
+    match name_store.get(*name).parse() {
+        Ok(kind) => Ok(kind),
+        Err(n) => Err(Error::Custom(DeclSexprError::InvalidVrchatParameter(n).into())),
+    }
 }
 
 #[cfg(test)]

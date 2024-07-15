@@ -2,7 +2,9 @@ use crate::decl_v2::{
     data::driver::{
         DeclDriveGroup, DeclDrivePuppet, DeclDriveSwitch, DeclParameterDrive, DeclTrackingControl, DeclTrackingTarget,
     },
-    sexpr::{argument::SeparateArguments, error::KetosResult, register_function},
+    sexpr::{
+        argument::SeparateArguments, da::parameter::expect_parameter_reference, error::KetosResult, register_function,
+    },
 };
 
 use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
@@ -93,42 +95,42 @@ fn declare_drive_puppet(_name_store: &NameStore, function_name: Name, args: Sepa
     .into())
 }
 
-fn declare_drive_int(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_drive_int(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: i64 = args.exact_arg(function_name, 1)?;
 
     Ok(DeclParameterDrive::SetInt {
-        parameter: parameter.to_string(),
+        parameter: expect_parameter_reference(name_store, parameter)?,
         value,
     }
     .into())
 }
 
-fn declare_drive_bool(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_drive_bool(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
 
     Ok(DeclParameterDrive::SetBool {
-        parameter: parameter.to_string(),
+        parameter: expect_parameter_reference(name_store, parameter)?,
         value: None,
     }
     .into())
 }
 
-fn declare_drive_float(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_drive_float(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
 
     Ok(DeclParameterDrive::SetFloat {
-        parameter: parameter.to_string(),
+        parameter: expect_parameter_reference(name_store, parameter)?,
         value: None,
     }
     .into())
 }
 
-fn declare_set_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_set_parameter(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let parameter = parameter.to_string();
+    let parameter = expect_parameter_reference(name_store, parameter)?;
     let drive = match value {
         Value::Integer(v) => DeclParameterDrive::SetInt {
             parameter,
@@ -154,11 +156,11 @@ fn declare_set_parameter(_name_store: &NameStore, function_name: Name, args: Sep
     Ok(drive.into())
 }
 
-fn declare_add_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_add_parameter(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let parameter = parameter.to_string();
+    let parameter = expect_parameter_reference(name_store, parameter)?;
     let drive = match value {
         Value::Integer(v) => DeclParameterDrive::AddInt {
             parameter,
@@ -178,14 +180,14 @@ fn declare_add_parameter(_name_store: &NameStore, function_name: Name, args: Sep
 }
 
 fn declare_random_parameter(
-    _name_store: &NameStore,
+    name_store: &NameStore,
     function_name: Name,
     args: SeparateArguments,
 ) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let range: &Value = args.exact_arg(function_name, 1)?;
 
-    let parameter = parameter.to_string();
+    let parameter = expect_parameter_reference(name_store, parameter)?;
     let drive = match range {
         Value::List(_) => {
             if let Ok(int_range) = args.exact_arg::<(u8, u8)>(function_name, 1) {
@@ -219,9 +221,9 @@ fn declare_random_parameter(
     Ok(drive.into())
 }
 
-fn declare_copy_parameter(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
-    let from: &str = args.exact_arg(function_name, 0)?;
-    let to: &str = args.exact_arg(function_name, 1)?;
+fn declare_copy_parameter(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let from: &Value = args.exact_arg(function_name, 0)?;
+    let to: &Value = args.exact_arg(function_name, 1)?;
     let from_range: Option<(f64, f64)> = args.try_exact_arg(2)?;
     let to_range: Option<(f64, f64)> = args.try_exact_arg(3)?;
 
@@ -231,8 +233,8 @@ fn declare_copy_parameter(_name_store: &NameStore, function_name: Name, args: Se
     };
 
     Ok(DeclParameterDrive::Copy {
-        from: from.to_string(),
-        to: to.to_string(),
+        from: expect_parameter_reference(name_store, from)?,
+        to: expect_parameter_reference(name_store, to)?,
         range,
     }
     .into())

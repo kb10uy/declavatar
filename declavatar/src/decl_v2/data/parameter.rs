@@ -48,6 +48,39 @@ pub struct DeclPhysBoneParameter {
 }
 static_type_name_impl!(DeclPhysBoneParameter);
 
+#[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
+pub enum DeclParameterReference {
+    Primitive(String),
+    PhysBone(String, DeclPhysBoneParameterKind),
+    Provided(DeclProvidedParameterKind),
+}
+static_type_name_impl!(DeclParameterReference);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeclPhysBoneParameterKind {
+    IsGrabbed,
+    IsPosed,
+    Angle,
+    Stretch,
+    Squish,
+}
+
+impl FromStr for DeclPhysBoneParameterKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let kind = match s {
+            "is-grabbed" => DeclPhysBoneParameterKind::IsGrabbed,
+            "is-posed" => DeclPhysBoneParameterKind::IsPosed,
+            "angle" => DeclPhysBoneParameterKind::Angle,
+            "stretch" => DeclPhysBoneParameterKind::Stretch,
+            "squish" => DeclPhysBoneParameterKind::Squish,
+            _ => return Err(s.to_string()),
+        };
+        Ok(kind)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeclProvidedParameterKind {
     IsLocal,

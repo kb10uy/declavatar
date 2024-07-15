@@ -1,5 +1,8 @@
 use crate::{
-    decl_v2::data::driver::{DeclParameterDrive, DeclTrackingControl},
+    decl_v2::data::{
+        driver::{DeclParameterDrive, DeclTrackingControl},
+        parameter::DeclParameterReference,
+    },
     static_type_name_impl,
 };
 
@@ -17,7 +20,7 @@ static_type_name_impl!(DeclControllerLayer);
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclGroupLayer {
     pub name: String,
-    pub driven_by: String,
+    pub driven_by: DeclParameterReference,
     pub default_mesh: Option<String>,
     pub copy_mode: Option<DeclGroupCopyMode>,
     pub default: Option<DeclGroupOption>,
@@ -101,7 +104,7 @@ static_type_name_impl!(DeclMaterialValue);
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclSwitchLayer {
     pub name: String,
-    pub driven_by: Option<String>,
+    pub driven_by: Option<DeclParameterReference>,
     pub with_gate: Option<String>,
     pub default_mesh: Option<String>,
     pub disabled: DeclGroupOption,
@@ -112,7 +115,7 @@ static_type_name_impl!(DeclSwitchLayer);
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub struct DeclPuppetLayer {
     pub name: String,
-    pub driven_by: String,
+    pub driven_by: DeclParameterReference,
     pub default_mesh: Option<String>,
     pub animation_asset: Option<String>,
     pub keyframes: Vec<DeclGroupOption>,
@@ -139,8 +142,8 @@ static_type_name_impl!(DeclRawLayerState);
 pub enum DeclRawLayerAnimationKind {
     Clip {
         animation: DeclRawLayerAnimation,
-        speed: (Option<f64>, Option<String>),
-        time: Option<String>,
+        speed: (Option<f64>, Option<DeclParameterReference>),
+        time: Option<DeclParameterReference>,
     },
     BlendTree {
         tree_type: DeclRawLayerBlendTreeType,
@@ -151,10 +154,10 @@ static_type_name_impl!(DeclRawLayerAnimation);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeclRawLayerBlendTreeType {
-    Linear(String),
-    Simple2D(String, String),
-    Freeform2D(String, String),
-    Cartesian2D(String, String),
+    Linear(DeclParameterReference),
+    Simple2D(DeclParameterReference, DeclParameterReference),
+    Freeform2D(DeclParameterReference, DeclParameterReference),
+    Cartesian2D(DeclParameterReference, DeclParameterReference),
 }
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
@@ -186,10 +189,10 @@ static_type_name_impl!(DeclRawLayerTransition);
 
 #[derive(Debug, Clone, PartialEq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclRawLayerTransitionCondition {
-    Zero(String, bool),
-    Bool(String, bool),
-    Int(String, DeclRawLayerTransitionOrdering, i64),
-    Float(String, DeclRawLayerTransitionOrdering, f64),
+    Zero(DeclParameterReference, bool),
+    Bool(DeclParameterReference, bool),
+    Int(DeclParameterReference, DeclRawLayerTransitionOrdering, i64),
+    Float(DeclParameterReference, DeclRawLayerTransitionOrdering, f64),
 }
 static_type_name_impl!(DeclRawLayerTransitionCondition);
 

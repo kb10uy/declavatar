@@ -10,6 +10,7 @@ use crate::decl_v2::{
     },
     sexpr::{
         argument::SeparateArguments,
+        da::parameter::expect_parameter_reference,
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -88,7 +89,7 @@ pub fn register_layer_basic_function(scope: &Scope) {
 
 fn declare_group_layer(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let driven_by: &str = args.exact_kwarg_expect("driven-by")?;
+    let driven_by: &Value = args.exact_kwarg_expect("driven-by")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
     let copy_mode: Option<&Value> = args.exact_kwarg("copy")?;
 
@@ -116,7 +117,7 @@ fn declare_group_layer(name_store: &NameStore, function_name: Name, args: Separa
 
     Ok(DeclControllerLayer::Group(DeclGroupLayer {
         name: name.to_string(),
-        driven_by: driven_by.to_string(),
+        driven_by: expect_parameter_reference(name_store, driven_by)?,
         default_mesh: default_mesh.map(|dm| dm.to_string()),
         copy_mode: copy_mode.map(|v| expect_copy_mode(name_store, v)).transpose()?,
         default,
@@ -125,9 +126,9 @@ fn declare_group_layer(name_store: &NameStore, function_name: Name, args: Separa
     .into())
 }
 
-fn declare_switch_layer(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+fn declare_switch_layer(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let driven_by: Option<&str> = args.exact_kwarg("driven-by")?;
+    let driven_by: Option<&Value> = args.exact_kwarg("driven-by")?;
     let with_gate: Option<&str> = args.exact_kwarg("with-gate")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
 
@@ -165,7 +166,9 @@ fn declare_switch_layer(_name_store: &NameStore, function_name: Name, args: Sepa
 
     Ok(DeclControllerLayer::Switch(DeclSwitchLayer {
         name: name.to_string(),
-        driven_by: driven_by.map(|s| s.to_string()),
+        driven_by: driven_by
+            .map(|v| expect_parameter_reference(name_store, v))
+            .transpose()?,
         with_gate: with_gate.map(|s| s.to_string()),
         default_mesh: default_mesh.map(|dm| dm.to_string()),
         disabled,
@@ -174,9 +177,9 @@ fn declare_switch_layer(_name_store: &NameStore, function_name: Name, args: Sepa
     .into())
 }
 
-fn declare_puppet_layer(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+fn declare_puppet_layer(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
-    let driven_by: &str = args.exact_kwarg_expect("driven-by")?;
+    let driven_by: &Value = args.exact_kwarg_expect("driven-by")?;
     let default_mesh: Option<&str> = args.exact_kwarg("default-mesh")?;
     let animation_asset: Option<&str> = args.exact_kwarg("animation")?;
 
@@ -198,7 +201,7 @@ fn declare_puppet_layer(_name_store: &NameStore, function_name: Name, args: Sepa
 
     Ok(DeclControllerLayer::Puppet(DeclPuppetLayer {
         name: name.to_string(),
-        driven_by: driven_by.to_string(),
+        driven_by: expect_parameter_reference(name_store, driven_by)?,
         default_mesh: default_mesh.map(|dm| dm.to_string()),
         animation_asset: animation_asset.map(|a| a.to_string()),
         keyframes,

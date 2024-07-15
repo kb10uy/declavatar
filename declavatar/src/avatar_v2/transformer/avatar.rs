@@ -1,6 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::{attachment::schema::Attachment, avatar::Avatar},
+        data::{attachment::schema::Attachment, avatar::Avatar, parameter::Parameter},
         log::Log,
         transformer::{
             asset::compile_assets_blocks,
@@ -53,6 +53,13 @@ pub fn compile_avatar(
     }
 
     let (parameters, assets) = first_pass.take_back();
+    let parameters = parameters
+        .into_iter()
+        .filter_map(|p| match p {
+            Parameter::Declared(dp) => Some(dp),
+            _ => None,
+        })
+        .collect();
     success(Avatar {
         name,
         exports,

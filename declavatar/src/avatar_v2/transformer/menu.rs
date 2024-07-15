@@ -65,35 +65,36 @@ fn compile_boolean(
     });
     let (parameter, value) = match control.parameter_drive {
         DeclParameterDrive::Group(dg) => {
-            let (parameter, options) = first_pass.find_group(&logger, &dg.group)?;
-            first_pass.find_writable_parameter(&logger, parameter, ParameterType::INT_TYPE)?;
+            let (query, options) = first_pass.find_group(&logger, &dg.group)?;
+            let qualified = first_pass.find_writable_parameter(&logger, query, ParameterType::INT_TYPE)?;
             let Some((_, value)) = options.iter().find(|(name, _)| name == &dg.option) else {
                 logger.log(Log::LayerOptionNotFound(dg.option));
                 return failure();
             };
-            (parameter.to_string(), ParameterType::Int(*value as u8))
+            (qualified.name, ParameterType::Int(*value as u8))
         }
         DeclParameterDrive::Switch(ds) => {
-            let parameter = first_pass.find_switch(&logger, &ds.switch)?;
-            first_pass.find_writable_parameter(&logger, parameter, ParameterType::BOOL_TYPE)?;
-            (parameter.to_string(), ParameterType::Bool(ds.value.unwrap_or(true)))
+            let query = first_pass.find_switch(&logger, &ds.switch)?;
+            let qualified = first_pass.find_writable_parameter(&logger, query, ParameterType::BOOL_TYPE)?;
+            (qualified.name, ParameterType::Bool(ds.value.unwrap_or(true)))
         }
         DeclParameterDrive::Puppet(dp) => {
-            let parameter = first_pass.find_puppet(&logger, &dp.puppet)?;
-            first_pass.find_writable_parameter(&logger, parameter, ParameterType::FLOAT_TYPE)?;
-            (parameter.to_string(), ParameterType::Float(dp.value.unwrap_or(1.0)))
+            let query = first_pass.find_puppet(&logger, &dp.puppet)?;
+            let qualified = first_pass.find_writable_parameter(&logger, query, ParameterType::FLOAT_TYPE)?;
+            (qualified.name, ParameterType::Float(dp.value.unwrap_or(1.0)))
         }
         DeclParameterDrive::SetInt { parameter, value } => {
-            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::INT_TYPE)?;
-            (parameter, ParameterType::Int(value as u8))
+            let qualified = first_pass.find_writable_parameter(&logger, &parameter.into(), ParameterType::INT_TYPE)?;
+            (qualified.name, ParameterType::Int(value as u8))
         }
         DeclParameterDrive::SetBool { parameter, value } => {
-            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::BOOL_TYPE)?;
-            (parameter, ParameterType::Bool(value.unwrap_or(true)))
+            let qualified = first_pass.find_writable_parameter(&logger, &parameter.into(), ParameterType::BOOL_TYPE)?;
+            (qualified.name, ParameterType::Bool(value.unwrap_or(true)))
         }
         DeclParameterDrive::SetFloat { parameter, value } => {
-            first_pass.find_writable_parameter(&logger, &parameter, ParameterType::FLOAT_TYPE)?;
-            (parameter, ParameterType::Float(value.unwrap_or(1.0)))
+            let qualified =
+                first_pass.find_writable_parameter(&logger, &parameter.into(), ParameterType::FLOAT_TYPE)?;
+            (qualified.name, ParameterType::Float(value.unwrap_or(1.0)))
         }
         _ => {
             logger.log(Log::MenuInvalidDrive);
@@ -162,12 +163,12 @@ fn take_puppet_parameter(logger: &Logger<Log>, first_pass: &FirstPassData, dpt: 
     let parameter = match dpt {
         DeclPuppetTarget::Puppet(dp) => {
             let parameter = first_pass.find_puppet(logger, &dp.puppet)?;
-            first_pass.find_writable_parameter(logger, parameter, ParameterType::FLOAT_TYPE)?;
-            parameter.to_string()
+            let qualified = first_pass.find_writable_parameter(logger, parameter, ParameterType::FLOAT_TYPE)?;
+            qualified.name
         }
         DeclPuppetTarget::Parameter(parameter) => {
-            first_pass.find_writable_parameter(logger, &parameter, ParameterType::FLOAT_TYPE)?;
-            parameter
+            let qualified = first_pass.find_writable_parameter(logger, &parameter.into(), ParameterType::FLOAT_TYPE)?;
+            qualified.name
         }
     };
 

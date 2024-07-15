@@ -40,7 +40,7 @@ pub fn first_pass_group_layer(_logger: &Logger<Log>, decl_group_layer: &DeclGrou
         .collect();
     success(DeclaredLayer {
         name: decl_group_layer.name.clone(),
-        layer_type: DeclaredLayerType::Group(decl_group_layer.driven_by.clone(), option_names),
+        layer_type: DeclaredLayerType::Group(decl_group_layer.driven_by.clone().into(), option_names),
     })
 }
 
@@ -48,7 +48,7 @@ pub fn first_pass_switch_layer(_logger: &Logger<Log>, decl_switch_layer: &DeclSw
     match (&decl_switch_layer.driven_by, &decl_switch_layer.with_gate) {
         (Some(db), None) => success(DeclaredLayer {
             name: decl_switch_layer.name.clone(),
-            layer_type: DeclaredLayerType::Switch(db.clone()),
+            layer_type: DeclaredLayerType::Switch(db.clone().into()),
         }),
         (None, Some(wg)) => success(DeclaredLayer {
             name: decl_switch_layer.name.clone(),
@@ -61,7 +61,7 @@ pub fn first_pass_switch_layer(_logger: &Logger<Log>, decl_switch_layer: &DeclSw
 pub fn first_pass_puppet_layer(_logger: &Logger<Log>, decl_puppet_layer: &DeclPuppetLayer) -> Compiled<DeclaredLayer> {
     success(DeclaredLayer {
         name: decl_puppet_layer.name.clone(),
-        layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone()),
+        layer_type: DeclaredLayerType::Puppet(decl_puppet_layer.driven_by.clone().into()),
     })
 }
 
@@ -82,7 +82,8 @@ pub fn compile_group_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("group layer '{}'", decl_group_layer.name));
 
-    first_pass.find_read_parameter(&logger, &decl_group_layer.driven_by, ParameterType::INT_TYPE)?;
+    let qualified =
+        first_pass.find_read_parameter(&logger, &decl_group_layer.driven_by.into(), ParameterType::INT_TYPE)?;
     let default_mesh = decl_group_layer.default_mesh.as_deref();
 
     let mut default = match decl_group_layer
@@ -171,7 +172,7 @@ pub fn compile_group_layer(
     success(Layer {
         name: decl_group_layer.name,
         content: LayerContent::Group {
-            parameter: decl_group_layer.driven_by,
+            parameter: qualified.name,
             default,
             options,
         },
@@ -209,11 +210,11 @@ pub fn compile_switch_layer(
 
     match (decl_switch_layer.driven_by, decl_switch_layer.with_gate) {
         (Some(db), None) => {
-            first_pass.find_read_parameter(&logger, &db, ParameterType::BOOL_TYPE)?;
+            let qualified = first_pass.find_read_parameter(&logger, &db.into(), ParameterType::BOOL_TYPE)?;
             success(Layer {
                 name: decl_switch_layer.name,
                 content: LayerContent::Switch {
-                    parameter: db,
+                    parameter: qualified.name,
                     disabled,
                     enabled,
                 },
@@ -244,7 +245,8 @@ pub fn compile_puppet_layer(
 ) -> Compiled<Layer> {
     let logger = logger.with_context(format!("puppet layer '{}'", decl_puppet_layer.name));
 
-    first_pass.find_read_parameter(&logger, &decl_puppet_layer.driven_by, ParameterType::FLOAT_TYPE)?;
+    let qualified =
+        first_pass.find_read_parameter(&logger, &decl_puppet_layer.driven_by.into(), ParameterType::FLOAT_TYPE)?;
     let default_mesh = decl_puppet_layer.default_mesh.as_deref();
 
     let animation = if let Some(animation_asset) = decl_puppet_layer.animation_asset {
@@ -277,7 +279,7 @@ pub fn compile_puppet_layer(
     success(Layer {
         name: decl_puppet_layer.name,
         content: LayerContent::Puppet {
-            parameter: decl_puppet_layer.driven_by,
+            parameter: qualified.name,
             animation,
         },
     })
@@ -509,13 +511,23 @@ fn compile_raw_animation_kind(
     decl_animation_kind: DeclRawLayerAnimationKind,
 ) -> Compiled<LayerRawAnimationKind> {
     let animation = match decl_animation_kind {
-        DeclRawLayerAnimationKind::Clip { animation, speed, time } => {
+        DeclRawLayerAnimationKind::Clip {
+            animation,
+            speed: (speed, speed_by),
+            time: time_by,
+        } => {
             let animation = compile_raw_animation(logger, first_pass, animation)?;
+            let speed_by = speed_by
+                .and_then(|q| first_pass.find_read_parameter(logger, &q.into(), ParameterType::FLOAT_TYPE))
+                .map(|qp| qp.name);
+            let time_by = time_by
+                .and_then(|q| first_pass.find_read_parameter(logger, &q.into(), ParameterType::FLOAT_TYPE))
+                .map(|qp| qp.name);
             LayerRawAnimationKind::Clip {
                 animation,
-                speed: speed.0,
-                speed_by: speed.1,
-                time_by: time,
+                speed,
+                speed_by,
+                time_by,
             }
         }
         DeclRawLayerAnimationKind::BlendTree {
@@ -528,6 +540,11 @@ fn compile_raw_animation_kind(
                 DeclRawLayerBlendTreeType::Freeform2D(px, py) => (LayerRawBlendTreeType::Freeform2D, vec![px, py]),
                 DeclRawLayerBlendTreeType::Cartesian2D(px, py) => (LayerRawBlendTreeType::Cartesian2D, vec![px, py]),
             };
+            let params = params
+                .into_iter()
+                .flat_map(|pr| first_pass.find_read_parameter(logger, &pr.into(), ParameterType::FLOAT_TYPE))
+                .map(|qp| qp.name)
+                .collect();
 
             let mut fields = vec![];
             for decl_field in decl_fields {
@@ -610,49 +627,49 @@ fn compile_raw_condition(
     decl_condition: DeclRawLayerTransitionCondition,
 ) -> Compiled<LayerRawCondition> {
     let condition = match decl_condition {
-        DeclRawLayerTransitionCondition::Bool(name, value) => {
-            first_pass.find_read_parameter(logger, &name, ParameterType::BOOL_TYPE)?;
+        DeclRawLayerTransitionCondition::Bool(query, value) => {
+            let qualified = first_pass.find_read_parameter(logger, &query.into(), ParameterType::BOOL_TYPE)?;
             if value {
-                LayerRawCondition::Be(name)
+                LayerRawCondition::Be(qualified.name)
             } else {
-                LayerRawCondition::Not(name)
+                LayerRawCondition::Not(qualified.name)
             }
         }
-        DeclRawLayerTransitionCondition::Int(name, order, value) => {
-            first_pass.find_read_parameter(logger, &name, ParameterType::INT_TYPE)?;
+        DeclRawLayerTransitionCondition::Int(query, order, value) => {
+            let qualified = first_pass.find_read_parameter(logger, &query.into(), ParameterType::INT_TYPE)?;
             match order {
-                DeclRawLayerTransitionOrdering::Equal => LayerRawCondition::EqInt(name, value),
-                DeclRawLayerTransitionOrdering::NotEqual => LayerRawCondition::NeqInt(name, value),
-                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtInt(name, value),
-                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeInt(name, value),
+                DeclRawLayerTransitionOrdering::Equal => LayerRawCondition::EqInt(qualified.name, value),
+                DeclRawLayerTransitionOrdering::NotEqual => LayerRawCondition::NeqInt(qualified.name, value),
+                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtInt(qualified.name, value),
+                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeInt(qualified.name, value),
             }
         }
-        DeclRawLayerTransitionCondition::Float(name, order, value) => {
-            first_pass.find_read_parameter(logger, &name, ParameterType::FLOAT_TYPE)?;
+        DeclRawLayerTransitionCondition::Float(query, order, value) => {
+            let qualified = first_pass.find_read_parameter(logger, &query.into(), ParameterType::FLOAT_TYPE)?;
             match order {
-                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtFloat(name, value),
-                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeFloat(name, value),
+                DeclRawLayerTransitionOrdering::Greater => LayerRawCondition::GtFloat(qualified.name, value),
+                DeclRawLayerTransitionOrdering::Lesser => LayerRawCondition::LeFloat(qualified.name, value),
                 _ => {
                     logger.log(Log::LayerInvalidCondition);
                     return failure();
                 }
             }
         }
-        DeclRawLayerTransitionCondition::Zero(name, not_zero) => {
-            let (value_type, _) = first_pass.find_untyped_parameter(logger, &name)?;
-            match value_type {
+        DeclRawLayerTransitionCondition::Zero(query, not_zero) => {
+            let qualified = first_pass.find_untyped_parameter(logger, &query.into())?;
+            match qualified.value_type {
                 ParameterType::Int(_) => {
                     if not_zero {
-                        LayerRawCondition::NeqInt(name, 0)
+                        LayerRawCondition::NeqInt(qualified.name, 0)
                     } else {
-                        LayerRawCondition::EqInt(name, 0)
+                        LayerRawCondition::EqInt(qualified.name, 0)
                     }
                 }
                 ParameterType::Bool(_) => {
                     if not_zero {
-                        LayerRawCondition::Be(name)
+                        LayerRawCondition::Be(qualified.name)
                     } else {
-                        LayerRawCondition::Not(name)
+                        LayerRawCondition::Not(qualified.name)
                     }
                 }
                 _ => {

@@ -1,4 +1,4 @@
-use crate::static_type_name_impl;
+use crate::{decl_v2::data::parameter::DeclParameterReference, static_type_name_impl};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
@@ -11,6 +11,6 @@ static_type_name_impl!(DeclExports);
 #[derive(Debug, Clone, PartialEq, Eq, ForeignValue, FromValue, FromValueRef, IntoValue)]
 pub enum DeclExport {
     Gate(String),
-    Guard(String, String),
+    Guard(String, DeclParameterReference),
 }
 static_type_name_impl!(DeclExport);
