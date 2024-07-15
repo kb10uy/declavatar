@@ -1,8 +1,6 @@
 use crate::decl_v2::{
     data::{
-        attachment::{
-            DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments,
-        },
+        attachment::{DeclAttachment, DeclAttachmentProperty, DeclAttachmentValue, DeclAttachments},
         StaticTypeName,
     },
     sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
@@ -11,53 +9,25 @@ use crate::decl_v2::{
 use ketos::{Arity, Error, Name, NameStore, Scope, Value};
 
 pub fn register_attachment_function(scope: &Scope) {
-    register_function(
-        scope,
-        "attachments",
-        declare_attachments,
-        Arity::Min(0),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "attachment",
-        define_attachment,
-        Arity::Min(1),
-        Some(&[]),
-    );
+    register_function(scope, "attachments", declare_attachments, Arity::Min(0), Some(&[]));
+    register_function(scope, "attachment", define_attachment, Arity::Min(1), Some(&[]));
     register_function(scope, "property", define_property, Arity::Min(1), None);
 }
 
-fn declare_attachments(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_attachments(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let mut attachments = vec![];
     for decl_attachment in args.args_after_recursive(function_name, 0)? {
-        attachments.push(
-            decl_attachment
-                .downcast_foreign_ref::<&DeclAttachment>()
-                .cloned()?,
-        );
+        attachments.push(decl_attachment.downcast_foreign_ref::<&DeclAttachment>().cloned()?);
     }
     Ok(DeclAttachments { attachments }.into())
 }
 
-fn define_attachment(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn define_attachment(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut properties = vec![];
     for decl_property in args.args_after_recursive(function_name, 1)? {
-        properties.push(
-            decl_property
-                .downcast_foreign_ref::<&DeclAttachmentProperty>()?
-                .clone(),
-        );
+        properties.push(decl_property.downcast_foreign_ref::<&DeclAttachmentProperty>()?.clone());
     }
     Ok(DeclAttachment {
         name: name.to_string(),
@@ -66,11 +36,7 @@ fn define_attachment(
     .into())
 }
 
-fn define_property(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn define_property(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut parameters = vec![];
@@ -97,9 +63,9 @@ fn parse_attachment_value(value: &Value) -> KetosResult<DeclAttachmentValue> {
             .map(parse_attachment_value)
             .collect::<Result<Vec<_>, _>>()
             .map(DeclAttachmentValue::UntypedList)?,
-        Value::Foreign(_) if value.type_name() == DeclAttachmentValue::TYPE_NAME => value
-            .downcast_foreign_ref::<&DeclAttachmentValue>()?
-            .clone(),
+        Value::Foreign(_) if value.type_name() == DeclAttachmentValue::TYPE_NAME => {
+            value.downcast_foreign_ref::<&DeclAttachmentValue>()?.clone()
+        }
         v => {
             return Err(Error::ExecError(ketos::ExecError::TypeError {
                 expected: "unit, bool, integer, float, string, list, or specific object",

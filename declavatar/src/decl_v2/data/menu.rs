@@ -1,5 +1,8 @@
 use crate::{
-    decl_v2::data::driver::{DeclDrivePuppet, DeclParameterDrive},
+    decl_v2::data::{
+        driver::{DeclDrivePuppet, DeclParameterDrive},
+        parameter::DeclParameterReference,
+    },
     static_type_name_impl,
 };
 
@@ -58,5 +61,5 @@ pub enum DeclPuppetType {
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeclPuppetTarget {
     Puppet(DeclDrivePuppet),
-    Parameter(String),
+    Parameter(DeclParameterReference),
 }

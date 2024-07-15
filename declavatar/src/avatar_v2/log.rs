@@ -16,6 +16,8 @@ pub enum Log {
     ParameterTypeRequirement(String, String),
     #[log_error("parameter.scope_requirement")]
     ParameterScopeRequirement(String, String),
+    #[log_error("parameter.not_writable")]
+    ParameterNotWritable(String),
 
     #[log_error("asset.incompatible_declaration")]
     IncompatibleAssetDeclaration(String),

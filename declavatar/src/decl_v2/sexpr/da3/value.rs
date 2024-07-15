@@ -27,20 +27,8 @@ pub fn register_value_function(scope: &Scope) {
         Arity::Exact(4),
         Some(&[]),
     );
-    register_function(
-        scope,
-        "game-object",
-        value_game_object,
-        Arity::Exact(1),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "material",
-        value_material,
-        Arity::Exact(1),
-        Some(&[]),
-    );
+    register_function(scope, "game-object", value_game_object, Arity::Exact(1), Some(&[]));
+    register_function(scope, "material", value_material, Arity::Exact(1), Some(&[]));
     register_function(
         scope,
         "animation-clip",
@@ -62,29 +50,17 @@ fn value_vector(
     Ok(DeclAttachmentValue::Vector(values).into())
 }
 
-fn value_game_object(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn value_game_object(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclAttachmentValue::GameObject(name.to_string()).into())
 }
 
-fn value_material(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn value_material(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclAttachmentValue::Material(name.to_string()).into())
 }
 
-fn value_animation_clip(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn value_animation_clip(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclAttachmentValue::AnimationClip(name.to_string()).into())
 }

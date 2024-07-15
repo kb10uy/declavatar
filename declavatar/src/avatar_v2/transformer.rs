@@ -12,7 +12,7 @@ use crate::{
     avatar_v2::{
         data::{
             asset::{Asset, AssetType},
-            parameter::{Parameter, ParameterScope, ParameterType},
+            parameter::{Parameter, ParameterQuery, ParameterType, QualifiedParameter},
         },
         log::Log,
     },
@@ -42,11 +42,12 @@ pub struct DeclaredLayer {
     pub layer_type: DeclaredLayerType,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum DeclaredLayerType {
-    Group(String, Vec<(String, usize)>),
-    Switch(String),
-    Puppet(String),
+    Group(ParameterQuery, Vec<(String, usize)>),
+    Switch(ParameterQuery),
+    Puppet(ParameterQuery),
     SwitchGate(String),
     Raw(Vec<String>),
 }
@@ -77,45 +78,46 @@ impl FirstPassData {
         (self.parameters, self.assets)
     }
 
-    pub fn find_parameter(
+    pub fn find_untyped_parameter(&self, logger: &Logger<Log>, query: &ParameterQuery) -> Compiled<QualifiedParameter> {
+        let parameter = match self.parameters.iter().find_map(|p| query.qualify_match(p)) {
+            Some(p) => p,
+            None => {
+                logger.log(Log::ParameterNotFound(query.querying_name().to_string()));
+                return failure();
+            }
+        };
+        success(parameter)
+    }
+
+    pub fn find_read_parameter(
         &self,
         logger: &Logger<Log>,
-        name: &str,
+        query: &ParameterQuery,
         ty: ParameterType,
-        scope: ParameterScope,
-    ) -> Compiled<&Parameter> {
-        let parameter = self.find_parameter_untyped(logger, name, scope)?;
-        if !parameter.value_type.matches(ty) {
+    ) -> Compiled<QualifiedParameter> {
+        let qualified = self.find_untyped_parameter(logger, query)?;
+        if !qualified.value_type.matches(ty) {
             logger.log(Log::ParameterTypeRequirement(
-                name.to_string(),
+                qualified.name,
                 ty.type_name().to_string(),
             ));
             return failure();
         }
-        success(parameter)
+        success(qualified)
     }
 
-    pub fn find_parameter_untyped(
+    pub fn find_writable_parameter(
         &self,
         logger: &Logger<Log>,
-        name: &str,
-        scope: ParameterScope,
-    ) -> Compiled<&Parameter> {
-        let parameter = match self.parameters.iter().find(|p| p.name == name) {
-            Some(p) => p,
-            None => {
-                logger.log(Log::ParameterNotFound(name.to_string()));
-                return failure();
-            }
-        };
-        if !parameter.scope.suitable_for(scope) {
-            logger.log(Log::ParameterScopeRequirement(
-                name.to_string(),
-                scope.name().to_string(),
-            ));
+        query: &ParameterQuery,
+        ty: ParameterType,
+    ) -> Compiled<QualifiedParameter> {
+        if !matches!(query, ParameterQuery::Declared(_)) {
+            logger.log(Log::ParameterNotWritable(query.querying_name().to_string()));
             return failure();
         }
-        success(parameter)
+        let name = self.find_read_parameter(logger, query, ty)?;
+        success(name)
     }
 
     pub fn find_asset(&self, logger: &Logger<Log>, name: &str, ty: AssetType) -> Compiled<&Asset> {
@@ -127,58 +129,37 @@ impl FirstPassData {
             }
         };
         if asset.asset_type != ty {
-            logger.log(Log::AssetTypeRequirement(
-                name.to_string(),
-                ty.type_name().to_string(),
-            ));
+            logger.log(Log::AssetTypeRequirement(name.to_string(), ty.type_name().to_string()));
             return failure();
         }
         success(asset)
     }
 
-    pub fn find_group(
-        &self,
-        logger: &Logger<Log>,
-        name: &str,
-        scope: ParameterScope,
-    ) -> Compiled<(&str, &[(String, usize)])> {
+    pub fn find_group(&self, logger: &Logger<Log>, name: &str) -> Compiled<(&ParameterQuery, &[(String, usize)])> {
         let layer = self.find_layer(logger, name)?;
-        let DeclaredLayerType::Group(parameter, options) = layer else {
+        let DeclaredLayerType::Group(query, options) = layer else {
             logger.log(Log::LayerMustBeGroup(name.to_string()));
             return failure();
         };
-        self.find_parameter(logger, parameter, ParameterType::INT_TYPE, scope)?;
-        success((&parameter, &options))
+        success((query, options))
     }
 
-    pub fn find_switch(
-        &self,
-        logger: &Logger<Log>,
-        name: &str,
-        scope: ParameterScope,
-    ) -> Compiled<&str> {
+    pub fn find_switch(&self, logger: &Logger<Log>, name: &str) -> Compiled<&ParameterQuery> {
         let layer = self.find_layer(logger, name)?;
-        let DeclaredLayerType::Switch(parameter) = layer else {
+        let DeclaredLayerType::Switch(query) = layer else {
             logger.log(Log::LayerMustBeSwitch(name.to_string()));
             return failure();
         };
-        self.find_parameter(logger, parameter, ParameterType::BOOL_TYPE, scope)?;
-        success(parameter)
+        success(query)
     }
 
-    pub fn find_puppet(
-        &self,
-        logger: &Logger<Log>,
-        name: &str,
-        scope: ParameterScope,
-    ) -> Compiled<&str> {
+    pub fn find_puppet(&self, logger: &Logger<Log>, name: &str) -> Compiled<&ParameterQuery> {
         let layer = self.find_layer(logger, name)?;
-        let DeclaredLayerType::Puppet(parameter) = layer else {
+        let DeclaredLayerType::Puppet(query) = layer else {
             logger.log(Log::LayerMustBePuppet(name.to_string()));
             return failure();
         };
-        self.find_parameter(logger, parameter, ParameterType::FLOAT_TYPE, scope)?;
-        success(parameter)
+        success(query)
     }
 
     pub fn find_raw(&self, logger: &Logger<Log>, name: &str) -> Compiled<&[String]> {

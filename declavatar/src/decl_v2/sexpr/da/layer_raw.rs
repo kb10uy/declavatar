@@ -2,15 +2,14 @@ use crate::decl_v2::{
     data::{
         layer::{
             DeclControllerLayer, DeclLayerInlineAnimation, DeclRawLayer, DeclRawLayerAnimation,
-            DeclRawLayerAnimationKind, DeclRawLayerBlendTreeField, DeclRawLayerBlendTreeType,
-            DeclRawLayerState, DeclRawLayerTransition, DeclRawLayerTransitionCondition,
-            DeclRawLayerTransitionOrdering,
+            DeclRawLayerAnimationKind, DeclRawLayerBlendTreeField, DeclRawLayerBlendTreeType, DeclRawLayerState,
+            DeclRawLayerTransition, DeclRawLayerTransitionCondition, DeclRawLayerTransitionOrdering,
         },
         StaticTypeName,
     },
     sexpr::{
         argument::SeparateArguments,
-        da::layer_basic::take_option_target,
+        da::{layer_basic::take_option_target, parameter::expect_parameter_reference},
         error::{DeclSexprError, KetosResult},
         register_function, KetosValueExt,
     },
@@ -20,13 +19,7 @@ use ketos::{Arity, Error, ExecError, Name, NameStore, Scope, Value};
 
 pub fn register_layer_raw_function(scope: &Scope) {
     // layer functions
-    register_function(
-        scope,
-        "raw-layer",
-        declare_raw_layer,
-        Arity::Min(1),
-        Some(&["default"]),
-    );
+    register_function(scope, "raw-layer", declare_raw_layer, Arity::Min(1), Some(&["default"]));
     register_function(scope, "state", declare_state, Arity::Min(2), Some(&[]));
 
     register_function(
@@ -65,65 +58,21 @@ pub fn register_layer_raw_function(scope: &Scope) {
         Some(&["duration"]),
     );
 
-    register_function(
-        scope,
-        "cond-eq",
-        declare_cond_eq,
-        Arity::Exact(2),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "cond-ne",
-        declare_cond_ne,
-        Arity::Exact(2),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "cond-gt",
-        declare_cond_gt,
-        Arity::Exact(2),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "cond-lt",
-        declare_cond_lt,
-        Arity::Exact(2),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "cond-ze",
-        declare_cond_ze,
-        Arity::Exact(1),
-        Some(&[]),
-    );
-    register_function(
-        scope,
-        "cond-nz",
-        declare_cond_nz,
-        Arity::Exact(1),
-        Some(&[]),
-    );
+    register_function(scope, "cond-eq", declare_cond_eq, Arity::Exact(2), Some(&[]));
+    register_function(scope, "cond-ne", declare_cond_ne, Arity::Exact(2), Some(&[]));
+    register_function(scope, "cond-gt", declare_cond_gt, Arity::Exact(2), Some(&[]));
+    register_function(scope, "cond-lt", declare_cond_lt, Arity::Exact(2), Some(&[]));
+    register_function(scope, "cond-ze", declare_cond_ze, Arity::Exact(1), Some(&[]));
+    register_function(scope, "cond-nz", declare_cond_nz, Arity::Exact(1), Some(&[]));
 }
 
-fn declare_raw_layer(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_raw_layer(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let default: Option<&str> = args.exact_kwarg("default")?;
 
     let mut states = vec![];
     for state_value in args.args_after_recursive(function_name, 1)? {
-        states.push(
-            state_value
-                .downcast_foreign_ref::<&DeclRawLayerState>()?
-                .clone(),
-        );
+        states.push(state_value.downcast_foreign_ref::<&DeclRawLayerState>()?.clone());
     }
     Ok(DeclControllerLayer::Raw(DeclRawLayer {
         name: name.to_string(),
@@ -133,11 +82,7 @@ fn declare_raw_layer(
     .into())
 }
 
-fn declare_state(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_state(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let kind: &DeclRawLayerAnimationKind = args.exact_arg(function_name, 1)?;
 
@@ -171,29 +116,26 @@ fn declare_inline_animation(
     Ok(DeclLayerInlineAnimation { targets }.into())
 }
 
-fn declare_clip(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_clip(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let animation: &Value = args.exact_arg(function_name, 0)?;
     let speed: Option<f64> = args.exact_kwarg("speed")?;
-    let speed_by: Option<&str> = args.exact_kwarg("speed-by")?;
-    let time_by: Option<&str> = args.exact_kwarg("time-by")?;
+    let speed_by: Option<&Value> = args.exact_kwarg("speed-by")?;
+    let time_by: Option<&Value> = args.exact_kwarg("time-by")?;
 
     Ok(DeclRawLayerAnimationKind::Clip {
         animation: take_animation(animation)?,
-        speed: (speed, speed_by.map(|s| s.to_string())),
-        time: time_by.map(|t| t.to_string()),
+        speed: (
+            speed,
+            speed_by
+                .map(|v| expect_parameter_reference(name_store, v))
+                .transpose()?,
+        ),
+        time: time_by.map(|v| expect_parameter_reference(name_store, v)).transpose()?,
     }
     .into())
 }
 
-fn declare_blendtree(
-    name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_blendtree(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let blend_type: &str = match args.exact_kwarg_expect::<&Value>("type")? {
         Value::Name(s) => name_store.get(*s),
         v => {
@@ -206,23 +148,32 @@ fn declare_blendtree(
     };
     let tree_type = match blend_type {
         "linear" => {
-            let x: &str = args.exact_kwarg_expect("x")?;
-            DeclRawLayerBlendTreeType::Linear(x.to_string())
+            let x: &Value = args.exact_kwarg_expect("x")?;
+            DeclRawLayerBlendTreeType::Linear(expect_parameter_reference(name_store, x)?)
         }
         "simple-2d" => {
-            let x: &str = args.exact_kwarg_expect("x")?;
-            let y: &str = args.exact_kwarg_expect("y")?;
-            DeclRawLayerBlendTreeType::Simple2D(x.to_string(), y.to_string())
+            let x: &Value = args.exact_kwarg_expect("x")?;
+            let y: &Value = args.exact_kwarg_expect("y")?;
+            DeclRawLayerBlendTreeType::Simple2D(
+                expect_parameter_reference(name_store, x)?,
+                expect_parameter_reference(name_store, y)?,
+            )
         }
         "freeform-2d" => {
-            let x: &str = args.exact_kwarg_expect("x")?;
-            let y: &str = args.exact_kwarg_expect("y")?;
-            DeclRawLayerBlendTreeType::Freeform2D(x.to_string(), y.to_string())
+            let x: &Value = args.exact_kwarg_expect("x")?;
+            let y: &Value = args.exact_kwarg_expect("y")?;
+            DeclRawLayerBlendTreeType::Freeform2D(
+                expect_parameter_reference(name_store, x)?,
+                expect_parameter_reference(name_store, y)?,
+            )
         }
         "cartesian-2d" => {
-            let x: &str = args.exact_kwarg_expect("x")?;
-            let y: &str = args.exact_kwarg_expect("y")?;
-            DeclRawLayerBlendTreeType::Cartesian2D(x.to_string(), y.to_string())
+            let x: &Value = args.exact_kwarg_expect("x")?;
+            let y: &Value = args.exact_kwarg_expect("y")?;
+            DeclRawLayerBlendTreeType::Cartesian2D(
+                expect_parameter_reference(name_store, x)?,
+                expect_parameter_reference(name_store, y)?,
+            )
         }
         _ => {
             return Err(Error::Custom(
@@ -286,11 +237,7 @@ fn take_animation(animation_value: &Value) -> KetosResult<DeclRawLayerAnimation>
     Ok(target)
 }
 
-fn declare_transition_to(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_transition_to(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let target: &str = args.exact_arg(function_name, 0)?;
     let duration: Option<f64> = args.exact_kwarg("duration")?;
 
@@ -308,101 +255,59 @@ fn declare_transition_to(
     .into())
 }
 
-fn declare_cond_eq(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_cond_eq(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let condition = expect_condition(
-        parameter.to_string(),
-        DeclRawLayerTransitionOrdering::Equal,
-        value,
-    )?;
+    let condition = expect_condition(name_store, parameter, DeclRawLayerTransitionOrdering::Equal, value)?;
     Ok(condition.into())
 }
 
-fn declare_cond_ne(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_cond_ne(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let condition = expect_condition(
-        parameter.to_string(),
-        DeclRawLayerTransitionOrdering::NotEqual,
-        value,
-    )?;
+    let condition = expect_condition(name_store, parameter, DeclRawLayerTransitionOrdering::NotEqual, value)?;
     Ok(condition.into())
 }
 
-fn declare_cond_gt(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_cond_gt(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let condition = expect_condition(
-        parameter.to_string(),
-        DeclRawLayerTransitionOrdering::Greater,
-        value,
-    )?;
+    let condition = expect_condition(name_store, parameter, DeclRawLayerTransitionOrdering::Greater, value)?;
     Ok(condition.into())
 }
 
-fn declare_cond_lt(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
+fn declare_cond_lt(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
     let value: &Value = args.exact_arg(function_name, 1)?;
 
-    let condition = expect_condition(
-        parameter.to_string(),
-        DeclRawLayerTransitionOrdering::Lesser,
-        value,
-    )?;
+    let condition = expect_condition(name_store, parameter, DeclRawLayerTransitionOrdering::Lesser, value)?;
     Ok(condition.into())
 }
 
-fn declare_cond_ze(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
-    Ok(DeclRawLayerTransitionCondition::Zero(parameter.to_string(), false).into())
+fn declare_cond_ze(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
+    Ok(DeclRawLayerTransitionCondition::Zero(expect_parameter_reference(name_store, parameter)?, false).into())
 }
 
-fn declare_cond_nz(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
-    let parameter: &str = args.exact_arg(function_name, 0)?;
-    Ok(DeclRawLayerTransitionCondition::Zero(parameter.to_string(), true).into())
+fn declare_cond_nz(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
+    let parameter: &Value = args.exact_arg(function_name, 0)?;
+    Ok(DeclRawLayerTransitionCondition::Zero(expect_parameter_reference(name_store, parameter)?, true).into())
 }
 
 fn expect_condition(
-    parameter: String,
+    name_store: &NameStore,
+    parameter: &Value,
     ordering: DeclRawLayerTransitionOrdering,
     value: &Value,
 ) -> KetosResult<DeclRawLayerTransitionCondition> {
+    let parameter = expect_parameter_reference(name_store, parameter)?;
     let condition = match value {
         Value::Bool(bv) => match ordering {
-            DeclRawLayerTransitionOrdering::Equal => {
-                DeclRawLayerTransitionCondition::Bool(parameter, *bv)
-            }
-            DeclRawLayerTransitionOrdering::NotEqual => {
-                DeclRawLayerTransitionCondition::Bool(parameter, !*bv)
-            }
+            DeclRawLayerTransitionOrdering::Equal => DeclRawLayerTransitionCondition::Bool(parameter, *bv),
+            DeclRawLayerTransitionOrdering::NotEqual => DeclRawLayerTransitionCondition::Bool(parameter, !*bv),
             _ => return Err(Error::Custom(DeclSexprError::InvalidCondition.into())),
         },
         Value::Integer(iv) => DeclRawLayerTransitionCondition::Int(

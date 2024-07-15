@@ -1,0 +1,15 @@
+; vim: set ft=commonlisp
+(use da :self)
+
+(da/avatar "extra-parameters"
+    (da/parameters
+        (da/int "OrdinaryInt")
+        (da/bool "OrdinaryBool")
+        (da/float "OrdinaryFloat")
+
+        (da/vrc-paramset
+            'gesture-left-weight
+        )
+        (da/pb-paramset "PBPrefix")
+    )
+)

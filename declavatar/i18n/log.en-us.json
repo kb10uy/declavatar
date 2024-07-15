@@ -10,6 +10,7 @@
     "parameter.not_found": "Parameter Error",
     "parameter.type_requirement": "Parameter Error",
     "parameter.scope_requirement": "Parameter Error",
+    "parameter.not_writable": "Parameter Error",
 
     "asset.incompatible_declaration": "Asset Error",
     "asset.not_found": "Asset Error",
@@ -52,6 +53,7 @@
     "parameter.not_found:description": "parameter '{0}' not found",
     "parameter.type_requirement:description": "parameter '{0}' must have type {1}",
     "parameter.scope_requirement:description": "parameter '{0}' must have scope {1}",
+    "parameter.not_writable:description": "parameter '{0}' is not writable",
 
     "asset.incompatible_declaration:description": "asset '{0}' has incompatible definition",
     "asset.not_found:description": "asset '{0}' not found",

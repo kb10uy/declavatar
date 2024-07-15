@@ -20,9 +20,7 @@ pub struct Arguments {
 
 impl Arguments {
     pub fn new() -> Arguments {
-        Arguments {
-            ..Default::default()
-        }
+        Arguments { ..Default::default() }
     }
 
     pub fn clear(&mut self) {
@@ -49,8 +47,7 @@ impl Arguments {
         if canonical_key.is_empty() {
             None
         } else {
-            self.localizations
-                .insert(canonical_key.to_string(), value.to_string())
+            self.localizations.insert(canonical_key.to_string(), value.to_string())
         }
     }
 
@@ -74,11 +71,7 @@ pub enum DeclarationFormat {
     Lua,
 }
 
-pub fn compile_declaration(
-    text: &str,
-    format: DeclarationFormat,
-    args: Arguments,
-) -> Result<DeclAvatar, DeclError> {
+pub fn compile_declaration(text: &str, format: DeclarationFormat, args: Arguments) -> Result<DeclAvatar, DeclError> {
     match format {
         DeclarationFormat::Sexpr => load_avatar_sexpr(text, args),
         _ => Err(DeclError::UnsupportedFormat),

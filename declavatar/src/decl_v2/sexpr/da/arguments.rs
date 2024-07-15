@@ -40,31 +40,19 @@ pub fn register_arguments_function(scope: &Scope, preprocess: Rc<Arguments>) {
     );
 }
 
-pub fn symbol(
-    function_name: Name,
-    args: SeparateArguments,
-    preprocess: &Arguments,
-) -> KetosResult<Value> {
+pub fn symbol(function_name: Name, args: SeparateArguments, preprocess: &Arguments) -> KetosResult<Value> {
     let symbol_name: &str = args.exact_arg(function_name, 0)?;
     let has_symbol = preprocess.symbols.contains(symbol_name);
     Ok(has_symbol.into())
 }
 
-pub fn can_localize(
-    function_name: Name,
-    args: SeparateArguments,
-    preprocess: &Arguments,
-) -> KetosResult<Value> {
+pub fn can_localize(function_name: Name, args: SeparateArguments, preprocess: &Arguments) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     let has_localization = preprocess.localizations.contains_key(localization_key);
     Ok(has_localization.into())
 }
 
-pub fn localize(
-    function_name: Name,
-    args: SeparateArguments,
-    preprocess: &Arguments,
-) -> KetosResult<Value> {
+pub fn localize(function_name: Name, args: SeparateArguments, preprocess: &Arguments) -> KetosResult<Value> {
     let localization_key: &str = args.exact_arg(function_name, 0)?;
     match preprocess.localizations.get(localization_key) {
         Some(v) => Ok(v.as_str().into()),

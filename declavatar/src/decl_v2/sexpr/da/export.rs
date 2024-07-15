@@ -1,6 +1,9 @@
 use crate::decl_v2::{
     data::export::{DeclExport, DeclExports},
-    sexpr::{argument::SeparateArguments, error::KetosResult, register_function, KetosValueExt},
+    sexpr::{
+        argument::SeparateArguments, da::parameter::expect_parameter_reference, error::KetosResult, register_function,
+        KetosValueExt,
+    },
 };
 
 use ketos::{Arity, Name, NameStore, Scope, Value};
@@ -11,45 +14,36 @@ pub fn register_export_function(scope: &Scope) {
     register_function(scope, "guard", declare_guard, Arity::Exact(2), Some(&[]));
 }
 
-fn declare_exports(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_exports(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let mut exports = vec![];
     for export_value in args.args_after_recursive(function_name, 0)? {
-        exports.push(
-            export_value
-                .downcast_foreign_ref::<&DeclExport>()
-                .map(|a| a.clone())?,
-        );
+        exports.push(export_value.downcast_foreign_ref::<&DeclExport>().cloned()?);
     }
     Ok(DeclExports { exports }.into())
 }
 
-fn declare_gate(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_gate(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     Ok(DeclExport::Gate(name.to_string()).into())
 }
 
-fn declare_guard(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_guard(name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let gate_name: &str = args.exact_arg(function_name, 0)?;
-    let parameter: &str = args.exact_arg(function_name, 1)?;
-    Ok(DeclExport::Guard(gate_name.to_string(), parameter.to_string()).into())
+    let parameter: &Value = args.exact_arg(function_name, 1)?;
+    Ok(DeclExport::Guard(
+        gate_name.to_string(),
+        expect_parameter_reference(name_store, parameter)?,
+    )
+    .into())
 }
 
 #[cfg(test)]
 mod test {
     use crate::decl_v2::{
-        data::export::{DeclExport, DeclExports},
+        data::{
+            export::{DeclExport, DeclExports},
+            parameter::DeclParameterReference,
+        },
         sexpr::test::eval_da_value,
     };
 
@@ -68,13 +62,11 @@ mod test {
             }
         );
         assert_eq!(
-            eval_da_value::<DeclExports>(
-                r#"(da/exports (list (da/gate "hoge") (da/guard "fuga" "piyo")))"#
-            ),
+            eval_da_value::<DeclExports>(r#"(da/exports (list (da/gate "hoge") (da/guard "fuga" "piyo")))"#),
             DeclExports {
                 exports: vec![
                     DeclExport::Gate("hoge".to_string()),
-                    DeclExport::Guard("fuga".to_string(), "piyo".to_string()),
+                    DeclExport::Guard("fuga".to_string(), DeclParameterReference::Primitive("piyo".into())),
                 ]
             }
         );
@@ -92,7 +84,7 @@ mod test {
     fn reads_guard() {
         assert_eq!(
             eval_da_value::<DeclExport>(r#"(da/guard "hoge" "fuga")"#),
-            DeclExport::Guard("hoge".to_string(), "fuga".to_string())
+            DeclExport::Guard("hoge".to_string(), DeclParameterReference::Primitive("fuga".into()))
         );
     }
 }

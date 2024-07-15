@@ -2,8 +2,8 @@ use crate::decl_v2::{
     data::{
         driver::DeclParameterDrive,
         menu::{
-            DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl,
-            DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
+            DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl, DeclPuppetTarget, DeclPuppetType,
+            DeclSubMenu,
         },
     },
     sexpr::{
@@ -38,18 +38,10 @@ pub fn register_menu_function(scope: &Scope) {
     register_function(scope, "axis", declare_axis, Arity::Range(1, 3), Some(&[]));
 }
 
-fn declare_menu(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_menu(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let mut elements = vec![];
     for element_value in args.args_after_recursive(function_name, 0)? {
-        elements.push(
-            element_value
-                .downcast_foreign_ref::<&DeclMenuElement>()?
-                .clone(),
-        );
+        elements.push(element_value.downcast_foreign_ref::<&DeclMenuElement>()?.clone());
     }
 
     Ok(DeclSubMenu {
@@ -59,20 +51,12 @@ fn declare_menu(
     .into())
 }
 
-fn declare_submenu(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_submenu(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
 
     let mut elements = vec![];
     for element_value in args.args_after_recursive(function_name, 1)? {
-        elements.push(
-            element_value
-                .downcast_foreign_ref::<&DeclMenuElement>()?
-                .clone(),
-        );
+        elements.push(element_value.downcast_foreign_ref::<&DeclMenuElement>()?.clone());
     }
 
     Ok(DeclMenuElement::SubMenu(DeclSubMenu {
@@ -82,11 +66,7 @@ fn declare_submenu(
     .into())
 }
 
-fn declare_button(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_button(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let parameter_drive: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
 
@@ -98,11 +78,7 @@ fn declare_button(
     .into())
 }
 
-fn declare_toggle(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_toggle(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let parameter_drive: &DeclParameterDrive = args.exact_arg(function_name, 1)?;
 
@@ -114,11 +90,7 @@ fn declare_toggle(
     .into())
 }
 
-fn declare_radial(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_radial(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let target: &DeclPuppetAxis = args.exact_arg(function_name, 1)?;
 
@@ -129,11 +101,7 @@ fn declare_radial(
     .into())
 }
 
-fn declare_two_axis(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_two_axis(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let horizontal: &DeclPuppetAxis = args.exact_kwarg_expect("horizontal")?;
     let vertical: &DeclPuppetAxis = args.exact_kwarg_expect("vertical")?;
@@ -148,11 +116,7 @@ fn declare_two_axis(
     .into())
 }
 
-fn declare_four_axis(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_four_axis(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let name: &str = args.exact_arg(function_name, 0)?;
     let up: &DeclPuppetAxis = args.exact_kwarg_expect("up")?;
     let down: &DeclPuppetAxis = args.exact_kwarg_expect("down")?;
@@ -171,11 +135,7 @@ fn declare_four_axis(
     .into())
 }
 
-fn declare_axis(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn declare_axis(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let target: &DeclParameterDrive = args.exact_arg(function_name, 0)?;
     let positive: Option<&str> = args.try_exact_arg(1)?;
     let negative: Option<&str> = args.try_exact_arg(2)?;
@@ -191,15 +151,10 @@ fn declare_axis(
 fn take_puppet_target(drive_target: &DeclParameterDrive) -> KetosResult<DeclPuppetTarget> {
     match drive_target {
         DeclParameterDrive::Puppet(puppet) => Ok(DeclPuppetTarget::Puppet(puppet.clone())),
-        DeclParameterDrive::SetFloat { parameter, .. } => {
-            Ok(DeclPuppetTarget::Parameter(parameter.clone()))
-        }
+        DeclParameterDrive::SetFloat { parameter, .. } => Ok(DeclPuppetTarget::Parameter(parameter.clone())),
         _ => Err(Error::Custom(
-            DeclSexprError::UnexpectedTypeValue(
-                "invalid drive target".to_string(),
-                "puppet drive target".to_string(),
-            )
-            .into(),
+            DeclSexprError::UnexpectedTypeValue("invalid drive target".to_string(), "puppet drive target".to_string())
+                .into(),
         )),
     }
 }
@@ -210,8 +165,8 @@ mod test {
         data::{
             driver::{DeclDriveGroup, DeclDrivePuppet, DeclParameterDrive},
             menu::{
-                DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl,
-                DeclPuppetTarget, DeclPuppetType, DeclSubMenu,
+                DeclBooleanControl, DeclMenuElement, DeclPuppetAxis, DeclPuppetControl, DeclPuppetTarget,
+                DeclPuppetType, DeclSubMenu,
             },
         },
         sexpr::test::eval_da_value,
@@ -266,9 +221,7 @@ mod test {
     #[test]
     fn reads_radial() {
         assert_eq!(
-            eval_da_value::<DeclMenuElement>(
-                r#"(da/radial "hoge" (da/axis (da/drive-puppet "foo")))"#
-            ),
+            eval_da_value::<DeclMenuElement>(r#"(da/radial "hoge" (da/axis (da/drive-puppet "foo")))"#),
             DeclMenuElement::Puppet(DeclPuppetControl {
                 name: "hoge".to_string(),
                 puppet_type: Box::new(DeclPuppetType::Radial(DeclPuppetAxis {

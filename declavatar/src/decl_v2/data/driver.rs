@@ -1,4 +1,4 @@
-use crate::static_type_name_impl;
+use crate::{decl_v2::data::parameter::DeclParameterReference, static_type_name_impl};
 
 use ketos::{ForeignValue, FromValue, FromValueRef, IntoValue};
 
@@ -8,40 +8,40 @@ pub enum DeclParameterDrive {
     Switch(DeclDriveSwitch),
     Puppet(DeclDrivePuppet),
     SetInt {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: i64,
     },
     SetBool {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: Option<bool>,
     },
     SetFloat {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: Option<f64>,
     },
     AddInt {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: i64,
     },
     AddFloat {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: f64,
     },
     RandomInt {
-        parameter: String,
+        parameter: DeclParameterReference,
         range: (u8, u8),
     },
     RandomBool {
-        parameter: String,
+        parameter: DeclParameterReference,
         value: f64,
     },
     RandomFloat {
-        parameter: String,
+        parameter: DeclParameterReference,
         range: (f64, f64),
     },
     Copy {
-        from: String,
-        to: String,
+        from: DeclParameterReference,
+        to: DeclParameterReference,
         range: Option<((f64, f64), (f64, f64))>,
     },
 }

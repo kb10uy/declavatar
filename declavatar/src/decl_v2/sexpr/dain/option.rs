@@ -1,8 +1,8 @@
 use crate::decl_v2::{
     data::layer::{DeclGroupOption, DeclGroupOptionKind},
     sexpr::{
-        argument::SeparateArguments, da::layer_basic::take_option_target, error::KetosResult,
-        register_function, register_function_with_context,
+        argument::SeparateArguments, da::layer_basic::take_option_target, error::KetosResult, register_function,
+        register_function_with_context,
     },
 };
 
@@ -36,11 +36,7 @@ pub fn register_option_function(scope: &Scope) {
     )
 }
 
-fn option_prepend_targets(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn option_prepend_targets(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let option: &DeclGroupOption = args.exact_arg(function_name, 0)?;
     let target_values = {
         let targets_list: &Value = args.exact_arg(function_name, 1)?;
@@ -67,11 +63,7 @@ fn option_prepend_targets(
     Ok(new_option.into())
 }
 
-fn option_extend_targets(
-    _name_store: &NameStore,
-    function_name: Name,
-    args: SeparateArguments,
-) -> KetosResult<Value> {
+fn option_extend_targets(_name_store: &NameStore, function_name: Name, args: SeparateArguments) -> KetosResult<Value> {
     let option: &DeclGroupOption = args.exact_arg(function_name, 0)?;
     let target_values = {
         let targets_list: &Value = args.exact_arg(function_name, 1)?;
@@ -111,12 +103,7 @@ fn option_replace_targets(
         DeclGroupOptionKind::Selection(Some(v), _) => Value::String(RcString::new(v.clone())),
         DeclGroupOptionKind::Keyframe(v) => Value::Float(*v),
     };
-    let target_values: Vec<Value> = original_option
-        .targets
-        .iter()
-        .cloned()
-        .map(|t| t.into())
-        .collect();
+    let target_values: Vec<Value> = original_option.targets.iter().cloned().map(|t| t.into()).collect();
 
     let mapped_targets = call_function(
         ctx,

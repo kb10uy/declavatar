@@ -18,13 +18,8 @@ impl<'a> SeparateArguments<'a> {
         args_arity: Arity,
         allowed_keywords: Option<&'static [&'static str]>,
     ) -> KetosResult<SeparateArguments<'a>> {
-        let (args, kwargs) = SeparateArguments::separate_args(
-            name_store,
-            function_name,
-            raw_args,
-            args_arity,
-            allowed_keywords,
-        )?;
+        let (args, kwargs) =
+            SeparateArguments::separate_args(name_store, function_name, raw_args, args_arity, allowed_keywords)?;
         Ok(SeparateArguments { args, kwargs })
     }
 
@@ -40,11 +35,7 @@ impl<'a> SeparateArguments<'a> {
         Ok(self.args[index])
     }
 
-    pub fn exact_arg<T: FromValueRef<'a>>(
-        &'a self,
-        function_name: Name,
-        index: usize,
-    ) -> KetosResult<T> {
+    pub fn exact_arg<T: FromValueRef<'a>>(&'a self, function_name: Name, index: usize) -> KetosResult<T> {
         let raw_value = self.get_arg(function_name, index)?;
         let value = T::from_value_ref(raw_value)?;
         Ok(value)
@@ -123,9 +114,7 @@ impl<'a> SeparateArguments<'a> {
                         .ok_or(Error::ExecError(ExecError::OddKeywordParams))?;
 
                     let real_name = name_store.get(*name);
-                    let keyword_accepted = allowed_keywords
-                        .map(|kw| kw.contains(&real_name))
-                        .unwrap_or(true);
+                    let keyword_accepted = allowed_keywords.map(|kw| kw.contains(&real_name)).unwrap_or(true);
                     if !keyword_accepted {
                         return Err(Error::ExecError(ExecError::UnrecognizedKeyword(*name)));
                     }

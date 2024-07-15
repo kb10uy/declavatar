@@ -1,10 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, FieldsUnnamed,
-    LitStr,
-};
+use syn::{parse_macro_input, Attribute, Data, DeriveInput, Error as SynError, Fields, FieldsUnnamed, LitStr};
 
 #[proc_macro_derive(EnumLog, attributes(log_error, log_warn, log_info))]
 pub fn enum_log_derive(input: TokenStream) -> TokenStream {
@@ -46,9 +43,7 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
     let mut serialize_log_arms = vec![];
     for variant in &enum_tree.variants {
         let variant_ident = &variant.ident;
-        let Some((key_literal, severity_ts2, erroneous_ts2)) =
-            enum_log_find_attribute(&variant.attrs)?
-        else {
+        let Some((key_literal, severity_ts2, erroneous_ts2)) = enum_log_find_attribute(&variant.attrs)? else {
             return Err(SynError::new_spanned(
                 &variant.ident,
                 "variant must have one of log_error, log_warn, log_info attr",
@@ -114,20 +109,14 @@ fn enum_log_generate(derive_input: &DeriveInput) -> Result<TokenStream, SynError
     Ok(expanded.into())
 }
 
-fn enum_log_find_attribute(
-    attrs: &[Attribute],
-) -> Result<Option<(LitStr, TokenStream2, TokenStream2)>, SynError> {
+fn enum_log_find_attribute(attrs: &[Attribute]) -> Result<Option<(LitStr, TokenStream2, TokenStream2)>, SynError> {
     for attr in attrs {
         if attr.path().is_ident("log_error") {
             return Ok(Some((attr.parse_args()?, quote!(Error), quote!(true))));
         } else if attr.path().is_ident("log_warn") {
             return Ok(Some((attr.parse_args()?, quote!(Warning), quote!(false))));
         } else if attr.path().is_ident("log_info") {
-            return Ok(Some((
-                attr.parse_args()?,
-                quote!(Information),
-                quote!(false),
-            )));
+            return Ok(Some((attr.parse_args()?, quote!(Information), quote!(false))));
         } else {
             continue;
         }

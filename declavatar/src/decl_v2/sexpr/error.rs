@@ -19,6 +19,9 @@ pub enum DeclSexprError {
     #[error("invalid scope name: {0}")]
     InvalidScope(String),
 
+    #[error("invalid VRChat-provided parameter type: {0}")]
+    InvalidVrchatParameter(String),
+
     #[error("invalid copy mode: {0}")]
     InvalidCopyMode(String),
 

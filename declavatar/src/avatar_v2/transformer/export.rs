@@ -1,9 +1,6 @@
 use crate::{
     avatar_v2::{
-        data::{
-            export::ExportItem,
-            parameter::{ParameterScope, ParameterType},
-        },
+        data::{export::ExportItem, parameter::ParameterType},
         log::Log,
         transformer::{failure, success, Compiled, FirstPassData},
     },
@@ -11,10 +8,7 @@ use crate::{
     log::Logger,
 };
 
-pub fn first_pass_exports_blocks(
-    _logger: &Logger<Log>,
-    exports_blocks: &[DeclExports],
-) -> Compiled<Vec<String>> {
+pub fn first_pass_exports_blocks(_logger: &Logger<Log>, exports_blocks: &[DeclExports]) -> Compiled<Vec<String>> {
     let mut declared_gates = vec![];
     for decl_exports in exports_blocks {
         for decl_export in &decl_exports.exports {
@@ -46,25 +40,19 @@ pub fn compile_exports_blocks(
     success(assets)
 }
 
-fn compile_export(
-    logger: &Logger<Log>,
-    first_pass: &FirstPassData,
-    decl_export: DeclExport,
-) -> Compiled<ExportItem> {
+fn compile_export(logger: &Logger<Log>, first_pass: &FirstPassData, decl_export: DeclExport) -> Compiled<ExportItem> {
     match decl_export {
         DeclExport::Gate(name) => success(ExportItem::Gate { name }),
         DeclExport::Guard(gate, parameter) => {
-            let bound_parameter = first_pass.find_parameter(
-                logger,
-                &parameter,
-                ParameterType::BOOL_TYPE,
-                ParameterScope::MAYBE_INTERNAL,
-            )?;
-            if bound_parameter.unique {
-                logger.log(Log::GateInvalidParameter(parameter.clone()));
+            let qualified = first_pass.find_read_parameter(logger, &parameter.into(), ParameterType::BOOL_TYPE)?;
+            if qualified.unique {
+                logger.log(Log::GateInvalidParameter(qualified.name));
                 return failure();
             }
-            success(ExportItem::Guard { gate, parameter })
+            success(ExportItem::Guard {
+                gate,
+                parameter: qualified.name,
+            })
         }
     }
 }
